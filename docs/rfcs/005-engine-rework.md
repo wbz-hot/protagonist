@@ -88,11 +88,11 @@ Ingest file (F)
 - ingest + reingest
 
 Above for origin-strategies
-- basic-http-authentication - Optimised
+- basic-http-authentication - Optimised (for I)
 - basic-http-authentication - Not Optimised
-- s3-ambient - Optimised
+- s3-ambient - Optimised (for I)
 - s3-ambient - Not Optimised
-- sftp - Optimised
+- sftp - Optimised (for I)
 - sftp - Not Optimised
 - default
 
