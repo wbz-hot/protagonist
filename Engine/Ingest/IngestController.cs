@@ -8,7 +8,7 @@ namespace Engine.Ingest
     public class IngestController : Controller
     {
         [HttpPost]
-        public Task<IActionResult> IngestImage()
+        public Task<IActionResult> IngestImage([FromBody] dynamic payload)
         {
             return Task.FromResult(Ok("not-implemented") as IActionResult);
         }
