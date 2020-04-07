@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using JustSaying.Models;
 using Newtonsoft.Json;
 
 namespace Engine.Messaging
 {
-    public class IngestImageMessage : Message, IMessagingEvent
+    public class IngestImage : IMessagingEvent
     {
-        [JsonProperty("__type")] 
+        [JsonProperty("_type")] 
         public string Type { get; set; }
         
-        [JsonProperty("__created")]
+        [JsonProperty("_created")]
         public DateTime Created { get; set; }
         
         public string Message { get; set; }

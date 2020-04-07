@@ -23,10 +23,9 @@
         public bool UseLocal { get; set; } = false;
         
         /// <summary>
-        /// Root of locally running SQS instance.
+        /// Service root for SQS.
         /// </summary>
-        /// <remarks>E.g. http://localhost:4100 of using goaws</remarks>
-        public string LocalRoot { get; set; }
+        public string ServiceRoot { get; set; }
 
         // TODO - timeouts, processing counts. May need more complex types.
     }

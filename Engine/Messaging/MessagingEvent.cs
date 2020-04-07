@@ -33,8 +33,8 @@ namespace Engine.Messaging
 
         [JsonConstructor]
         public MessagingEvent(
-            [JsonProperty("__type")] string type, 
-            [JsonProperty("__created")] DateTime created,
+            [JsonProperty("_type")] string type, 
+            [JsonProperty("_created")] DateTime created,
             [JsonProperty("message")] string message, 
             [JsonProperty("params")] Dictionary<string, string> @params)
         {

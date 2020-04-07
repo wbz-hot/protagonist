@@ -1,6 +1,5 @@
-﻿using Engine.Ingest;
+﻿using Amazon.SQS;
 using Engine.Messaging;
-using JustSaying;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Engine.Infrastructure
@@ -15,10 +14,11 @@ namespace Engine.Infrastructure
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public static IServiceCollection AddJustSaying(this IServiceCollection services)
+        public static IServiceCollection AddSQSSubscribers(this IServiceCollection services)
             => services
-                .AddSingleton<IHandlerResolver, DlcsHandlerResolver>()
-                .AddSingleton<IngestMessageHandler>()
+                .AddAWSService<IAmazonSQS>()
+                .AddSingleton<IngestHandler>()
+                .AddSingleton<SqsListenerManager>()
                 .AddHostedService<ManageSQSSubscriptionsService>();
     }
 }

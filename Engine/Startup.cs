@@ -1,3 +1,4 @@
+using Amazon.SQS;
 using DLCS.Repository;
 using Engine.Infrastructure;
 using Engine.Settings;
@@ -29,7 +30,7 @@ namespace Engine
             services
                 .AddCors()
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())
-                .AddJustSaying();
+                .AddSQSSubscribers();
 
             services
                 .AddControllers()
