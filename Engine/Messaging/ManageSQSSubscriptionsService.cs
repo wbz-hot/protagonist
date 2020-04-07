@@ -1,7 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Extensions.NETCore.Setup;
-using Engine.Messaging;
 using Engine.Settings;
 using JustSaying;
 using JustSaying.AwsTools;
@@ -10,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Engine
+namespace Engine.Messaging
 {
     /// <summary>
     /// <see cref="IHostedService"/> implementation for subscribing/unsubscribing to message queues.
@@ -35,10 +34,12 @@ namespace Engine
             this.queueSettings = queueSettings.Value;
             logger = loggerFactory.CreateLogger<ManageSQSSubscriptionsService>();
             
-            CreateMeABus.DefaultClientFactory = () => new DefaultAwsClientFactory(awsOpts.Credentials);
-            sqsSettings = CreateMeABus.WithLogging(loggerFactory)
+            CreateMeABus.DefaultClientFactory = () =>  GetAwsClientFactory(awsOpts);
+            sqsSettings = CreateMeABus
+                .WithLogging(loggerFactory)
                 .InRegion(awsOpts.Region.SystemName);
         }
+
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -59,23 +60,27 @@ namespace Engine
             logger.LogInformation("Hosted service StopAsync");
             return Task.CompletedTask;
         }
+        
+        private IAwsClientFactory GetAwsClientFactory(AWSOptions awsOpts) =>
+            queueSettings.UseLocal 
+                ? (IAwsClientFactory) new LocalAwsClientFactory(queueSettings, awsOpts.Credentials) 
+                : new DefaultAwsClientFactory(awsOpts.Credentials);
 
         private void ConfigureSQSListener<T>(string queueName, bool isVideo = false)
             where T : Message
         {
             if (string.IsNullOrWhiteSpace(queueName)) return;
+            
+            logger.LogDebug("Subscribing to {queueName}", queueName);
 
-            var fluentSubscription = sqsSettings
+            // TODO - make this configurable?
+            int? maxInFlight = isVideo ? 1 : (int?) null;
+
+            sqsSettings
                 .WithSqsTopicSubscriber()
-                .IntoQueue(queueName);
-
-            // TODO - max this configurable?
-            if (isVideo)
-                fluentSubscription =
-                    fluentSubscription.ConfigureSubscriptionWith(configuration =>
-                        configuration.MaxAllowedMessagesInFlight = 1);
-
-            fluentSubscription.WithMessageHandler<T>(handlerResolver);
+                .IntoQueue(queueName)
+                .ConfigureSubscriptionWith(configuration => configuration.MaxAllowedMessagesInFlight = maxInFlight)
+                .WithMessageHandler<T>(handlerResolver);
         }
 
         private void OnStopping()
@@ -85,5 +90,4 @@ namespace Engine
             logger.LogInformation("Stopping listening to queues");
         }
     }
-
 }

@@ -1,13 +1,12 @@
 using DLCS.Repository;
+using Engine.Infrastructure;
 using Engine.Settings;
-using JustSaying;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using JustSaying.Models;
 
 namespace Engine
 {
@@ -24,17 +23,19 @@ namespace Engine
         {
             services.AddHealthChecks()
                 .AddNpgSql(configuration.GetPostgresSqlConnection());
-            services.AddCors();
-            services.AddDefaultAWSOptions(configuration.GetAWSOptions());
-            services.AddSingleton<IHandlerResolver, DlcsHandlerResolver>();
-            services.AddHostedService<ManageSQSSubscriptionsService>();
+
+            services.Configure<QueueSettings>(configuration.GetSection("Queues"));
+            
+            services
+                .AddCors()
+                .AddDefaultAWSOptions(configuration.GetAWSOptions())
+                .AddJustSaying();
 
             services
                 .AddControllers()
                 .SetCompatibilityVersion(CompatibilityVersion.Latest)
                 .AddNewtonsoftJson();
             
-            services.Configure<QueueSettings>(configuration.GetSection("Queues"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -45,11 +46,10 @@ namespace Engine
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseRouting();
-            app.UseCors();
-            app.UseHealthChecks("/ping");
-
-            app.UseEndpoints(endpoints => endpoints.MapControllers());
+            app.UseRouting()
+                .UseCors()
+                .UseHealthChecks("/ping")
+                .UseEndpoints(endpoints => endpoints.MapControllers());
         }
     }
 }

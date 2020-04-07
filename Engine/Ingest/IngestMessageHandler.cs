@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Engine.Messaging;
 using JustSaying.Messaging.MessageHandling;
 
-namespace Engine.Messaging
+namespace Engine.Ingest
 {
     public class IngestMessageHandler : IHandlerAsync<IngestImageMessage>
     {

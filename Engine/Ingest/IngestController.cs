@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Engine.Messaging;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Engine.Ingest
@@ -8,9 +9,9 @@ namespace Engine.Ingest
     public class IngestController : Controller
     {
         [HttpPost]
-        public Task<IActionResult> IngestImage([FromBody] dynamic payload)
+        public Task<IActionResult> IngestImage([FromBody] MessagingEvent message)
         {
-            return Task.FromResult(Ok("not-implemented") as IActionResult);
+            return Task.FromResult(Ok(message) as IActionResult);
         }
     }
 }
