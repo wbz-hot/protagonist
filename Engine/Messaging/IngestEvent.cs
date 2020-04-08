@@ -7,8 +7,8 @@ namespace Engine.Messaging
     /// <summary>
     /// MessagingEvent passed to the Engine by DLCS API.
     /// </summary>
-    /// <remarks>Legacy field from the Inversion framework.</remarks>
-    public class MessagingEvent : IMessagingEvent
+    /// <remarks>Legacy fields from the Inversion framework.</remarks>
+    public class IngestEvent
     {
         /// <summary>
         /// Gets the type of MessagingEvent.
@@ -32,7 +32,7 @@ namespace Engine.Messaging
         public Dictionary<string, string> Params { get; }
 
         [JsonConstructor]
-        public MessagingEvent(
+        public IngestEvent(
             [JsonProperty("_type")] string type, 
             [JsonProperty("_created")] DateTime created,
             [JsonProperty("message")] string message, 

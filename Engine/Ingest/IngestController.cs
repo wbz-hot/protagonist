@@ -9,7 +9,7 @@ namespace Engine.Ingest
     public class IngestController : Controller
     {
         [HttpPost]
-        public Task<IActionResult> IngestImage([FromBody] MessagingEvent message)
+        public Task<IActionResult> IngestImage([FromBody] IngestEvent message)
         {
             return Task.FromResult(Ok(message) as IActionResult);
         }
