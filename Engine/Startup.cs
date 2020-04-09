@@ -31,6 +31,7 @@ namespace Engine
                 .AddNpgSql(configuration.GetPostgresSqlConnection());
 
             services.Configure<QueueSettings>(configuration.GetSection("Queues"));
+            services.Configure<EngineSettings>(configuration.GetSection("Engine"));
             
             services
                 .AddCors()

@@ -12,7 +12,10 @@ namespace Engine.Ingest.Workers
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken)
         {
-            // load data
+            // EnsureProcessingFolderExistsBehaviour
+            // LoadOriginStrategy
+            // SetImageLocationInitialOriginBehaviour
+            // CheckStoragePolicy
 
             // call image or ElasticTranscoder
             await FamilySpecificIngest(ingestAssetRequest);

@@ -40,6 +40,8 @@ namespace Engine.Messaging
         /// <param name="cancellationToken">CancellationToken for listen request.</param>
         public void Listen(CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested) return;
+            
             // kick off listener loop in the background
             _ = Task.Run(async () =>
             {
