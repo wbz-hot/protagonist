@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Engine
 {
@@ -15,7 +16,14 @@ namespace Engine
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureLogging(logging => { logging.ClearProviders().AddConsole(); })
+                .ConfigureLogging((hostingContext, logging) =>
+                {
+                    logging.ClearProviders()
+                        .AddSerilog(new LoggerConfiguration()
+                            .ReadFrom.Configuration(hostingContext.Configuration)
+                            .Enrich.FromLogContext()
+                            .CreateLogger());
+                })
                 .ConfigureAppConfiguration((context, builder) =>
                 {
                     var isDevelopment = context.HostingEnvironment.IsDevelopment();
@@ -35,6 +43,7 @@ namespace Engine
                         builder.AddJsonFile($"appsettings.Development.json", optional: true, reloadOnChange: true);
                     }
                 })
-                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
+                .UseSerilog();
     }
 }
