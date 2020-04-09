@@ -1,11 +1,13 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Engine.Messaging;
 using Engine.Settings;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Engine.Messaging
+namespace Engine.Infrastructure
 {
     /// <summary>
     /// <see cref="IHostedService"/> implementation for subscribing/unsubscribing to message queues.
@@ -34,9 +36,13 @@ namespace Engine.Messaging
             logger.LogInformation("Hosted service StartAsync");
 
             // TODO - throttle video to only 1 message being processed at any given time
-            await sqsListener.AddQueueListener(queueSettings.Image);
-            await sqsListener.AddQueueListener(queueSettings.ImagePriority);
-            await sqsListener.AddQueueListener(queueSettings.Video);
+            var configureQueues = new List<Task>
+            {
+                sqsListener.AddQueueListener(queueSettings.Image),
+                sqsListener.AddQueueListener(queueSettings.ImagePriority),
+                sqsListener.AddQueueListener(queueSettings.Video)
+            };
+            await Task.WhenAll(configureQueues);
             sqsListener.StartListening();
             
             hostApplicationLifetime.ApplicationStopping.Register(OnStopping);

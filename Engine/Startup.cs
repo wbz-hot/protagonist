@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
 using Amazon.SQS;
+using DLCS.Model.Assets;
 using DLCS.Repository;
 using Engine.Infrastructure;
+using Engine.Ingest;
+using Engine.Ingest.Workers;
 using Engine.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -36,7 +41,26 @@ namespace Engine
                 .AddControllers()
                 .SetCompatibilityVersion(CompatibilityVersion.Latest)
                 .AddNewtonsoftJson();
-            
+
+            services
+                .AddTransient<ImageIngesterWorker>()
+                .AddTransient<TimebasedIngesterWorker>()
+                .AddTransient<AssetIngester>()
+                .AddTransient<IngestorResolver>(provider => family =>
+                {
+                    switch (family)
+                    {
+                        case AssetFamily.Image:
+                            return provider.GetService<ImageIngesterWorker>();
+                        case AssetFamily.Timebase:
+                            return provider.GetService<TimebasedIngesterWorker>();
+                        case AssetFamily.File:
+                            // TODO - handle this correctly.
+                            throw new NotImplementedException("File shouldn't be here");
+                        default:
+                            throw new KeyNotFoundException();
+                    }
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Engine.Ingest;
 using Engine.Messaging.Models;
 using Microsoft.Extensions.Logging;
 
@@ -15,16 +16,16 @@ namespace Engine.Messaging
     {
         private readonly IAmazonSQS client;
         private readonly SubscribedToQueue queue;
-        private readonly IngestHandler handler;
+        private readonly QueueHandlerResolver handlerResolver;
         private readonly ILogger<SqsListener> logger;
 
         // TODO - this makes the assumption that all handlers will be the same for all queues
         // if that differs IngestHandler will need to be something smarter
-        public SqsListener(IAmazonSQS client, SubscribedToQueue queue, IngestHandler handler, ILoggerFactory loggerFactory)
+        public SqsListener(IAmazonSQS client, SubscribedToQueue queue, QueueHandlerResolver handlerResolver, ILoggerFactory loggerFactory)
         {
             this.client = client;
             this.queue = queue;
-            this.handler = handler;
+            this.handlerResolver = handlerResolver;
             logger = loggerFactory.CreateLogger<SqsListener>();
         }
 
@@ -54,7 +55,7 @@ namespace Engine.Messaging
 
         private async Task ListenLoop(CancellationToken cancellationToken)
         {
-            // TODO - handle 1 message at a time and make timeout configurable
+            // TODO - handle X message at a time and make timeout configurable
             while (!cancellationToken.IsCancellationRequested)
             {
                 ReceiveMessageResponse response = null;
@@ -76,7 +77,7 @@ namespace Engine.Messaging
 
                 try
                 {
-                    foreach (var message in response.Messages)
+                    foreach (var message in response!.Messages)
                     {
                         if (cancellationToken.IsCancellationRequested) return;
 
@@ -113,6 +114,7 @@ namespace Engine.Messaging
             try
             {
                 var queueMessage = new QueueMessage {Attributes = message.Attributes, Body = message.Body};
+                var handler = handlerResolver(queue);
                 var processed = await handler.Handle(queueMessage, cancellationToken);
                 return processed;
             }

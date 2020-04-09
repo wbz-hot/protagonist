@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using DLCS.Model.Assets;
 using Newtonsoft.Json;
 
-namespace Engine.Messaging
+namespace Engine.Ingest.Models
 {
     /// <summary>
-    /// MessagingEvent passed to the Engine by DLCS API.
+    /// Serialized Inversion MessagingEvent passed to the Engine by DLCS API.
     /// </summary>
     /// <remarks>Legacy fields from the Inversion framework.</remarks>
-    public class IngestEvent
+    public class IncomingIngestEvent
     {
         /// <summary>
         /// Gets the type of MessagingEvent.
@@ -18,7 +19,7 @@ namespace Engine.Messaging
         /// <summary>
         /// Gets the date this message was created.
         /// </summary>
-        public DateTime Created { get; }
+        public DateTime? Created { get; }
         
         /// <summary>
         /// Gets the type of this message.
@@ -28,20 +29,24 @@ namespace Engine.Messaging
         /// <summary>
         /// A collection of additional parameters associated with event. 
         /// </summary>
-        /// <remarks>this could be an Asset but with stringX and numberX rather than ReferenceX and NumberReferenceX</remarks>
         public Dictionary<string, string> Params { get; }
 
+        /// <summary>
+        /// Serialized <see cref="Asset"/> as JSON.
+        /// </summary>
+        public string AssetJson => Params.TryGetValue("image", out var image) ? image : null;
+
         [JsonConstructor]
-        public IngestEvent(
+        public IncomingIngestEvent(
             [JsonProperty("_type")] string type, 
-            [JsonProperty("_created")] DateTime created,
+            [JsonProperty("_created")] DateTime? created,
             [JsonProperty("message")] string message, 
             [JsonProperty("params")] Dictionary<string, string> @params)
         {
             Type = type;
             Created = created;
             Message = message;
-            Params = @params;
+            Params = @params ?? new Dictionary<string, string>();
         }
     }
 }

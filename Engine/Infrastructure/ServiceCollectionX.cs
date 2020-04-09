@@ -1,4 +1,5 @@
 ﻿using Amazon.SQS;
+using Engine.Ingest;
 using Engine.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,7 +11,7 @@ namespace Engine.Infrastructure
     public static class ServiceCollectionX
     {
         /// <summary>
-        /// Add JustSaying queue handlers to service collection.
+        /// Add SQS queue handlers to service collection.
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
@@ -19,6 +20,11 @@ namespace Engine.Infrastructure
                 .AddAWSService<IAmazonSQS>()
                 .AddSingleton<IngestHandler>()
                 .AddSingleton<SqsListenerManager>()
+                .AddTransient<QueueHandlerResolver>(provider => queue =>
+                    {
+                        // TODO - add logic for ElasticTranscoder handling
+                        return provider.GetService<IngestHandler>();
+                    })
                 .AddHostedService<ManageSQSSubscriptionsService>();
     }
 }

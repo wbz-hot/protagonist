@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Engine.Ingest;
 using Engine.Messaging.Models;
 using Microsoft.Extensions.Logging;
 
@@ -15,17 +16,17 @@ namespace Engine.Messaging
     public class SqsListenerManager
     {
         private readonly IAmazonSQS client;
-        private readonly IngestHandler handler;
+        private readonly QueueHandlerResolver handlerResolver;
         private readonly ConcurrentBag<SqsListener> listeners;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<SqsListenerManager> logger;
         private readonly object syncRoot = new object();
 
-        public SqsListenerManager(IAmazonSQS client, IngestHandler handler, ILoggerFactory loggerFactory)
+        public SqsListenerManager(IAmazonSQS client, QueueHandlerResolver handlerResolver, ILoggerFactory loggerFactory)
         {
             this.client = client;
-            this.handler = handler;
+            this.handlerResolver = handlerResolver;
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<SqsListenerManager>();
             listeners = new ConcurrentBag<SqsListener>();
@@ -48,7 +49,7 @@ namespace Engine.Messaging
                 throw new InvalidOperationException($"Cannot listen to queue {queueName} as it does not exist");
             }
 
-            var listener = new SqsListener(client, queue, handler, loggerFactory);
+            var listener = new SqsListener(client, queue, handlerResolver, loggerFactory);
             listeners.Add(listener);
         }
 

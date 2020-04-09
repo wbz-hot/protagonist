@@ -1,5 +1,7 @@
-﻿using System.Threading.Tasks;
-using Engine.Messaging;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using Engine.Ingest.Models;
+using Engine.Messaging.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Engine.Ingest
@@ -8,10 +10,21 @@ namespace Engine.Ingest
     [ApiController]
     public class IngestController : Controller
     {
-        [HttpPost]
-        public Task<IActionResult> IngestImage([FromBody] IngestEvent message)
+        private readonly AssetIngester ingester;
+
+        public IngestController(AssetIngester ingester)
         {
-            return Task.FromResult(Ok(message) as IActionResult);
+            this.ingester = ingester;
+        }
+        
+        [HttpPost]
+        public async Task<IActionResult> IngestImage([FromBody] IncomingIngestEvent message, CancellationToken cancellationToken)
+        {
+            var result = await ingester.Ingest(message, cancellationToken);
+            
+            // TODO - format result based on success/failure of job
+            
+            return Ok(message);
         }
     }
 }
