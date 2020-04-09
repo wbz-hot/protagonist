@@ -1,6 +1,7 @@
 ﻿using System;
 using DLCS.Core.Guard;
 using DLCS.Model.Assets;
+using IIIF.ImageApi;
 using Newtonsoft.Json;
 
 namespace Engine.Ingest.Models
@@ -19,12 +20,21 @@ namespace Engine.Ingest.Models
 
             if (string.IsNullOrEmpty(incomingRequest.AssetJson))
             {
-                throw new InvalidOperationException("Cannot convert IncomingIngestEvent that has no 'asset' param");
+                throw new InvalidOperationException("Cannot convert IncomingIngestEvent that has no Asset Json");
             }
 
-            var formattedJson = incomingRequest.AssetJson.Replace("\r\n", string.Empty);
-            var asset = JsonConvert.DeserializeObject<Asset>(formattedJson);
-            return new IngestAssetRequest(asset, incomingRequest.Created);
+            try
+            {
+                var formattedJson = incomingRequest.AssetJson.Replace("\r\n", string.Empty);
+                var asset = JsonConvert.DeserializeObject<Asset>(formattedJson);
+                return new IngestAssetRequest(asset, incomingRequest.Created);
+            }
+            catch (JsonReaderException e)
+            {
+                var ex = new InvalidOperationException("Unable to deserialize Asset Json from IncomingIngestEvent", e);
+                ex.Data.Add("AssetJson", incomingRequest.AssetJson);
+                throw ex;
+            }
         }
     }
 }

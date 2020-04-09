@@ -11,6 +11,8 @@ namespace Engine.Ingest.Models
     /// <remarks>Legacy fields from the Inversion framework.</remarks>
     public class IncomingIngestEvent
     {
+        private const string AssetDictionaryKey = "image";
+        
         /// <summary>
         /// Gets the type of MessagingEvent.
         /// </summary>
@@ -34,7 +36,7 @@ namespace Engine.Ingest.Models
         /// <summary>
         /// Serialized <see cref="Asset"/> as JSON.
         /// </summary>
-        public string AssetJson => Params.TryGetValue("image", out var image) ? image : null;
+        public string AssetJson => Params.TryGetValue(AssetDictionaryKey, out var image) ? image : null;
 
         [JsonConstructor]
         public IncomingIngestEvent(

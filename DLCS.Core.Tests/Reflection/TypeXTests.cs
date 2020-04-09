@@ -22,7 +22,7 @@ namespace DLCS.Core.Tests.Reflection
         [InlineData(typeof(int))]
         [InlineData(typeof(DateTime))]
         public void IsEnumerable_False_IfTypeIsNotEnumerable(Type t) 
-            => t.IsEnumerable().Should().BeTrue();
+            => t.IsEnumerable().Should().BeFalse();
         
         [Theory]
         [InlineData(typeof(Array))]
