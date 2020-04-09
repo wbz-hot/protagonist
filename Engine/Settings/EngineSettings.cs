@@ -21,7 +21,7 @@ namespace Engine.Settings
         
         public string DestinationTemplate { get; set; }
         
-        public string ThumbsFolder { get; set; }
+        public string ThumbsTemplate { get; set; }
         
         public Uri ImageProcessorUrl { get; set; }
     }
