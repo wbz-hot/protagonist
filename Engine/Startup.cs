@@ -46,20 +46,12 @@ namespace Engine
                 .AddTransient<ImageIngesterWorker>()
                 .AddTransient<TimebasedIngesterWorker>()
                 .AddTransient<AssetIngester>()
-                .AddTransient<IngestorResolver>(provider => family =>
+                .AddTransient<IngestorResolver>(provider => family => family switch
                 {
-                    switch (family)
-                    {
-                        case AssetFamily.Image:
-                            return provider.GetService<ImageIngesterWorker>();
-                        case AssetFamily.Timebase:
-                            return provider.GetService<TimebasedIngesterWorker>();
-                        case AssetFamily.File:
-                            // TODO - handle this correctly.
-                            throw new NotImplementedException("File shouldn't be here");
-                        default:
-                            throw new KeyNotFoundException();
-                    }
+                    AssetFamily.Image => (AssetIngesterWorker) provider.GetService<ImageIngesterWorker>(),
+                    AssetFamily.Timebased => provider.GetService<TimebasedIngesterWorker>(),
+                    AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
+                    _ => throw new KeyNotFoundException()
                 });
         }
 

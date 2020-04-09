@@ -1,7 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Engine.Ingest.Models;
-using Engine.Messaging.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Engine.Ingest
@@ -21,10 +20,18 @@ namespace Engine.Ingest
         public async Task<IActionResult> IngestImage([FromBody] IncomingIngestEvent message, CancellationToken cancellationToken)
         {
             var result = await ingester.Ingest(message, cancellationToken);
-            
-            // TODO - format result based on success/failure of job
-            
-            return Ok(message);
+
+            return ConvertToStatusCode(message, result);
         }
+
+        public IActionResult ConvertToStatusCode(IncomingIngestEvent message, IngestResult result)
+            => result switch
+            {
+                IngestResult.Failed => StatusCode(500, message),
+                IngestResult.Success => Ok(message),
+                IngestResult.QueuedForProcessing => Accepted(message),
+                IngestResult.Unknown => StatusCode(500, message),
+                _ => StatusCode(500, message)
+            };
     }
 }

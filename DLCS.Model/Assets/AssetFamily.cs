@@ -13,7 +13,7 @@
         /// <summary>
         /// Represents a time based asset (audio or video).
         /// </summary>
-        Timebase = 'T',
+        Timebased = 'T',
         
         /// <summary>
         /// Represents a file asset (pdf, docx etc).

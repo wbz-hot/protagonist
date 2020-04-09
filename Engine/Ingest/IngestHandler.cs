@@ -10,7 +10,7 @@ namespace Engine.Ingest
     /// <summary>
     /// Handler for ingest messages that have been pulled from queue.
     /// </summary>
-    public class IngestHandler : IQueueHandler
+    public class IngestHandler : IMessageHandler
     {
         private readonly AssetIngester ingester;
         

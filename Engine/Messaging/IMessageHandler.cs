@@ -5,15 +5,15 @@ using Engine.Messaging.Models;
 namespace Engine.Messaging
 {
     /// <summary>
-    /// Delegate for getting <see cref="IQueueHandler"/> for queue.
+    /// Delegate for getting <see cref="IMessageHandler"/> for queue.
     /// </summary>
     /// <param name="queue">Queue message was received on.</param>
-    public delegate IQueueHandler QueueHandlerResolver(SubscribedToQueue queue);
+    public delegate IMessageHandler QueueHandlerResolver(SubscribedToQueue queue);
     
     /// <summary>
     /// Base interface for consuming messages from queues.
     /// </summary>
-    public interface IQueueHandler
+    public interface IMessageHandler
     {
         /// <summary>
         /// Handle message from queue, returning bool representing success/failure to handle.

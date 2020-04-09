@@ -7,7 +7,7 @@ namespace Engine.Ingest.Workers
     /// <summary>
     /// Base class for ingestions.
     /// </summary>
-    public abstract class AssetIngesterWorker
+    public abstract class AssetIngesterWorker : IAssetIngesterWorker
     {
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken)
