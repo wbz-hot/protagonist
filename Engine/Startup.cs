@@ -32,28 +32,19 @@ namespace Engine
 
             services.Configure<QueueSettings>(configuration.GetSection("Queues"));
             services.Configure<EngineSettings>(configuration.GetSection("Engine"));
-            
+
             services
                 .AddCors()
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())
-                .AddSQSSubscribers();
+                .AddSQSSubscribers()
+                .AddAssetIngesters();
 
             services
                 .AddControllers()
                 .SetCompatibilityVersion(CompatibilityVersion.Latest)
                 .AddNewtonsoftJson();
-
-            services
-                .AddTransient<ImageIngesterWorker>()
-                .AddTransient<TimebasedIngesterWorker>()
-                .AddTransient<AssetIngester>()
-                .AddTransient<IngestorResolver>(provider => family => family switch
-                {
-                    AssetFamily.Image => (AssetIngesterWorker) provider.GetService<ImageIngesterWorker>(),
-                    AssetFamily.Timebased => provider.GetService<TimebasedIngesterWorker>(),
-                    AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
-                    _ => throw new KeyNotFoundException()
-                });
+            
+            DapperConfig.Init();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
