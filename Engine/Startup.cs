@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Amazon.SQS;
 using DLCS.Model.Assets;
+using DLCS.Model.Customer;
 using DLCS.Repository;
 using Engine.Infrastructure;
 using Engine.Ingest;
@@ -37,7 +38,8 @@ namespace Engine
                 .AddCors()
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())
                 .AddSQSSubscribers()
-                .AddAssetIngesters();
+                .AddAssetIngesters()
+                .AddSingleton<ICustomerOriginRepository, CustomerOriginStrategyRepository>();
 
             services
                 .AddControllers()
