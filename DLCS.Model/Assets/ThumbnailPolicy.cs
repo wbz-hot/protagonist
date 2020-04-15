@@ -1,29 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using IIIF.ImageApi;
+﻿using System.Collections.Generic;
 
 namespace DLCS.Model.Assets
 {
     public class ThumbnailPolicy
-    {
-        private List<int> sizeList = null;
-
+    { 
         public string Id { get; set; }
         public string Name { get; set; }
-        public string Sizes { get; set; }
-
-        public List<int> SizeList
-        {
-            get
-            {
-                if (sizeList == null && !string.IsNullOrEmpty(Sizes))
-                {
-                    sizeList = Sizes.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
-                }
-                return sizeList;
-            }
-        }
+        public List<int> Sizes { get; set; }
     }
 }

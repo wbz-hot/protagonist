@@ -1,4 +1,5 @@
 using Amazon.S3;
+using AutoMapper;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Model.PathElements;
@@ -43,6 +44,7 @@ namespace Thumbs
             services.AddSingleton<IThumbReorganiser, ThumbReorganiser>();
             services.AddSingleton<IThumbnailPolicyRepository, ThumbnailPolicyRepository>();
             services.AddSingleton<IAssetRepository, AssetRepository>();
+            services.AddAutoMapper(typeof(DatabaseConnectionManager));
 
             services.Configure<ThumbsSettings>(Configuration.GetSection("Repository"));
         }

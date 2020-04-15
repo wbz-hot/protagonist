@@ -18,7 +18,7 @@ namespace DLCS.Model.Tests.Assets
             {
                 Id = "TestPolicy",
                 Name = "TestPolicy",
-                Sizes = "800,400,200,100"
+                Sizes = new List<int> {800, 400, 200, 100}
             };
 
             var asset = new Asset {Width = 5000, Height = 2500, MaxUnauthorised = 50};
@@ -49,10 +49,10 @@ namespace DLCS.Model.Tests.Assets
             {
                 Id = "TestPolicy",
                 Name = "TestPolicy",
-                Sizes = "800,400,200,100",
+                Sizes = new List<int> {800, 400, 200, 100}
             };
 
-            var asset = new Asset {Width = 5000, Height = 2500, Roles = "GoodGuys", MaxUnauthorised = -1};
+            var asset = new Asset {Width = 5000, Height = 2500, Roles = new List<string>{"GoodGuys"}, MaxUnauthorised = -1};
             
             // Act
             var sizes = asset.GetAvailableThumbSizes(thumbnailPolicy, out var maxDimensions, includeUnavailable);
@@ -78,10 +78,10 @@ namespace DLCS.Model.Tests.Assets
             {
                 Id = "TestPolicy",
                 Name = "TestPolicy",
-                Sizes = "800,400,200,100",
+                Sizes = new List<int> {800, 400, 200, 100}
             };
 
-            var asset = new Asset {Width = 2500, Height = 5000, Roles = "GoodGuys", MaxUnauthorised = 399};
+            var asset = new Asset {Width = 2500, Height = 5000, Roles = new List<string>{"GoodGuys"}, MaxUnauthorised = 399};
             
             // Act
             var sizes = asset.GetAvailableThumbSizes(thumbnailPolicy, out var maxDimensions);
@@ -105,10 +105,10 @@ namespace DLCS.Model.Tests.Assets
             {
                 Id = "TestPolicy",
                 Name = "TestPolicy",
-                Sizes = "800,400,200,100",
+                Sizes = new List<int> {800, 400, 200, 100}
             };
 
-            var asset = new Asset {Width = 2500, Height = 5000, Roles = "GoodGuys", MaxUnauthorised = 399};
+            var asset = new Asset {Width = 2500, Height = 5000, Roles = new List<string>{"GoodGuys"}, MaxUnauthorised = 399};
             
             // Act
             var sizes = asset.GetAvailableThumbSizes(thumbnailPolicy, out var maxDimensions, true);

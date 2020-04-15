@@ -53,7 +53,7 @@ namespace DLCS.Repository.Tests.Assets
             A.CallTo(() => assetRepository.GetAsset(A<string>._))
                 .Returns(new Asset {Width = 4000, Height = 8000, ThumbnailPolicy = "TheBestOne"});
             A.CallTo(() => thumbPolicyRepository.GetThumbnailPolicy("TheBestOne"))
-                .Returns(new ThumbnailPolicy {Sizes = "400,200,100"});
+                .Returns(new ThumbnailPolicy {Sizes = new List<int> {400, 200, 100}});
             
             // Act
             await sut.EnsureNewLayout(rootKey);
@@ -95,9 +95,13 @@ namespace DLCS.Repository.Tests.Assets
                 .Returns(new[] {"2/1/the-astronaut/200.jpg"});
 
             A.CallTo(() => assetRepository.GetAsset(A<string>._))
-                .Returns(new Asset {Width = 2000, Height = 4000, ThumbnailPolicy = "TheBestOne", MaxUnauthorised = 0, Roles = "admin"});
+                .Returns(new Asset
+                {
+                    Width = 2000, Height = 4000, ThumbnailPolicy = "TheBestOne", MaxUnauthorised = 0,
+                    Roles = new List<string> {"admin"}
+                });
             A.CallTo(() => thumbPolicyRepository.GetThumbnailPolicy("TheBestOne"))
-                .Returns(new ThumbnailPolicy {Sizes = "400,200,100"});
+                .Returns(new ThumbnailPolicy {Sizes = new List<int> {400, 200, 100}});
             
             // Act
             await sut.EnsureNewLayout(rootKey);
@@ -139,9 +143,13 @@ namespace DLCS.Repository.Tests.Assets
                 .Returns(new[] {"2/1/the-astronaut/200.jpg"});
 
             A.CallTo(() => assetRepository.GetAsset(A<string>._))
-                .Returns(new Asset {Width = 2000, Height = 4000, ThumbnailPolicy = "TheBestOne", MaxUnauthorised = 350, Roles = "admin"});
+                .Returns(new Asset
+                {
+                    Width = 2000, Height = 4000, ThumbnailPolicy = "TheBestOne", MaxUnauthorised = 350,
+                    Roles = new List<string> {"admin"}
+                });
             A.CallTo(() => thumbPolicyRepository.GetThumbnailPolicy("TheBestOne"))
-                .Returns(new ThumbnailPolicy {Sizes = "1024,400,200,100"});
+                .Returns(new ThumbnailPolicy {Sizes = new List<int> {1024, 400, 200, 100}});
             
             // Act
             await sut.EnsureNewLayout(rootKey);
@@ -194,7 +202,7 @@ namespace DLCS.Repository.Tests.Assets
             A.CallTo(() => assetRepository.GetAsset(A<string>._))
                 .Returns(new Asset {Width = 4000, Height = 8000, ThumbnailPolicy = "TheBestOne"});
             A.CallTo(() => thumbPolicyRepository.GetThumbnailPolicy("TheBestOne"))
-                .Returns(new ThumbnailPolicy {Sizes = "200,100"});
+                .Returns(new ThumbnailPolicy {Sizes = new List<int> {200, 100}});
             
             // Act
             await sut.EnsureNewLayout(rootKey);
@@ -222,7 +230,7 @@ namespace DLCS.Repository.Tests.Assets
             A.CallTo(() => assetRepository.GetAsset(A<string>._))
                 .Returns(new Asset {Width = 200, Height = 250, ThumbnailPolicy = "TheBestOne"});
             A.CallTo(() => thumbPolicyRepository.GetThumbnailPolicy("TheBestOne"))
-                .Returns(new ThumbnailPolicy {Sizes = "400,200,100"});
+                .Returns(new ThumbnailPolicy {Sizes = new List<int> {400, 200, 100}});
             
             // Once called, add sizes.json to return list of bucket contents
             A.CallTo(() => bucketReader.WriteToBucket(A<ObjectInBucket>._, A<string>._, A<string>._))
@@ -257,7 +265,7 @@ namespace DLCS.Repository.Tests.Assets
             A.CallTo(() => assetRepository.GetAsset(A<string>._))
                 .Returns(new Asset {Width = 200, Height = 250, ThumbnailPolicy = "TheBestOne"});
             A.CallTo(() => thumbPolicyRepository.GetThumbnailPolicy("TheBestOne"))
-                .Returns(new ThumbnailPolicy {Sizes = "400,200,100"});
+                .Returns(new ThumbnailPolicy {Sizes = new List<int> {400, 200, 100}});
             
             // Once called, add sizes.json to return list of bucket contents
             A.CallTo(() => bucketReader.WriteToBucket(A<ObjectInBucket>._, A<string>._, A<string>._))

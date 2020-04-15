@@ -33,7 +33,7 @@ namespace DLCS.Model.Assets
             int maxAvailableWidth = 0;
             int maxAvailableHeight = 0;
 
-            foreach (int boundingSize in thumbnailPolicy.SizeList)
+            foreach (int boundingSize in thumbnailPolicy.Sizes)
             {
                 if (!includeUnavailable && AssetIsUnavailable(asset, boundingSize))
                 {
@@ -55,6 +55,6 @@ namespace DLCS.Model.Assets
         }
 
         private static bool AssetIsUnavailable(Asset asset, int boundingSize)
-            => !asset.RolesList.IsNullOrEmpty() && asset.MaxUnauthorised >= 0 && boundingSize > asset.MaxUnauthorised;
+            => !asset.Roles.IsNullOrEmpty() && asset.MaxUnauthorised >= 0 && boundingSize > asset.MaxUnauthorised;
     }
 }

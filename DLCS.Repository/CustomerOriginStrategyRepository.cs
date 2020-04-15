@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using AutoMapper;
 using Dapper;
 using DLCS.Core.Guard;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Repository.Entities;
 using LazyCache;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -15,7 +17,7 @@ namespace DLCS.Repository
 {
     public class CustomerOriginStrategyRepository : ICustomerOriginRepository
     {
-        private const string OriginRegexAppSettings = "s3OriginRegex";
+        private const string OriginRegexAppSettings = "Engine:s3OriginRegex";
 
         private static readonly CustomerOriginStrategy DefaultStrategy = new CustomerOriginStrategy
             {Id = "_default_", Strategy = OriginStrategy.Default};
@@ -23,18 +25,22 @@ namespace DLCS.Repository
         private readonly IAppCache appCache;
         private readonly IConfiguration configuration;
         private readonly ILogger<CustomerOriginStrategyRepository> logger;
+        private readonly IMapper mapper;
         private readonly string originRegexAppSetting;
-        private const string CustomerOriginSql = "SELECT \"Id\", \"Customer\", \"Regex\", \"Strategy\", \"Credentials\", \"Optimised\" FROM public.\"CustomerOriginStrategy\"";
+        private const string CustomerOriginSql = "SELECT \"Id\", \"Customer\", \"Regex\", \"Strategy\", \"Credentials\", \"Optimised\" FROM \"CustomerOriginStrategies\"";
 
         public CustomerOriginStrategyRepository(
             IAppCache appCache,
             IConfiguration configuration,
-            ILogger<CustomerOriginStrategyRepository> logger)
+            ILogger<CustomerOriginStrategyRepository> logger,
+            IMapper mapper)
         {
             this.appCache = appCache;
             this.configuration = configuration;
             this.logger = logger;
-            originRegexAppSetting = configuration[OriginRegexAppSettings].ThrowIfNullOrWhiteSpace($"appsetting:{OriginRegexAppSettings}");
+            this.mapper = mapper;
+            originRegexAppSetting = configuration[OriginRegexAppSettings]
+                .ThrowIfNullOrWhiteSpace($"appsetting:{OriginRegexAppSettings}");
         }
 
         public Task<IEnumerable<CustomerOriginStrategy>> GetCustomerOriginStrategies(int customer) 
@@ -59,14 +65,16 @@ namespace DLCS.Repository
             {
                 // TODO - config
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-                logger.LogInformation("Refreshing CustomerOriginStrategy from database for customer {customer}", customer);
-                await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
-                var customerOriginStrategies = await connection.QueryAsync<CustomerOriginStrategy>(
-                    $"{CustomerOriginSql} WHERE \"Customer\" = @Id", new {Id = customer});
+                logger.LogInformation("Refreshing CustomerOriginStrategy from database for customer {customer}",
+                    customer);
                 
-                var allOrigins = customerOriginStrategies.ToList();
-                allOrigins.Add(GetPortalOriginStrategy(customer));
-                return allOrigins;
+                await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
+                var entities = await connection.QueryAsync<CustomerOriginStrategyEntity>(
+                    $"{CustomerOriginSql} WHERE \"Customer\" = @Id", new {Id = customer});
+
+                var origins = mapper.Map<List<CustomerOriginStrategy>>(entities);
+                origins.Add(GetPortalOriginStrategy(customer));
+                return origins;
             });
         }
 

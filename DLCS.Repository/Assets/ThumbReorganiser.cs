@@ -65,7 +65,7 @@ namespace DLCS.Repository.Assets
             var maxAvailableThumb = GetMaxAvailableThumb(asset, policy);
 
             var realSize = new Size(asset.Width, asset.Height);
-            var boundingSquares = policy.SizeList.OrderByDescending(i => i).ToList();
+            var boundingSquares = policy.Sizes.OrderByDescending(i => i).ToList();
 
             var thumbnailSizes = new ThumbnailSizes(boundingSquares.Count);
             foreach (int boundingSquare in boundingSquares)

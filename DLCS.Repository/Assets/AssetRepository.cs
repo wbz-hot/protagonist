@@ -1,8 +1,9 @@
 ﻿using System.Threading.Tasks;
+using AutoMapper;
 using Dapper;
 using DLCS.Model.Assets;
+using DLCS.Repository.Entities;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace DLCS.Repository.Assets
 {
@@ -10,18 +11,20 @@ namespace DLCS.Repository.Assets
     public class AssetRepository : IAssetRepository
     {
         private readonly IConfiguration configuration;
-        private readonly ILogger<AssetRepository> logger;
+        private readonly IMapper mapper;
 
-        public AssetRepository(IConfiguration configuration, ILogger<AssetRepository> logger)
+        public AssetRepository(IConfiguration configuration, IMapper mapper)
         {
             this.configuration = configuration;
-            this.logger = logger;
+            this.mapper = mapper;
         }
 
         public async Task<Asset> GetAsset(string id)
         {
             await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
-            return await connection.QuerySingleOrDefaultAsync<Asset>(AssetSql, new {Id = id});
+            var asset = await connection.QuerySingleOrDefaultAsync<AssetEntity>(AssetSql, new {Id = id});
+
+            return mapper.Map<Asset>(asset);
         }
 
         private const string AssetSql = @"

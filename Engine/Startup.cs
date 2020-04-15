@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Amazon.SQS;
+using AutoMapper;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Repository;
@@ -40,14 +41,13 @@ namespace Engine
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())
                 .AddSQSSubscribers()
                 .AddAssetIngestion()
+                .AddAutoMapper(typeof(DatabaseConnectionManager))
                 .AddSingleton<ICustomerOriginRepository, CustomerOriginStrategyRepository>();
 
             services
                 .AddControllers()
                 .SetCompatibilityVersion(CompatibilityVersion.Latest)
                 .AddNewtonsoftJson();
-            
-            DapperConfig.Init();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

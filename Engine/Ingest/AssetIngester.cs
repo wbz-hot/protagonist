@@ -53,8 +53,7 @@ namespace Engine.Ingest
         /// <returns>Result of ingest operations</returns>
         public Task<IngestResult> Ingest(IngestAssetRequest request, CancellationToken cancellationToken)
         {
-            // TODO - make Family a char for easier conversion? 
-            var ingestor = resolver(request.Asset.Family == "I" ? AssetFamily.Image : AssetFamily.Timebased);
+            var ingestor = resolver(request.Asset.Family);
 
              return ingestor.Ingest(request, cancellationToken);
         }

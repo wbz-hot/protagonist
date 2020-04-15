@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 namespace DLCS.Model.Assets
 {
     /// <summary>
-    /// Represents an Asset that is stored in the DLCS database.
+    /// Represents an Asset used by DLCS system.
     /// </summary>
     public class Asset
     {
@@ -17,30 +17,22 @@ namespace DLCS.Model.Assets
         public DateTime Created { get; set; }
         public string Origin { get; set; }
         
-        [JsonConverter(typeof(ArrayToStringConverter))]
-        public string Tags { get; set; }
+        public List<string> Tags { get; set; }
         
-        [JsonConverter(typeof(ArrayToStringConverter))]
-        public string Roles { get; set; }
+        public List<string> Roles { get; set; }
         public string PreservedUri { get; set; }
         
-        [JsonProperty("string1")]
-        public string Reference1 { get; set; }
+        public string String1 { get; set; }
         
-        [JsonProperty("string2")]
-        public string Reference2 { get; set; }
+        public string String2 { get; set; }
         
-        [JsonProperty("string3")]
-        public string Reference3 { get; set; }
+        public string String3 { get; set; }
         
-        [JsonProperty("number1")]
-        public int NumberReference1 { get; set; }
+        public int Number1 { get; set; }
         
-        [JsonProperty("number2")]
-        public int NumberReference2 { get; set; }
+        public int Number2 { get; set; }
         
-        [JsonProperty("number3")]
-        public int NumberReference3 { get; set; }
+        public int Number3 { get; set; }
         
         // -1 = null (all open), 0 = no allowed size without being auth
         public int MaxUnauthorised { get; set; }
@@ -52,24 +44,10 @@ namespace DLCS.Model.Assets
         public bool Ingesting { get; set; }
         public string ImageOptimisationPolicy { get; set; }
         public string ThumbnailPolicy { get; set; }
-        public string Family { get; set; }
+        
+        [JsonConverter(typeof(AssetFamilyConverter))]
+        public AssetFamily Family { get; set; }
         public string MediaType { get; set; }
         public long Duration { get; set; }
-
-        private IEnumerable<string> rolesList = null;
-        
-        // TODO - map this via Dapper on way out of DB?
-        public IEnumerable<string> RolesList
-        {
-            get
-            {
-                if (rolesList == null && !string.IsNullOrEmpty(Roles))
-                {
-                    rolesList = Roles.Split(",", StringSplitOptions.RemoveEmptyEntries); 
-                }
-
-                return rolesList;
-            }
-        }
     }
 }

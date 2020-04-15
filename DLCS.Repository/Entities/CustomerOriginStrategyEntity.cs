@@ -1,14 +1,14 @@
-﻿namespace DLCS.Model.Customer
+﻿namespace DLCS.Repository.Entities
 {
     /// <summary>
-    /// Represents an CustomerOriginStrategy used by DLCS system.
+    /// Represents CustomerOriginStrategy entity as stored in DLCS database.
     /// </summary>
-    public class CustomerOriginStrategy
+    public class CustomerOriginStrategyEntity
     {
         public string Id { get; set; }
         public int Customer { get; set; }
         public string Regex { get; set; }
-        public OriginStrategy Strategy { get; set; }
+        public string Strategy { get; set; }
         public string Credentials { get; set; }
         public bool Optimised { get; set; }
     }
