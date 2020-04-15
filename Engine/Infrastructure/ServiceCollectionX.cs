@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using Amazon.SQS;
 using DLCS.Model.Assets;
 using Engine.Ingest;
@@ -38,7 +39,9 @@ namespace Engine.Infrastructure
         /// <param name="services">Current <see cref="IServiceCollection"/> object.</param>
         /// <returns>Modified <see cref="IServiceCollection"/> object.</returns>
         public static IServiceCollection AddAssetIngestion(this IServiceCollection services)
-            => services
+        {
+            // TODO - verify lifecycles - make singletons?
+            services
                 .AddTransient<ImageIngesterWorker>()
                 .AddTransient<TimebasedIngesterWorker>()
                 .AddTransient<AssetIngester>()
@@ -50,11 +53,25 @@ namespace Engine.Infrastructure
                     _ => throw new KeyNotFoundException()
                 })
                 .AddTransient<IAssetFetcher, AssetFetcher>()
-                .Scan(scan => scan
-                    .FromCallingAssembly()
-                    .AddClasses(classes => classes.AssignableTo<IOriginStrategy>())
-                    .AsImplementedInterfaces()
-                    .WithTransientLifetime());
-        // TODO - verify lifecycles - make singletons?
+                .AddTransient<IOriginStrategy, S3AmbientOriginStrategy>()
+                .AddTransient<IOriginStrategy, BasicHttpOriginStrategy>()
+                .AddTransient<IOriginStrategy, SftpOriginStrategy>();
+
+            // TODO - add timing middleware
+            services
+                .AddHttpClient<IOriginStrategy, DefaultOriginStrategy>(client =>
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "*/*");
+                    client.DefaultRequestHeaders.Add("User-Agent", "DLCS/2.0");
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    AllowAutoRedirect = true,
+                    MaxAutomaticRedirections = 8
+                });
+
+            return services;
+        }
+
     }
 }

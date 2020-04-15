@@ -1,6 +1,8 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Engine.Ingest.Models;
+using Engine.Settings;
+using Microsoft.Extensions.Options;
 
 namespace Engine.Ingest.Workers
 {
@@ -10,17 +12,20 @@ namespace Engine.Ingest.Workers
     public abstract class AssetIngesterWorker : IAssetIngesterWorker
     {
         private readonly IAssetFetcher assetFetcher;
+        private readonly IOptionsMonitor<EngineSettings> optionsMonitor;
 
-        public AssetIngesterWorker(IAssetFetcher assetFetcher)
+        public AssetIngesterWorker(IAssetFetcher assetFetcher, IOptionsMonitor<EngineSettings> optionsMonitor)
         {
             this.assetFetcher = assetFetcher;
+            this.optionsMonitor = optionsMonitor;
         }
         
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken)
         {
-            // TODO - get folder from config
-            await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset, "C:\\temp\\ingest\\", cancellationToken);
+            var engineSettings = optionsMonitor.CurrentValue;
+            await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset, engineSettings.ProcessingFolder,
+                cancellationToken);
             
             // TODO - create and update ImageLocation record
             // TODO - CheckStoragePolicy. Checks if there is enough space to store this 

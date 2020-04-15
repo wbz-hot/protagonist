@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using Amazon.SQS;
+using System.Net.Http;
 using AutoMapper;
-using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Repository;
 using Engine.Infrastructure;
-using Engine.Ingest;
-using Engine.Ingest.Workers;
+using Engine.Ingest.Strategy;
 using Engine.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -63,5 +59,10 @@ namespace Engine
                 .UseHealthChecks("/ping")
                 .UseEndpoints(endpoints => endpoints.MapControllers());
         }
+    }
+
+    public class HttpClients
+    {
+        public const string DefaultOrigin = "origin";
     }
 }

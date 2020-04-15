@@ -49,5 +49,7 @@ namespace DLCS.Model.Assets
         public AssetFamily Family { get; set; }
         public string MediaType { get; set; }
         public long Duration { get; set; }
+
+        public string GetUniqueName() => Id.Substring(Id.LastIndexOf('/') + 1);
     }
 }
