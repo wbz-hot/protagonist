@@ -36,9 +36,10 @@ namespace Engine
 
             services
                 .AddCors()
+                .AddLazyCache()
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())
                 .AddSQSSubscribers()
-                .AddAssetIngesters()
+                .AddAssetIngestion()
                 .AddSingleton<ICustomerOriginRepository, CustomerOriginStrategyRepository>();
 
             services

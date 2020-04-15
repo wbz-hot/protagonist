@@ -5,6 +5,10 @@ namespace Engine.Ingest.Workers
 {
     public class TimebasedIngesterWorker : AssetIngesterWorker
     {
+        public TimebasedIngesterWorker(IAssetFetcher assetFetcher) : base(assetFetcher)
+        {
+        }
+        
         protected override Task FamilySpecificIngest(IngestAssetRequest thingToIngestAsset)
         {
             return Task.CompletedTask;

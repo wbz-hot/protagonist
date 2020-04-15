@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Dapper;
 using DLCS.Core.Guard;
+using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using LazyCache;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +16,9 @@ namespace DLCS.Repository
     public class CustomerOriginStrategyRepository : ICustomerOriginRepository
     {
         private const string OriginRegexAppSettings = "s3OriginRegex";
+
+        private static readonly CustomerOriginStrategy DefaultStrategy = new CustomerOriginStrategy
+            {Id = "_default_", Strategy = OriginStrategy.Default};
         
         private readonly IAppCache appCache;
         private readonly IConfiguration configuration;
@@ -32,8 +37,19 @@ namespace DLCS.Repository
             originRegexAppSetting = configuration[OriginRegexAppSettings].ThrowIfNullOrWhiteSpace($"appsetting:{OriginRegexAppSettings}");
         }
 
-        public Task<IEnumerable<CustomerOriginStrategy>> GetCustomerOriginStrategy(int customer) 
+        public Task<IEnumerable<CustomerOriginStrategy>> GetCustomerOriginStrategies(int customer) 
             => GetStrategiesForCustomer(customer);
+
+        public async Task<CustomerOriginStrategy> GetCustomerOriginStrategy(Asset asset)
+        {
+            asset.ThrowIfNull(nameof(asset));
+            
+            var customerStrategies = await GetCustomerOriginStrategies(asset.Customer);
+            var matching = FindMatchingStrategy(asset.Origin, customerStrategies) ?? DefaultStrategy;
+            logger.LogTrace("Using strategy '{strategyId}' for handling asset '{assetId}'", matching.Id, asset.Id);
+            
+            return matching;
+        }
 
         // TODO Grab them all and store in-memory dictionary?
         private async Task<IEnumerable<CustomerOriginStrategy>> GetStrategiesForCustomer(int customer)
@@ -63,5 +79,12 @@ namespace DLCS.Repository
                 Regex = originRegexAppSetting,
                 Strategy = OriginStrategy.S3Ambient
             };
+
+        // TODO - should these regexs be compiled?
+        private static CustomerOriginStrategy? FindMatchingStrategy(
+            string origin,
+            IEnumerable<CustomerOriginStrategy> customerStrategies)
+            => customerStrategies.FirstOrDefault(cos =>
+                Regex.IsMatch(origin, cos.Regex, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
     }
 }

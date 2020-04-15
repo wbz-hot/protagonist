@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Amazon.SQS;
 using DLCS.Model.Assets;
 using Engine.Ingest;
+using Engine.Ingest.Strategy;
 using Engine.Ingest.Workers;
 using Engine.Messaging;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +37,7 @@ namespace Engine.Infrastructure
         /// </summary>
         /// <param name="services">Current <see cref="IServiceCollection"/> object.</param>
         /// <returns>Modified <see cref="IServiceCollection"/> object.</returns>
-        public static IServiceCollection AddAssetIngesters(this IServiceCollection services)
+        public static IServiceCollection AddAssetIngestion(this IServiceCollection services)
             => services
                 .AddTransient<ImageIngesterWorker>()
                 .AddTransient<TimebasedIngesterWorker>()
@@ -47,6 +48,13 @@ namespace Engine.Infrastructure
                     AssetFamily.Timebased => provider.GetService<TimebasedIngesterWorker>(),
                     AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
                     _ => throw new KeyNotFoundException()
-                });
+                })
+                .AddTransient<IAssetFetcher, AssetFetcher>()
+                .Scan(scan => scan
+                    .FromCallingAssembly()
+                    .AddClasses(classes => classes.AssignableTo<IOriginStrategy>())
+                    .AsImplementedInterfaces()
+                    .WithTransientLifetime());
+        // TODO - verify lifecycles - make singletons?
     }
 }
