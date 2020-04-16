@@ -7,18 +7,26 @@ namespace Engine.Ingest.Workers
     // TODO - name this better
     public interface IAssetFetcher
     {
-        public Task<FetchedAsset> CopyAssetFromOrigin(Asset asset, string destinationFolder, CancellationToken cancellationToken);
+        public Task<AssetFromOrigin> CopyAssetFromOrigin(Asset asset, string destinationFolder, CancellationToken cancellationToken);
     }
 
-    public class FetchedAsset
+    /// <summary>
+    /// An asset that has been copied from Origin.
+    /// </summary>
+    public class AssetFromOrigin
     {
+        /// <summary>
+        /// The DLCS asset id.
+        /// </summary>
+        public string AssetId { get; }
         public long AssetSize { get; }
         public string LocationOnDisk { get; }
         
-        // TODO - should this contain asset type too?
+        // TODO - should this contain asset type too? (e.g. image/jpg)
 
-        public FetchedAsset(long assetSize, string locationOnDisk)
+        public AssetFromOrigin(string assetId, long assetSize, string locationOnDisk)
         {
+            AssetId = assetId;
             AssetSize = assetSize;
             LocationOnDisk = locationOnDisk;
         }

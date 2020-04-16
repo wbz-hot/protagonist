@@ -15,10 +15,10 @@ namespace Engine.Ingest.Strategy
     {
         public abstract OriginStrategy Strategy { get; }
 
-        protected abstract Task<Stream> LoadAssetFromOriginImpl(Asset asset,
+        protected abstract Task<OriginResponse?> LoadAssetFromOriginImpl(Asset asset,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default);
         
-        public Task<Stream> LoadAssetFromOrigin(Asset asset, CustomerOriginStrategy customerOriginStrategy,
+        public Task<OriginResponse?> LoadAssetFromOrigin(Asset asset, CustomerOriginStrategy customerOriginStrategy,
             CancellationToken cancellationToken = default)
         {
             customerOriginStrategy.ThrowIfNull(nameof(customerOriginStrategy));

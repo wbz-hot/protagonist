@@ -83,12 +83,11 @@ namespace Engine.Tests.Ingest.Strategy
             
             public bool HaveBeenCalled { get; private set; }
 
-            protected override Task<Stream> LoadAssetFromOriginImpl(Asset asset,
+            protected override Task<OriginResponse?> LoadAssetFromOriginImpl(Asset asset,
                 CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
             {
                 HaveBeenCalled = true;
-                var bytes = Encoding.ASCII.GetBytes("foobar");
-                return Task.FromResult<Stream>(new MemoryStream(bytes));
+                return Task.FromResult(new OriginResponse(Stream.Null));
             }
         }
     }

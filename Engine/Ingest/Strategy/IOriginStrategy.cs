@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
@@ -24,7 +23,7 @@ namespace Engine.Ingest.Strategy
         /// <param name="customerOriginStrategy"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>Asset as Stream</returns>
-        public Task<Stream> LoadAssetFromOrigin(Asset asset, CustomerOriginStrategy customerOriginStrategy,
+        public Task<OriginResponse?> LoadAssetFromOrigin(Asset asset, CustomerOriginStrategy customerOriginStrategy,
             CancellationToken cancellationToken = default);
     }
 }

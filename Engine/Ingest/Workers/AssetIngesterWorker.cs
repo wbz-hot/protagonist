@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Model.Assets;
 using Engine.Ingest.Models;
 using Engine.Settings;
 using Microsoft.Extensions.Options;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace Engine.Ingest.Workers
 {
     /// <summary>
-    /// Base class for ingestions.
+    /// Base class for ingesting assets.
     /// </summary>
     public abstract class AssetIngesterWorker : IAssetIngesterWorker
     {
@@ -24,7 +25,8 @@ namespace Engine.Ingest.Workers
             CancellationToken cancellationToken)
         {
             var engineSettings = optionsMonitor.CurrentValue;
-            await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset, engineSettings.ProcessingFolder,
+            var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
+                engineSettings.ProcessingFolder,
                 cancellationToken);
             
             // TODO - create and update ImageLocation record
@@ -41,5 +43,12 @@ namespace Engine.Ingest.Workers
 
         // TODO - what needs pushed to this method?
         protected abstract Task FamilySpecificIngest(IngestAssetRequest thingToIngestAsset);
+
+        internal class IngestionContext
+        {
+            public Asset Asset { get; }
+            
+            public AssetFromOrigin AssetFromOrigin { get; }
+        }
     }
 }

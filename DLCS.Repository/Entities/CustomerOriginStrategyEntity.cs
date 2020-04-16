@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents CustomerOriginStrategy entity as stored in DLCS database.
     /// </summary>
-    public class CustomerOriginStrategyEntity
+    internal class CustomerOriginStrategyEntity
     {
         public string Id { get; set; }
         public int Customer { get; set; }

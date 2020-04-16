@@ -25,7 +25,7 @@ namespace Engine.Ingest.Strategy
         
         public override OriginStrategy Strategy => OriginStrategy.Default;
 
-        protected override async Task<Stream> LoadAssetFromOriginImpl(Asset asset,
+        protected override async Task<OriginResponse?> LoadAssetFromOriginImpl(Asset asset,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
             // NOTE(DG): This will follow up to 8 redirections, as per deliverator.
@@ -35,14 +35,29 @@ namespace Engine.Ingest.Strategy
 
             try
             {
-                var stream = await httpClient.GetStreamAsync(asset.Origin);
-                return stream;
+                var response = await httpClient.GetAsync(asset.Origin, cancellationToken);
+                var originResponse = await CreateOriginResponse(response);
+                return originResponse;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error fetching asset from Origin: {url}", asset.Origin);
                 return null;
             }
+        }
+
+        private static async Task<OriginResponse> CreateOriginResponse(HttpResponseMessage response)
+        {
+            response.EnsureSuccessStatusCode();
+            var content = response.Content;
+            if (content == null)
+            {
+                return new OriginResponse(Stream.Null);
+            }
+
+            return new OriginResponse(await content.ReadAsStreamAsync())
+                .WithContentLength(content.Headers.ContentLength)
+                .WithContentType(content.Headers?.ContentType?.MediaType);
         }
     }
 }

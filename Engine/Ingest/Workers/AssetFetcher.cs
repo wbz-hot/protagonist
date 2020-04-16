@@ -9,7 +9,6 @@ using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using Engine.Ingest.Strategy;
 using Microsoft.Extensions.Logging;
-using Serilog.Core;
 
 namespace Engine.Ingest.Workers
 {
@@ -30,7 +29,7 @@ namespace Engine.Ingest.Workers
              this.originStrategies = originStrategies.ToDictionary(k => k.Strategy, v => v);
         }
         
-        public async Task<FetchedAsset> CopyAssetFromOrigin(Asset asset, string destinationFolder,
+        public async Task<AssetFromOrigin> CopyAssetFromOrigin(Asset asset, string destinationFolder,
             CancellationToken cancellationToken)
         {
             var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset);
@@ -41,9 +40,9 @@ namespace Engine.Ingest.Workers
                     $"No OriginStrategy found for '{customerOriginStrategy.Strategy}' strategy (id: {customerOriginStrategy.Id})");
             }
             
-            await using var assetStream = await strategy.LoadAssetFromOrigin(asset, customerOriginStrategy, cancellationToken);
+            await using var originResponse = await strategy.LoadAssetFromOrigin(asset, customerOriginStrategy, cancellationToken);
             
-            if (assetStream == null)
+            if (originResponse == null)
             {
                 // TODO correct type of exception?
                 logger.LogWarning("Unable to get asset {assetId} from origin using {strategy}", asset.Id, asset.Origin,
@@ -52,17 +51,17 @@ namespace Engine.Ingest.Workers
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var result = await CopyAssetToDisk(asset, destinationFolder, assetStream);
+            var result = await CopyAssetToDisk(asset, destinationFolder, originResponse);
             return result;
 
             /* TODO:
              - implementation may/may not need to copy depending on whether it is optimised?? (check)
              - should this handle ImageLocation too?
-             - or ImageStorage?
+             - and/or ImageStorage?
              */
         }
 
-        private async Task<FetchedAsset> CopyAssetToDisk(Asset asset, string destinationFolder, Stream assetStream)
+        private async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationFolder, OriginResponse originResponse)
         {
             // TODO - is this unique name correct? Should it have path etc?
             var targetPath = Path.Combine(destinationFolder, asset.GetUniqueName());
@@ -76,30 +75,51 @@ namespace Engine.Ingest.Workers
             {
                 var sw = Stopwatch.StartNew();
                 await using var fileStream = new FileStream(targetPath, FileMode.OpenOrCreate, FileAccess.Write);
-                var buffer = new byte[102400];
-                int size;
-                long received = 0;
+                var assetStream = originResponse.Stream;
 
-                while ((size = assetStream.Read(buffer, 0, buffer.Length)) > 0)
+                long received;
+                if (originResponse.ContentLength.HasValue)
                 {
-                    await fileStream.WriteAsync(buffer, 0, size);
-                    received += size;
-                    fileStream.Flush();
+                    // If we have a contentLength, use that and use framework to copy files
+                    await assetStream.CopyToAsync(fileStream);
+                    received = originResponse.ContentLength.Value;
+                }
+                else
+                {
+                    // NOTE(DG) This was copied from previous implementation, copies and works out size
+                    received = await CopyToFileStream(assetStream, fileStream);
                 }
 
-                fileStream.Close();
-                assetStream.Close();
                 sw.Stop();
-                
-                logger.LogInformation("{customer}/{space}/{image}: download done ({bytes} bytes, {elapsed}ms", asset.Customer, asset.Space, asset.GetUniqueName(), received, sw.ElapsedMilliseconds);
 
-                return new FetchedAsset(received, targetPath);
+                logger.LogInformation("{customer}/{space}/{image}: download done ({bytes} bytes, {elapsed}ms",
+                    asset.Customer, asset.Space, asset.GetUniqueName(), received, sw.ElapsedMilliseconds);
+
+                return new AssetFromOrigin(asset.Id, received, targetPath);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error writing file to disk. destination: {destination}", destinationFolder);
                 throw;
             }
+        }
+
+        private static async Task<long> CopyToFileStream(Stream assetStream, FileStream fileStream)
+        {
+            var buffer = new byte[102400];
+            int size;
+            long received = 0;
+
+            while ((size = assetStream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                await fileStream.WriteAsync(buffer, 0, size);
+                received += size;
+                fileStream.Flush();
+            }
+
+            fileStream.Close();
+            assetStream.Close();
+            return received;
         }
     }
 }
