@@ -7,8 +7,8 @@ namespace Engine.Ingest.Workers
 {
     public class TimebasedIngesterWorker : AssetIngesterWorker
     {
-        public TimebasedIngesterWorker(IAssetFetcher assetFetcher, IOptionsMonitor<EngineSettings> optionsMonitor) 
-            : base(assetFetcher, optionsMonitor)
+        public TimebasedIngesterWorker(IAssetFetcher assetFetcher, IOptionsMonitor<EngineSettings> engineOptionsMonitor) 
+            : base(assetFetcher, engineOptionsMonitor)
         {
         }
         

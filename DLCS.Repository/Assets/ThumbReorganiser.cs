@@ -20,7 +20,7 @@ namespace DLCS.Repository.Assets
         private readonly IBucketReader bucketReader;
         private readonly ILogger<ThumbRepository> logger;
         private readonly IAssetRepository assetRepository;
-        private readonly IThumbnailPolicyRepository thumbnailPolicyRepository;
+        private readonly IAssetPolicyRepository assetPolicyRepository;
         private readonly AsyncKeyedLock asyncLocker = new AsyncKeyedLock();
         private static Regex BoundedThumbRegex = new Regex("^[0-9]+.jpg$");
 
@@ -28,12 +28,12 @@ namespace DLCS.Repository.Assets
             IBucketReader bucketReader,
             ILogger<ThumbRepository> logger,
             IAssetRepository assetRepository,
-            IThumbnailPolicyRepository thumbnailPolicyRepository )
+            IAssetPolicyRepository assetPolicyRepository )
         {
             this.bucketReader = bucketReader;
             this.logger = logger;
             this.assetRepository = assetRepository;
-            this.thumbnailPolicyRepository = thumbnailPolicyRepository;
+            this.assetPolicyRepository = assetPolicyRepository;
         }
 
         public async Task EnsureNewLayout(ObjectInBucket rootKey)
@@ -60,7 +60,7 @@ namespace DLCS.Repository.Assets
             if (asset == null)
                 return;
 
-            var policy = await thumbnailPolicyRepository.GetThumbnailPolicy(asset.ThumbnailPolicy);
+            var policy = await assetPolicyRepository.GetThumbnailPolicy(asset.ThumbnailPolicy);
 
             var maxAvailableThumb = GetMaxAvailableThumb(asset, policy);
 

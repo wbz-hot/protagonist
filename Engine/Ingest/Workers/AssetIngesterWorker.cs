@@ -1,6 +1,5 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using DLCS.Model.Assets;
 using Engine.Ingest.Models;
 using Engine.Settings;
 using Microsoft.Extensions.Options;
@@ -13,18 +12,18 @@ namespace Engine.Ingest.Workers
     public abstract class AssetIngesterWorker : IAssetIngesterWorker
     {
         private readonly IAssetFetcher assetFetcher;
-        protected readonly IOptionsMonitor<EngineSettings> OptionsMonitor;
+        protected readonly IOptionsMonitor<EngineSettings> EngineOptionsMonitor;
 
-        public AssetIngesterWorker(IAssetFetcher assetFetcher, IOptionsMonitor<EngineSettings> optionsMonitor)
+        public AssetIngesterWorker(IAssetFetcher assetFetcher, IOptionsMonitor<EngineSettings> engineOptionsMonitor)
         {
             this.assetFetcher = assetFetcher;
-            this.OptionsMonitor = optionsMonitor;
+            this.EngineOptionsMonitor = engineOptionsMonitor;
         }
         
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken)
         {
-            var engineSettings = OptionsMonitor.CurrentValue;
+            var engineSettings = EngineOptionsMonitor.CurrentValue;
             var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
                 engineSettings.ProcessingFolder,
                 cancellationToken);
@@ -42,19 +41,7 @@ namespace Engine.Ingest.Workers
             return IngestResult.Success;
         }
 
+        // TODO - return some sort of response code/bool to signify if complete?
         protected abstract Task FamilySpecificIngest(IngestionContext ingestionContext);
-
-        protected class IngestionContext
-        {
-            public Asset Asset { get; }
-            
-            public AssetFromOrigin AssetFromOrigin { get; }
-            
-            public IngestionContext(Asset asset, AssetFromOrigin assetFromOrigin)
-            {
-                Asset = asset;
-                AssetFromOrigin = assetFromOrigin;
-            }
-        }
     }
 }

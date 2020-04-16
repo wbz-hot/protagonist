@@ -2,6 +2,8 @@
 using System.IO;
 using System.Threading.Tasks;
 using DLCS.Core;
+using DLCS.Model.Assets;
+using Engine.Ingest.Image;
 using Engine.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,35 +12,40 @@ namespace Engine.Ingest.Workers
 {
     public class ImageIngesterWorker : AssetIngesterWorker
     {
+        private readonly ImageProcessor imageProcessor;
+        private readonly IAssetPolicyRepository assetPolicyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
 
         // TODO - inject a HttpClient for TizerBaseUri
         public ImageIngesterWorker(
-            IAssetFetcher assetFetcher, 
-            IOptionsMonitor<EngineSettings> optionsMonitor,
-            ILogger<ImageIngesterWorker> logger) 
-            : base(assetFetcher, optionsMonitor)
+            ImageProcessor imageProcessor,
+            IAssetFetcher assetFetcher,
+            IAssetPolicyRepository assetPolicyRepository,
+            IOptionsMonitor<EngineSettings> engineOptionsMonitor,
+            ILogger<ImageIngesterWorker> logger)
+            : base(assetFetcher, engineOptionsMonitor)
         {
+            this.imageProcessor = imageProcessor;
+            this.assetPolicyRepository = assetPolicyRepository;
             this.logger = logger;
         }
 
-        protected override Task FamilySpecificIngest(IngestionContext ingestionContext)
+        protected override async Task FamilySpecificIngest(IngestionContext ingestionContext)
         {
-            var engineSettings = OptionsMonitor.CurrentValue;
+            var engineSettings = EngineOptionsMonitor.CurrentValue;
+
+            // set Thumbnail and ImageOptimisation policies
+            var setAssetPolicies = assetPolicyRepository.HydratePolicies(ingestionContext.Asset, AssetPolicies.All);
 
             // Put file in correct place for processing 
             CopyAssetFromProcessingToTemplatedFolder(ingestionContext, engineSettings);
-            
-            /* TODO
-             - move files around
-             - get thumbnailPolicy
-             - get imageOptimisationPolicy
-             - call tizer
-             - handle tizer response
-             */
-            
-            
-            return Task.CompletedTask;
+
+            await setAssetPolicies;
+
+            // Call tizer/appetiser to process images
+            await imageProcessor.ProcessImage(ingestionContext);
+
+            // TODO tidy up? Save new image sizes to DB? Check deliverator
         }
 
         private void CopyAssetFromProcessingToTemplatedFolder(IngestionContext context, EngineSettings engineSettings)
@@ -53,9 +60,22 @@ namespace Engine.Ingest.Workers
                 var extension = GetFileExtension(context);
 
                 targetPath = TemplatedFolders.GenerateTemplate(template, root, context.Asset);
-                targetPath += $".{extension}";
                 
+                // HACK - this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
+                var unixRoot = string.IsNullOrEmpty(engineSettings.ImageProcessorRoot)
+                    ? engineSettings.ScratchRoot
+                    : engineSettings.ImageProcessorRoot; 
+                var unixPath = TemplatedFolders.GenerateTemplateForUnix(template, unixRoot, context.Asset);
+
+                Directory.CreateDirectory(targetPath);
+                
+                unixPath += $".{extension}";
+                targetPath += $".{extension}";
+
                 File.Copy(sourcePath, targetPath, true);
+
+                context.AssetFromOrigin.LocationOnDisk = targetPath;
+                context.AssetFromOrigin.RelativeLocationOnDisk = unixPath;
             }
             catch (Exception ex)
             {

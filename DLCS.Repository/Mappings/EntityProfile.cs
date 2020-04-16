@@ -27,6 +27,9 @@ namespace DLCS.Repository.Mappings
 
             CreateMap<ThumbnailPolicyEntity, ThumbnailPolicy>()
                 .ForMember(src => src.Sizes, opt => opt.MapFrom(src => src.Sizes.SplitCsvString(int.Parse).ToList()));
+            
+            CreateMap<ImageOptimisationPolicyEntity, ImageOptimisationPolicy>()
+                .ForMember(src => src.TechnicalDetails, opt => opt.MapFrom(src => src.TechnicalDetails.SplitCsvString().ToList()));
 
             CreateMap<CustomerOriginStrategyEntity, CustomerOriginStrategy>()
                 .ForMember(src => src.Strategy,

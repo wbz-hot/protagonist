@@ -5,9 +5,11 @@ using Amazon.SQS;
 using DLCS.Model.Assets;
 using DLCS.Web.Handlers;
 using Engine.Ingest;
+using Engine.Ingest.Image;
 using Engine.Ingest.Strategy;
 using Engine.Ingest.Workers;
 using Engine.Messaging;
+using Engine.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Engine.Infrastructure
@@ -38,13 +40,16 @@ namespace Engine.Infrastructure
         /// Adds all <see cref="IAssetIngesterWorker"/> and related dependencies. 
         /// </summary>
         /// <param name="services">Current <see cref="IServiceCollection"/> object.</param>
+        /// <param name="engineSettings"></param>
         /// <returns>Modified <see cref="IServiceCollection"/> object.</returns>
-        public static IServiceCollection AddAssetIngestion(this IServiceCollection services)
+        public static IServiceCollection AddAssetIngestion(this IServiceCollection services,
+            EngineSettings engineSettings)
         {
             // TODO - verify lifecycles - make singletons?
+            // TODO - if a/v and image ingestion deployed separately there will need to be some logic on registered deps
             services
-                .AddTransient<ImageIngesterWorker>()
                 .AddTransient<TimebasedIngesterWorker>()
+                .AddTransient<ImageIngesterWorker>()
                 .AddTransient<AssetIngester>()
                 .AddTransient<IngestorResolver>(provider => family => family switch
                 {
@@ -58,7 +63,18 @@ namespace Engine.Infrastructure
                 .AddTransient<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddTransient<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>();
+
+            // image-processor gets httpClient for calling appetiser/tizer
+            services
+                .AddHttpClient<ImageProcessor>(client =>
+                    {
+                        client.BaseAddress = engineSettings.ImageIngest.ImageProcessorUrl;
+                        client.Timeout = TimeSpan.FromMilliseconds(engineSettings.ImageIngest.ImageProcessorTimeoutMs);
+                    })
+                .AddHttpMessageHandler<RequestTimeLoggingHandler>();
             
+            // defaultOriginStrategy gets httpClient for fetching assets via http
+            // TODO - this could be a named client and shared by basic-http-authentication strategy
             services
                 .AddHttpClient<IOriginStrategy, DefaultOriginStrategy>(client =>
                 {

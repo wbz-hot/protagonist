@@ -8,6 +8,8 @@ namespace Engine.Settings
         
         public string ScratchRoot { get; set; }
         
+        public string ImageProcessorRoot { get; set; }
+        
         public ImageIngestSettings ImageIngest { get; set; }
     }
 
@@ -24,5 +26,7 @@ namespace Engine.Settings
         public string ThumbsTemplate { get; set; }
         
         public Uri ImageProcessorUrl { get; set; }
+
+        public int ImageProcessorTimeoutMs { get; set; } = 300000;
     }
 }

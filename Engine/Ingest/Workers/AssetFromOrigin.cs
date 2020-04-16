@@ -18,7 +18,13 @@
         /// <summary>
         /// The current location of the asset on scratch disk.
         /// </summary>
-        public string LocationOnDisk { get; }
+        public string LocationOnDisk { get; set; }
+        
+        /// <summary>
+        /// The current location of the asset on scratch disk.
+        /// </summary>
+        /// <remarks>This is required for calling Tizer/Appetiser.</remarks>
+        public string RelativeLocationOnDisk { get; set; }
         
         /// <summary>
         /// The type of the asset.

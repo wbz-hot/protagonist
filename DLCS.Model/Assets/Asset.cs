@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DLCS.Core.Guard;
 using DLCS.Model.Converters;
 using Newtonsoft.Json;
 
@@ -51,5 +52,21 @@ namespace DLCS.Model.Assets
         public long Duration { get; set; }
 
         public string GetUniqueName() => Id.Substring(Id.LastIndexOf('/') + 1);
+        
+        public ThumbnailPolicy FullThumbnailPolicy { get; private set; }
+        
+        public ImageOptimisationPolicy FullImageOptimisationPolicy { get; private set; }
+
+        public Asset WithThumbnailPolicy(ThumbnailPolicy thumbnailPolicy)
+        {
+            FullThumbnailPolicy = thumbnailPolicy.ThrowIfNull(nameof(thumbnailPolicy));
+            return this;
+        }
+        
+        public Asset WithImageOptimisationPolicy(ImageOptimisationPolicy imageOptimisationPolicy)
+        {
+            FullImageOptimisationPolicy = imageOptimisationPolicy.ThrowIfNull(nameof(imageOptimisationPolicy));
+            return this;
+        }
     }
 }

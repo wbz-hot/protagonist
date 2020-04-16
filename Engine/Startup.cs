@@ -1,9 +1,12 @@
-using System.Net.Http;
+using Amazon.S3;
 using AutoMapper;
+using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Model.Storage;
 using DLCS.Repository;
+using DLCS.Repository.Assets;
+using DLCS.Repository.Storage.S3;
 using Engine.Infrastructure;
-using Engine.Ingest.Strategy;
 using Engine.Settings;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -28,17 +31,22 @@ namespace Engine
             services.AddHealthChecks()
                 .AddNpgSql(configuration.GetPostgresSqlConnection());
 
+            var engineSection = configuration.GetSection("Engine");
+            var engineSettings = engineSection.Get<EngineSettings>();
             services.Configure<QueueSettings>(configuration.GetSection("Queues"));
-            services.Configure<EngineSettings>(configuration.GetSection("Engine"));
+            services.Configure<EngineSettings>(engineSection);
 
             services
+                .AddAWSService<IAmazonS3>()
+                .AddSingleton<IBucketReader, BucketReader>()
                 .AddCors()
                 .AddLazyCache()
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())
                 .AddSQSSubscribers()
-                .AddAssetIngestion()
+                .AddAssetIngestion(engineSettings)
                 .AddAutoMapper(typeof(DatabaseConnectionManager))
-                .AddSingleton<ICustomerOriginRepository, CustomerOriginStrategyRepository>();
+                .AddSingleton<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
+                .AddSingleton<IAssetPolicyRepository, AssetPolicyRepository>();
 
             services
                 .AddControllers()

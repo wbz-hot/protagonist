@@ -23,6 +23,19 @@ namespace Engine.Ingest
                 .Replace("{space}", asset.Space.ToString())
                 .Replace("{image}", SplitImageName(asset.GetUniqueName(), Path.DirectorySeparatorChar));
 
+        /// <summary>
+        /// Generate a folder template using provided details, ensuring path separator is for Unix.
+        /// </summary>
+        /// <param name="template">The basic template, e.g. {root}\{customer}\{space}\{image}</param>
+        /// <param name="root">The root of the template, used as {root} param.</param>
+        /// <param name="asset">Used to populate {customer}, {space} and {image} properties.</param>
+        /// <returns>New string with replacements made.</returns>
+        public static string GenerateTemplateForUnix(string template, string root, Asset asset)
+        {
+            var result = GenerateTemplate(template, root, asset);
+            return result.Replace("\\", "/");
+        }
+
         private static string SplitImageName(string name, char separator)
         {
             if (name.Length <= 8) return name;
