@@ -9,7 +9,7 @@ namespace DLCS.Core.Tests
         [InlineData("application/pdf", "pdf")]
         [InlineData("image/svg+xml", "svg")]
         [InlineData("image/jpg", "jpg")]
-        [InlineData("image/jpg;parameter=something", "jpg")]
+        [InlineData("image/jpg;foo=bar", "jpg")]
         public void GetExtensionForContentType_CorrectForKnownTypes(string contentType, string expected) 
             => MIMEHelper.GetExtensionForContentType(contentType).Should().Be(expected);
 
