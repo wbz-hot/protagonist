@@ -12,7 +12,7 @@ namespace Engine.Ingest.Workers
         {
         }
         
-        protected override Task FamilySpecificIngest(IngestAssetRequest thingToIngestAsset)
+        protected override Task FamilySpecificIngest(IngestionContext thingToIngestAsset)
         {
             return Task.CompletedTask;
         }

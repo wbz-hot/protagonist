@@ -15,7 +15,7 @@ namespace DLCS.Core
         /// <param name="str">String to split</param>
         /// <returns>String split by ',', or empty list.</returns>
         public static IEnumerable<string> SplitCsvString(this string str)
-            => str?.Trim().Split(",", StringSplitOptions.RemoveEmptyEntries) ?? Enumerable.Empty<string>();
+            => str.SplitSeparatedString(",");
 
         /// <summary>
         /// Splits string containing csv values into IEnumerable{T}, using passed function to convert results.
@@ -26,5 +26,14 @@ namespace DLCS.Core
         /// <returns>String split by ',', or empty list.</returns>
         public static IEnumerable<T> SplitCsvString<T>(this string str, Func<string, T> converter)
             => str.SplitCsvString().Select(converter);
+        
+        /// <summary>
+        /// Splits string containing separated values into IEnumerable{T}, using specified separator.
+        /// </summary>
+        /// <param name="str">String to split</param>
+        /// <param name="separator">String to split by.</param>
+        /// <returns>String split, or empty list.</returns>
+        public static IEnumerable<string> SplitSeparatedString(this string str, string separator)
+            => str?.Trim().Split(separator, StringSplitOptions.RemoveEmptyEntries) ?? Enumerable.Empty<string>();
     }
 }

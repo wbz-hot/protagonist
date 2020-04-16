@@ -77,10 +77,12 @@ namespace Engine.Ingest.Workers
                 await using var fileStream = new FileStream(targetPath, FileMode.OpenOrCreate, FileAccess.Write);
                 var assetStream = originResponse.Stream;
 
+                // If we have a contentLength, use that as received bytes and use framework to copy files
+                bool knownFileSize = originResponse.ContentLength.HasValue;
                 long received;
-                if (originResponse.ContentLength.HasValue)
+                
+                if (knownFileSize)
                 {
-                    // If we have a contentLength, use that and use framework to copy files
                     await assetStream.CopyToAsync(fileStream);
                     received = originResponse.ContentLength.Value;
                 }
@@ -92,10 +94,11 @@ namespace Engine.Ingest.Workers
 
                 sw.Stop();
 
-                logger.LogInformation("{customer}/{space}/{image}: download done ({bytes} bytes, {elapsed}ms",
-                    asset.Customer, asset.Space, asset.GetUniqueName(), received, sw.ElapsedMilliseconds);
+                logger.LogInformation("{customer}/{space}/{image}: download done ({bytes} bytes, {elapsed}ms) using {copyType}",
+                    asset.Customer, asset.Space, asset.GetUniqueName(), received, sw.ElapsedMilliseconds,
+                    knownFileSize ? "framework-copy" : "manual-copy");
 
-                return new AssetFromOrigin(asset.Id, received, targetPath);
+                return new AssetFromOrigin(asset.Id, received, targetPath, originResponse.ContentType);
             }
             catch (Exception ex)
             {

@@ -13,18 +13,18 @@ namespace Engine.Ingest.Workers
     public abstract class AssetIngesterWorker : IAssetIngesterWorker
     {
         private readonly IAssetFetcher assetFetcher;
-        private readonly IOptionsMonitor<EngineSettings> optionsMonitor;
+        protected readonly IOptionsMonitor<EngineSettings> OptionsMonitor;
 
         public AssetIngesterWorker(IAssetFetcher assetFetcher, IOptionsMonitor<EngineSettings> optionsMonitor)
         {
             this.assetFetcher = assetFetcher;
-            this.optionsMonitor = optionsMonitor;
+            this.OptionsMonitor = optionsMonitor;
         }
         
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken)
         {
-            var engineSettings = optionsMonitor.CurrentValue;
+            var engineSettings = OptionsMonitor.CurrentValue;
             var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
                 engineSettings.ProcessingFolder,
                 cancellationToken);
@@ -33,7 +33,8 @@ namespace Engine.Ingest.Workers
             // TODO - CheckStoragePolicy. Checks if there is enough space to store this 
 
             // call image or ElasticTranscoder
-            await FamilySpecificIngest(ingestAssetRequest);
+            var context = new IngestionContext(ingestAssetRequest.Asset, fetchedAsset);
+            await FamilySpecificIngest(context);
             
             // update batch
             // set response (if image)
@@ -41,14 +42,19 @@ namespace Engine.Ingest.Workers
             return IngestResult.Success;
         }
 
-        // TODO - what needs pushed to this method?
-        protected abstract Task FamilySpecificIngest(IngestAssetRequest thingToIngestAsset);
+        protected abstract Task FamilySpecificIngest(IngestionContext ingestionContext);
 
-        internal class IngestionContext
+        protected class IngestionContext
         {
             public Asset Asset { get; }
             
             public AssetFromOrigin AssetFromOrigin { get; }
+            
+            public IngestionContext(Asset asset, AssetFromOrigin assetFromOrigin)
+            {
+                Asset = asset;
+                AssetFromOrigin = assetFromOrigin;
+            }
         }
     }
 }

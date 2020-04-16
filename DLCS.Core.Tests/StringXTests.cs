@@ -46,5 +46,26 @@ namespace DLCS.Core.Tests
             // Assert
             actual.Should().BeEquivalentTo(expected);
         }
+        
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData(" ")]
+        public void SplitSeparatedString_ReturnsEmptyList_IfNullOrEmpty(string str)
+            => str.SplitSeparatedString("|").Should().BeEmpty();
+
+        [Fact]
+        public void SplitSeparatedString_SplitsStringCorrectly()
+        {
+            // Arrange
+            const string original = "foo|bar||baz";
+            var expected = new[] {"foo", "bar", "baz"};
+            
+            // Act
+            var actual = original.SplitSeparatedString("|");
+            
+            // Assert
+            actual.Should().BeEquivalentTo(expected);
+        }
     }
 }
