@@ -14,7 +14,7 @@ namespace Engine.Ingest.Strategy
     {
         public override OriginStrategy Strategy => OriginStrategy.BasicHttp;
 
-        protected override Task<Stream> LoadAssetFromOriginImpl(Asset asset,
+        protected override Task<OriginResponse> LoadAssetFromOriginImpl(Asset asset,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();

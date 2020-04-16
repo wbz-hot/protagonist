@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using Amazon.SQS;
 using DLCS.Model.Assets;
+using DLCS.Web.Handlers;
 using Engine.Ingest;
 using Engine.Ingest.Strategy;
 using Engine.Ingest.Workers;
@@ -54,16 +55,17 @@ namespace Engine.Infrastructure
                 })
                 .AddTransient<IAssetFetcher, AssetFetcher>()
                 .AddTransient<IOriginStrategy, S3AmbientOriginStrategy>()
-                .AddTransient<IOriginStrategy, BasicHttpOriginStrategy>()
-                .AddTransient<IOriginStrategy, SftpOriginStrategy>();
-
-            // TODO - add timing middleware
+                .AddTransient<IOriginStrategy, BasicHttpAuthOriginStrategy>()
+                .AddTransient<IOriginStrategy, SftpOriginStrategy>()
+                .AddTransient<RequestTimeLoggingHandler>();
+            
             services
                 .AddHttpClient<IOriginStrategy, DefaultOriginStrategy>(client =>
                 {
                     client.DefaultRequestHeaders.Add("Accept", "*/*");
                     client.DefaultRequestHeaders.Add("User-Agent", "DLCS/2.0");
                 })
+                .AddHttpMessageHandler<RequestTimeLoggingHandler>()
                 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
                 {
                     AllowAutoRedirect = true,
