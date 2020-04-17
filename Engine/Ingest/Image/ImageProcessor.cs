@@ -99,18 +99,24 @@ namespace Engine.Ingest.Image
             return requestModel;
         }
 
-        private Task ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
+        private async Task ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             var thumbsSettings = engineOptionsMonitor.CurrentValue.Thumbs;
-            var objectInBucket = new ObjectInBucket
+            var asset = context.Asset;
+            var baseBucket = asset.GetStorageKey();
+
+            if (!context.AssetFromOrigin.CustomerOriginStrategy.Optimised)
             {
-                Bucket = thumbsSettings.StorageBucket,
-                Key = context.Asset.GetStorageKey()
-            };
+                var objectInBucket = new ObjectInBucket
+                {
+                    Bucket = thumbsSettings.StorageBucket,
+                    Key = $"{baseBucket}/{asset.GetUniqueName()}.jp2"
+                };
+
+                await bucketReader.WriteFileToBucket(objectInBucket, context.AssetFromOrigin.LocationOnDisk);
+            }
             
-            return Task.CompletedTask;
             /* TODO
-               - upload the jp2
                - update ImageLocation 
                - create thumbs (new + legacy). Which we should have some of for thumbRearranger.
                - update image size, using dimensions sent back from Tizer?

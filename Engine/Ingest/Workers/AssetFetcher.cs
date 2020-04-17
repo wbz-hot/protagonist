@@ -51,11 +51,11 @@ namespace Engine.Ingest.Workers
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var result = await CopyAssetToDisk(asset, destinationFolder, originResponse);
-            return result;
+            var assetFromOrigin = await CopyAssetToDisk(asset, destinationFolder, originResponse);
+            assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
+            return assetFromOrigin;
 
             /* TODO:
-             - implementation may/may not need to copy depending on whether it is optimised?? (check)
              - should this handle ImageLocation too?
              - and/or ImageStorage?
              */

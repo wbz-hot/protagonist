@@ -1,4 +1,6 @@
-﻿namespace Engine.Ingest.Workers
+﻿using DLCS.Model.Customer;
+
+namespace Engine.Ingest.Workers
 {
     /// <summary>
     /// An asset that has been copied from Origin.
@@ -30,6 +32,11 @@
         /// The type of the asset.
         /// </summary>
         public string ContentType { get; }
+        
+        /// <summary>
+        /// The customer origin strategy used to process this asset.
+        /// </summary>
+        public CustomerOriginStrategy CustomerOriginStrategy { get; set; }
 
         // TODO - for ContentType - can the type of the Asset be used here?
 

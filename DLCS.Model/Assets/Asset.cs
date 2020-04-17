@@ -55,7 +55,17 @@ namespace DLCS.Model.Assets
         
         public ImageOptimisationPolicy FullImageOptimisationPolicy { get; private set; }
 
-        public string GetUniqueName() => Id.Substring(Id.LastIndexOf('/') + 1);
+        private string uniqueName;
+
+        public string GetUniqueName()
+        {
+            if (string.IsNullOrWhiteSpace(uniqueName))
+            {
+                uniqueName = Id.Substring(Id.LastIndexOf('/') + 1);
+            }
+
+            return uniqueName;
+        } 
 
         public Asset WithThumbnailPolicy(ThumbnailPolicy thumbnailPolicy)
         {
