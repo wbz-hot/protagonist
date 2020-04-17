@@ -86,7 +86,7 @@ namespace DLCS.Repository.Storage.S3
             }
         }
 
-        public async Task WriteToBucket(ObjectInBucket dest, string content, string contentType)
+        public async Task<bool> WriteToBucket(ObjectInBucket dest, string content, string contentType)
         {
             try
             {
@@ -99,17 +99,50 @@ namespace DLCS.Repository.Storage.S3
                     ContentType = contentType
                 };
 
-                PutObjectResponse response = await s3Client.PutObjectAsync(putRequest);
+                _ = await s3Client.PutObjectAsync(putRequest);
+                return true;
             }
             catch (AmazonS3Exception e)
             {
-                logger.LogWarning(e, "S3 Error encountered. Message:'{Message}' when writing an object", e.Message);
+                logger.LogWarning(e, "S3 Error encountered. Message:'{Message}' when writing an object to {key}",
+                    e.Message, dest);
             }
             catch (Exception e)
             {
-                logger.LogWarning(e, "Unknown encountered on server. Message:'{Message}' when writing an object",
-                    e.Message);
+                logger.LogWarning(e, "Unknown encountered on server. Message:'{Message}' when writing an object to {key}",
+                    e.Message, dest);
             }
+
+            return false;
+        }
+
+        public async Task<bool> WriteFileToBucket(ObjectInBucket dest, string filePath)
+        {
+            try
+            {
+                // 1. Put object-specify only key name for the new object.
+                var putRequest = new PutObjectRequest
+                {
+                    BucketName = dest.Bucket,
+                    Key = dest.Key,
+                    FilePath = filePath,
+                };
+
+                _ = await s3Client.PutObjectAsync(putRequest);
+                return true;
+            }
+            catch (AmazonS3Exception e)
+            {
+                logger.LogWarning(e, "S3 Error encountered. Message:'{Message}' when writing an object to {key}",
+                    e.Message, dest);
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Unknown encountered on server. Message:'{Message}' when writing an object to {key}",
+                    e.Message, dest);
+            }
+
+            return false;
         }
 
         public async Task DeleteFromBucket(params ObjectInBucket[] toDelete)

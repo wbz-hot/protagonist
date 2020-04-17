@@ -18,7 +18,14 @@ namespace DLCS.Model.Storage
         
         Task CopyWithinBucket(string bucket, string sourceKey, string destKey);
         
-        Task WriteToBucket(ObjectInBucket dest, string content, string contentType);
+        Task<bool> WriteToBucket(ObjectInBucket dest, string content, string contentType);
+        
+        /// <summary>
+        /// Write file from disk to S3 bucket.
+        /// </summary>
+        /// <param name="dest">Target object to write.</param>
+        /// <param name="filePath">File on disk to write to S3.</param>
+        Task<bool> WriteFileToBucket(ObjectInBucket dest, string filePath);
 
         /// <summary>
         /// Delete specified objects underlying storage.

@@ -98,5 +98,37 @@ namespace DLCS.Repository.Tests.Storage.S3
             // Assert
             action.Should().Throw<HttpException>().Which.StatusCode.Should().Be(statusCode);
         }
+
+        [Fact]
+        public async Task WriteFileToBucket_ReturnsFalse_IfExceptionThrown()
+        {
+            // Arrange
+            A.CallTo(() =>
+                    s3Client.PutObjectAsync(
+                        A<PutObjectRequest>.Ignored,
+                        A<CancellationToken>.Ignored))
+                .ThrowsAsync(new Exception("boom!"));
+            
+            var objectInBucket = new ObjectInBucket {Bucket = "MyBucket", Key = "MyKey"};
+            
+            // Act
+            var result = await sut.WriteFileToBucket(objectInBucket, "/some/file.jpg");
+            
+            // Assert
+            result.Should().BeFalse();
+        }
+        
+        [Fact]
+        public async Task WriteFileToBucket_ReturnsTrue_IfSuccess()
+        {
+            // Arrange
+            var objectInBucket = new ObjectInBucket {Bucket = "MyBucket", Key = "MyKey"};
+            
+            // Act
+            var result = await sut.WriteFileToBucket(objectInBucket, "/some/file.jpg");
+            
+            // Assert
+            result.Should().BeTrue();
+        }
     }
 }
