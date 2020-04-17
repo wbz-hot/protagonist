@@ -17,7 +17,7 @@ namespace DLCS.Repository
 {
     public class CustomerOriginStrategyRepository : ICustomerOriginRepository
     {
-        private const string OriginRegexAppSettings = "Engine:s3OriginRegex";
+        private const string OriginRegexAppSettings = "Engine:S3OriginRegex";
 
         private static readonly CustomerOriginStrategy DefaultStrategy = new CustomerOriginStrategy
             {Id = "_default_", Strategy = OriginStrategy.Default};

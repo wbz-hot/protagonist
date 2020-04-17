@@ -7,6 +7,7 @@ using DLCS.Core.Collections;
 using DLCS.Core.Threading;
 using DLCS.Model.Assets;
 using DLCS.Model.Storage;
+using DLCS.Repository.Storage;
 using IIIF;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -89,6 +90,24 @@ namespace DLCS.Repository.Assets
 
             // Clean up legacy format from before /open /auth paths
             await CleanupRootConfinedSquareThumbs(rootKey, keysInTargetBucket);
+        }
+
+        public async Task CreateNewThumbs(Asset asset, IEnumerable<ThumbOnDisk> thumbsToProcess)
+        {
+            var thumbOnDisks = thumbsToProcess as ThumbOnDisk[] ?? thumbsToProcess.ToArray();
+            if (thumbOnDisks.IsNullOrEmpty()) return;
+
+            // /1/2/imagename
+            var bucketKeyNonExpanded = asset.GetStorageKey();
+
+            foreach (var thumbCandidate in thumbOnDisks)
+            {
+                // TODO - this is all from above
+                var maxAvailableThumb = GetMaxAvailableThumb(asset, asset.FullThumbnailPolicy);
+
+                var realSize = new Size(asset.Width, asset.Height);
+                var boundingSquares = asset.FullThumbnailPolicy.Sizes.OrderByDescending(i => i).ToList();
+            }
         }
 
         private static bool HasCurrentLayout(ObjectInBucket rootKey, string[] keysInTargetBucket) =>

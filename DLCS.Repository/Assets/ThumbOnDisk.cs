@@ -1,6 +1,6 @@
-﻿namespace Engine.Ingest.Image
+﻿namespace DLCS.Repository.Assets
 {
-    public class ImageProcessorThumb
+    public class ThumbOnDisk
     {
         public string Path { get; set; }
         public int Height { get; set; }

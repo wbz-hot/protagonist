@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using DLCS.Repository.Assets;
 
 namespace Engine.Ingest.Image
 {
@@ -15,6 +16,6 @@ namespace Engine.Ingest.Image
         public int Height { get; set; }
         public int Width { get; set; }
         public string InfoJson { get; set; }
-        public IEnumerable<ImageProcessorThumb> Thumbs { get; set; }
+        public IEnumerable<ThumbOnDisk> Thumbs { get; set; }
     }
 }

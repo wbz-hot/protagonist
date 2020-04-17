@@ -4,9 +4,12 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using DLCS.Model.Assets;
 using DLCS.Model.Storage;
+using DLCS.Repository.Assets;
 using DLCS.Repository.Storage;
 using Engine.Settings;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -19,23 +22,28 @@ namespace Engine.Ingest.Image
         private readonly HttpClient httpClient;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
         private readonly ILogger<ImageProcessor> logger;
+        private readonly IConfiguration configuration;
         private readonly IBucketReader bucketReader;
+        private readonly IThumbReorganiser thumbReorganiser;
 
         public ImageProcessor(
             HttpClient httpClient, 
             IBucketReader bucketReader,
+            IThumbReorganiser thumbReorganiser,
             IOptionsMonitor<EngineSettings> engineOptionsMonitor,
-            ILogger<ImageProcessor> logger)
+            ILogger<ImageProcessor> logger,
+            IConfiguration configuration)
         {
             this.httpClient = httpClient;
             this.bucketReader = bucketReader;
+            this.thumbReorganiser = thumbReorganiser;
             this.engineOptionsMonitor = engineOptionsMonitor;
             this.logger = logger;
+            this.configuration = configuration;
         }
 
         public async Task ProcessImage(IngestionContext context)
         {
-            // call tizer/appetiser
             var responseModel = await CallImageProcessor(context);
             await ProcessResponse(context, responseModel);
         }
@@ -59,7 +67,7 @@ namespace Engine.Ingest.Image
             using var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
-            // TODO - can get a 200 when appetiser doesn't do anything, e.g. path is dodgy
+            // TODO - can get a 200 when appetiser doesn't do anything, e.g. body not understood
             var responseModel = await response.Content.ReadAsAsync<ImageProcessorResponseModel>();
             return responseModel;
         }
@@ -101,27 +109,82 @@ namespace Engine.Ingest.Image
 
         private async Task ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
-            var thumbsSettings = engineOptionsMonitor.CurrentValue.Thumbs;
+            UpdateImageSize(context.Asset, responseModel);
+            var imageLocation = await GetImageLocation(context);
+
+            await CreateNewThumbs(context, responseModel);
+
+            /* TODO
+               - Save Image + ImageLocation records 
+               - create thumbs (new + legacy). Which we should have some of for thumbRearranger.
+               - create info.json
+             */
+        }
+
+        private void UpdateImageSize(Asset asset, ImageProcessorResponseModel responseModel)
+        {
+            asset.Height = responseModel.Height;
+            asset.Width = responseModel.Width;
+        }
+
+        private async Task<ImageLocation> GetImageLocation(IngestionContext context)
+        {
+            var engineSettings = engineOptionsMonitor.CurrentValue;
             var asset = context.Asset;
             var baseBucket = asset.GetStorageKey();
-
+            
+            var imageLocation = new ImageLocation {Id = asset.Id};
             if (!context.AssetFromOrigin.CustomerOriginStrategy.Optimised)
             {
+                // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
                 var objectInBucket = new ObjectInBucket
                 {
-                    Bucket = thumbsSettings.StorageBucket,
+                    Bucket = engineSettings.Thumbs.StorageBucket,
                     Key = $"{baseBucket}/{asset.GetUniqueName()}.jp2"
                 };
 
-                await bucketReader.WriteFileToBucket(objectInBucket, context.AssetFromOrigin.LocationOnDisk);
+                if (!await bucketReader.WriteFileToBucket(objectInBucket, context.AssetFromOrigin.LocationOnDisk))
+                {
+                    // TODO - exception type
+                    throw new ApplicationException("Failed to write jp2 to storage bucket");
+                }
+
+                imageLocation.S3 = string.Format(engineSettings.S3Template, asset.Customer, asset.Space,
+                    asset.GetUniqueName());
             }
-            
-            /* TODO
-               - update ImageLocation 
-               - create thumbs (new + legacy). Which we should have some of for thumbRearranger.
-               - update image size, using dimensions sent back from Tizer?
-               - create info.json
-             */
+            else
+            {
+                // Optimised strategy - we don't want to store, just set imageLocation
+                var regionalisedBucket = RegionalisedObjectInBucket.Parse(asset.Origin);
+                if (string.IsNullOrEmpty(regionalisedBucket.Region))
+                {
+                    regionalisedBucket.Region = configuration["AWS:Region"];
+                }
+
+                imageLocation.S3 = regionalisedBucket.GetS3QualifiedUri();
+            }
+
+            return imageLocation;
+        }
+        
+        private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel)
+        {
+            SetThumbsDiskLocation(context, responseModel);
+
+            await thumbReorganiser.CreateNewThumbs(context.Asset, responseModel.Thumbs);
+        }
+
+        private void SetThumbsDiskLocation(IngestionContext context, ImageProcessorResponseModel responseModel)
+        {
+            // Update the location of all thumbs to be full path
+            var settings = engineOptionsMonitor.CurrentValue;
+            var partialTemplate = TemplatedFolders.GenerateTemplate(settings.ImageIngest.ThumbsTemplate,
+                settings.ScratchRoot, context.Asset, false);
+            foreach (var thumb in responseModel.Thumbs)
+            {
+                var key = thumb.Path.Substring(thumb.Path.LastIndexOf('/') + 1);
+                thumb.Path = partialTemplate.Replace(TemplatedFolders.Image, key);
+            }
         }
     }
 }

@@ -14,6 +14,10 @@ namespace Engine.Settings
         public ImageIngestSettings ImageIngest { get; set; }
         
         public ThumbsSettings Thumbs { get; set; }
+        
+        public string S3OriginRegex { get; set; }
+        
+        public string S3Template { get; set; }
     }
 
     /// <summary>

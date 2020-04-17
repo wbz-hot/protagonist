@@ -7,21 +7,31 @@ namespace Engine.Ingest
     // This logic has been copied over from Deliverator implementation.
     public class TemplatedFolders
     {
-        private static readonly Regex ImageNameRegex = new Regex(@"(..)(..)(..)(..)(.*)", RegexOptions.Compiled); 
-        
+        private static readonly Regex ImageNameRegex = new Regex(@"(..)(..)(..)(..)(.*)", RegexOptions.Compiled);
+        public const string Root = "{root}";
+        public const string Customer = "{customer}";
+        public const string Space = "{space}";
+        public const string Image = "{image}";
+
         /// <summary>
         /// Generate a folder template using provided details.
         /// </summary>
         /// <param name="template">The basic template, e.g. {root}\{customer}\{space}\{image}</param>
         /// <param name="root">The root of the template, used as {root} param.</param>
-        /// <param name="asset">Used to populate {customer}, {space} and {image} properties.</param>
+        /// <param name="asset">Used to populate {customer}, {space} and, optionally, {image} properties.</param>
+        /// <param name="replaceImage">If true {image} is replaced, else it is left unreplaced</param>
         /// <returns>New string with replacements made.</returns>
-        public static string GenerateTemplate(string template, string root, Asset asset) 
-            => template
-                .Replace("{root}", root)
-                .Replace("{customer}", asset.Customer.ToString())
-                .Replace("{space}", asset.Space.ToString())
-                .Replace("{image}", SplitImageName(asset.GetUniqueName(), Path.DirectorySeparatorChar));
+        public static string GenerateTemplate(string template, string root, Asset asset, bool replaceImage = true)
+        {
+            var replacements = template
+                .Replace(Root, root)
+                .Replace(Customer, asset.Customer.ToString())
+                .Replace(Space, asset.Space.ToString());
+
+            return replaceImage
+                ? replacements.Replace(Image, SplitImageName(asset.GetUniqueName(), Path.DirectorySeparatorChar))
+                : replacements;
+        }
 
         /// <summary>
         /// Generate a folder template using provided details, ensuring path separator is for Unix.
