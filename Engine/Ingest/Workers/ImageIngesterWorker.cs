@@ -16,7 +16,6 @@ namespace Engine.Ingest.Workers
         private readonly IAssetPolicyRepository assetPolicyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
 
-        // TODO - inject a HttpClient for TizerBaseUri
         public ImageIngesterWorker(
             ImageProcessor imageProcessor,
             IAssetFetcher assetFetcher,
@@ -50,25 +49,21 @@ namespace Engine.Ingest.Workers
 
         private void CopyAssetFromProcessingToTemplatedFolder(IngestionContext context, EngineSettings engineSettings)
         {
-            var template = engineSettings.ImageIngest.SourceTemplate;
-            var root = engineSettings.ScratchRoot;
             var sourcePath = context.AssetFromOrigin.LocationOnDisk;
             var targetPath = string.Empty;
 
             try
             {
                 var extension = GetFileExtension(context);
+                targetPath = GetTargetPath(context, engineSettings);
 
-                targetPath = TemplatedFolders.GenerateTemplate(template, root, context.Asset);
-                
                 // HACK - this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
                 var unixRoot = string.IsNullOrEmpty(engineSettings.ImageProcessorRoot)
                     ? engineSettings.ScratchRoot
-                    : engineSettings.ImageProcessorRoot; 
-                var unixPath = TemplatedFolders.GenerateTemplateForUnix(template, unixRoot, context.Asset);
+                    : engineSettings.ImageProcessorRoot;
+                var unixPath = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.SourceTemplate,
+                    unixRoot, context.Asset);
 
-                Directory.CreateDirectory(targetPath);
-                
                 unixPath += $".{extension}";
                 targetPath += $".{extension}";
 
@@ -83,6 +78,22 @@ namespace Engine.Ingest.Workers
                     sourcePath, targetPath);
                 throw new ApplicationException($"Error copying image asset from {sourcePath} to {targetPath}.", ex);
             }
+        }
+        
+        private string GetTargetPath(IngestionContext context, EngineSettings engineSettings)
+        {
+            var root = engineSettings.ScratchRoot;
+            var imageIngest = engineSettings.ImageIngest;
+            var targetPath = TemplatedFolders.GenerateTemplate(imageIngest.SourceTemplate, root, context.Asset);
+            var dest = TemplatedFolders.GenerateTemplate(imageIngest.DestinationTemplate, root, context.Asset);
+            var thumb = TemplatedFolders.GenerateTemplate(imageIngest.ThumbsTemplate, engineSettings.ScratchRoot,
+                context.Asset);
+
+            Directory.CreateDirectory(dest);
+            Directory.CreateDirectory(thumb);
+            Directory.CreateDirectory(targetPath);
+
+            return targetPath;
         }
 
         private string GetFileExtension(IngestionContext context)

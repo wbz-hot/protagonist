@@ -65,7 +65,6 @@ namespace Engine.Ingest.Image
         
         private ImageProcessorRequestModel CreateModel(IngestionContext context, EngineSettings engineSettings)
         {
-            EnsureOutputDirectories(context, engineSettings);
             var asset = context.Asset;
             var imageOptimisationPolicy = asset.FullImageOptimisationPolicy;
             if (imageOptimisationPolicy.TechnicalDetails.Count > 1)
@@ -97,17 +96,6 @@ namespace Engine.Ingest.Image
             };
 
             return requestModel;
-        }
-
-        private void EnsureOutputDirectories(IngestionContext context, EngineSettings engineSettings)
-        {
-            var dest = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.DestinationTemplate,
-                engineSettings.ScratchRoot, context.Asset);
-            var thumb = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.ThumbsTemplate,
-                engineSettings.ScratchRoot, context.Asset);
-
-            Directory.CreateDirectory(dest);
-            Directory.CreateDirectory(thumb);
         }
 
         private Task ProcessResponse(ImageProcessorResponseModel responseModel)
