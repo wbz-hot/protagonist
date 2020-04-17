@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using DLCS.Model.Storage;
+using DLCS.Repository.Storage;
 using Engine.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -36,7 +37,7 @@ namespace Engine.Ingest.Image
         {
             // call tizer/appetiser
             var responseModel = await CallImageProcessor(context);
-            await ProcessResponse(responseModel);
+            await ProcessResponse(context, responseModel);
         }
         
         private async Task<ImageProcessorResponseModel> CallImageProcessor(IngestionContext context)
@@ -98,10 +99,19 @@ namespace Engine.Ingest.Image
             return requestModel;
         }
 
-        private Task ProcessResponse(ImageProcessorResponseModel responseModel)
+        private Task ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
+            var thumbsSettings = engineOptionsMonitor.CurrentValue.Thumbs;
+            var objectInBucket = new ObjectInBucket
+            {
+                Bucket = thumbsSettings.StorageBucket,
+                Key = context.Asset.GetStorageKey()
+            };
+            
             return Task.CompletedTask;
             /* TODO
+               - upload the jp2
+               - update ImageLocation 
                - create thumbs (new + legacy). Which we should have some of for thumbRearranger.
                - update image size, using dimensions sent back from Tizer?
                - create info.json

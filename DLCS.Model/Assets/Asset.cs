@@ -50,12 +50,12 @@ namespace DLCS.Model.Assets
         public AssetFamily Family { get; set; }
         public string MediaType { get; set; }
         public long Duration { get; set; }
-
-        public string GetUniqueName() => Id.Substring(Id.LastIndexOf('/') + 1);
         
         public ThumbnailPolicy FullThumbnailPolicy { get; private set; }
         
         public ImageOptimisationPolicy FullImageOptimisationPolicy { get; private set; }
+
+        public string GetUniqueName() => Id.Substring(Id.LastIndexOf('/') + 1);
 
         public Asset WithThumbnailPolicy(ThumbnailPolicy thumbnailPolicy)
         {

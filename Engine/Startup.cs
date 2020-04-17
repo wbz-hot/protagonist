@@ -5,6 +5,7 @@ using DLCS.Model.Customer;
 using DLCS.Model.Storage;
 using DLCS.Repository;
 using DLCS.Repository.Assets;
+using DLCS.Repository.Settings;
 using DLCS.Repository.Storage.S3;
 using Engine.Infrastructure;
 using Engine.Settings;
@@ -67,10 +68,5 @@ namespace Engine
                 .UseHealthChecks("/ping")
                 .UseEndpoints(endpoints => endpoints.MapControllers());
         }
-    }
-
-    public class HttpClients
-    {
-        public const string DefaultOrigin = "origin";
     }
 }

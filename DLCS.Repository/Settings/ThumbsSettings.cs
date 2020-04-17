@@ -5,6 +5,8 @@
         public bool EnsureNewThumbnailLayout { get; set; } = false;
         
         public string ThumbsBucket { get; set; }
+        
+        public string StorageBucket { get; set; }
 
         public class Constants
         {

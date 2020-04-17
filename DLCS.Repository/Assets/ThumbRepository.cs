@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Storage;
 using DLCS.Repository.Settings;
+using DLCS.Repository.Storage;
 using IIIF.ImageApi;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -103,8 +104,8 @@ namespace DLCS.Repository.Assets
             return thumbnailSizes.Open;
         }
 
-        private string GetKeyRoot(int customerId, int spaceId, ImageRequest imageRequest) 
-            => $"{customerId}/{spaceId}/{imageRequest.Identifier}/";
+        private static string GetKeyRoot(int customerId, int spaceId, ImageRequest imageRequest) 
+            => StorageKeyGenerator.GetStorageKey(customerId, spaceId, imageRequest.Identifier);
 
         private Task EnsureNewLayout(int customerId, int spaceId, ImageRequest imageRequest)
         {

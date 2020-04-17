@@ -1,4 +1,5 @@
 ﻿using System;
+using DLCS.Repository.Settings;
 
 namespace Engine.Settings
 {
@@ -11,6 +12,8 @@ namespace Engine.Settings
         public string ImageProcessorRoot { get; set; }
         
         public ImageIngestSettings ImageIngest { get; set; }
+        
+        public ThumbsSettings Thumbs { get; set; }
     }
 
     /// <summary>

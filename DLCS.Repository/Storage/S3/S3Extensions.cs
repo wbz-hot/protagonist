@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using Amazon.S3.Model;
+﻿using Amazon.S3.Model;
 using DLCS.Model.Storage;
 
 namespace DLCS.Repository.Storage.S3
