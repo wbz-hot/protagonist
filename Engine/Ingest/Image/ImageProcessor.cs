@@ -102,7 +102,6 @@ namespace Engine.Ingest.Image
         {
             return Task.CompletedTask;
             /* TODO
-             - handle tizer response 
                - create thumbs (new + legacy). Which we should have some of for thumbRearranger.
                - update image size, using dimensions sent back from Tizer?
                - create info.json

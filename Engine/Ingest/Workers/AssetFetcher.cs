@@ -113,7 +113,7 @@ namespace Engine.Ingest.Workers
             int size;
             long received = 0;
 
-            while ((size = assetStream.Read(buffer, 0, buffer.Length)) > 0)
+            while ((size = await assetStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
                 await fileStream.WriteAsync(buffer, 0, size);
                 received += size;
