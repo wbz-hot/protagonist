@@ -311,20 +311,22 @@ namespace DLCS.Repository.Tests.Assets
         [Fact]
         public async Task EnsureNewLayout_AssetNotFound()
         {
-
             // Arrange
-            var rootKey = new ObjectInBucket { Bucket = "the-bucket", Key = "2/1/doesnotexit/" };
-
-            Asset returnvalue = null;
+            var bucketReader = A.Fake<IBucketReader>();
+            var rootKey = new ObjectInBucket("the-bucket", "2/1/doesnotexit/");
+            
             A.CallTo(() => assetRepository.GetAsset(rootKey.Key.TrimEnd('/')))
-                     .Returns(returnvalue);
-           
+                .Returns<Asset>(null);
+            
+            var sut = GetSut(bucketReader);
+
             // Act
             await sut.EnsureNewLayout(rootKey);
 
             // Assert
             A.CallTo(() => assetRepository.GetAsset(A<string>._))
-                  .MustHaveHappened();
+                .MustHaveHappened();
+        }
 
         [Fact]
         public async Task CreateNewThumbs_DoesNothing_IfThumbsOnDiskNull()
