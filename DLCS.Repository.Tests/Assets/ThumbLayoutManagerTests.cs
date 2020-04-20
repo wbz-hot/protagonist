@@ -10,21 +10,21 @@ using Xunit;
 
 namespace DLCS.Repository.Tests.Assets
 {
-    public class ThumbReorganiserTests
+    public class ThumbLayoutManagerTests
     {
         private readonly IBucketReader bucketReader;
         private readonly ILogger<ThumbRepository> logger;
         private readonly IAssetRepository assetRepository;
         private readonly IAssetPolicyRepository thumbPolicyRepository;
-        private readonly ThumbReorganiser sut;
+        private readonly ThumbLayoutManager sut;
 
-        public ThumbReorganiserTests()
+        public ThumbLayoutManagerTests()
         {
             bucketReader = A.Fake<IBucketReader>();
             logger = A.Fake<ILogger<ThumbRepository>>();
             assetRepository = A.Fake<IAssetRepository>();
             thumbPolicyRepository = A.Fake<IAssetPolicyRepository>();
-            sut = new ThumbReorganiser(bucketReader, logger, assetRepository, thumbPolicyRepository);
+            sut = new ThumbLayoutManager(bucketReader, logger, assetRepository, thumbPolicyRepository);
         }
 
         [Fact]

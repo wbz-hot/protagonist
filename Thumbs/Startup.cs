@@ -41,7 +41,7 @@ namespace Thumbs
             services.AddSingleton<ICustomerRepository, CustomerRepository>();
             services.AddSingleton<IPathCustomerRepository, CustomerPathElementRepository>();
             services.AddSingleton<IThumbRepository, ThumbRepository>();
-            services.AddSingleton<IThumbReorganiser, ThumbReorganiser>();
+            services.AddSingleton<IThumbLayoutManager, ThumbLayoutManager>();
             services.AddSingleton<IAssetPolicyRepository, AssetPolicyRepository>();
             services.AddSingleton<IAssetRepository, AssetRepository>();
             services.AddAutoMapper(typeof(DatabaseConnectionManager));

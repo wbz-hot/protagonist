@@ -7,16 +7,13 @@ using DLCS.Core.Collections;
 using DLCS.Core.Threading;
 using DLCS.Model.Assets;
 using DLCS.Model.Storage;
-using DLCS.Repository.Storage;
 using IIIF;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-using thumbConsts =  DLCS.Repository.Settings.ThumbsSettings.Constants;
-
 namespace DLCS.Repository.Assets
 {
-    public class ThumbReorganiser : IThumbReorganiser
+    public class ThumbLayoutManager : IThumbLayoutManager
     {
         private readonly IBucketReader bucketReader;
         private readonly ILogger<ThumbRepository> logger;
@@ -25,7 +22,7 @@ namespace DLCS.Repository.Assets
         private readonly AsyncKeyedLock asyncLocker = new AsyncKeyedLock();
         private static Regex BoundedThumbRegex = new Regex("^[0-9]+.jpg$");
 
-        public ThumbReorganiser(
+        public ThumbLayoutManager(
             IBucketReader bucketReader,
             ILogger<ThumbRepository> logger,
             IAssetRepository assetRepository,
@@ -62,28 +59,20 @@ namespace DLCS.Repository.Assets
                 return;
 
             var policy = await assetPolicyRepository.GetThumbnailPolicy(asset.ThumbnailPolicy);
-
-            var maxAvailableThumb = GetMaxAvailableThumb(asset, policy);
-
+            
             var realSize = new Size(asset.Width, asset.Height);
             var boundingSquares = policy.Sizes.OrderByDescending(i => i).ToList();
 
             var thumbnailSizes = new ThumbnailSizes(boundingSquares.Count);
+            thumbnailSizes.SetMaxAvailableSize(GetMaxAvailableThumb(asset, policy));
             foreach (int boundingSquare in boundingSquares)
             {
                 var thumb = Size.Confine(boundingSquare, realSize);
-                if (thumb.IsConfinedWithin(maxAvailableThumb))
-                {
-                    thumbnailSizes.AddOpen(thumb);
-                }
-                else
-                {
-                    thumbnailSizes.AddAuth(thumb);
-                }
+                thumbnailSizes.Add(thumb);
             }
 
             // All the thumbnail jpgs will already exist and need copied up to root
-            await CreateThumbnails(rootKey, boundingSquares, thumbnailSizes);
+            await CreateConfinedSquareThumbnailsFromLegacy(rootKey, boundingSquares, thumbnailSizes);
 
             // Create sizes json file last, as this dictates whether this process will be attempted again
             await CreateSizesJson(rootKey, thumbnailSizes);
@@ -92,48 +81,64 @@ namespace DLCS.Repository.Assets
             await CleanupRootConfinedSquareThumbs(rootKey, keysInTargetBucket);
         }
 
-        public async Task CreateNewThumbs(Asset asset, IEnumerable<ThumbOnDisk> thumbsToProcess)
+        public async Task CreateNewThumbs(Asset asset, IEnumerable<ThumbOnDisk> thumbsToProcess,
+            ObjectInBucket rootKey)
         {
             var thumbOnDisks = thumbsToProcess as ThumbOnDisk[] ?? thumbsToProcess.ToArray();
             if (thumbOnDisks.IsNullOrEmpty()) return;
+            
+            using var processLock = await asyncLocker.LockAsync(rootKey.ToString());
 
+            // TODO - will this be a 404 if not found?
+            var keysInTargetBucket = await bucketReader.GetMatchingKeys(rootKey);
+            
             // /1/2/imagename
-            var bucketKeyNonExpanded = asset.GetStorageKey();
-                
-            // TODO - this mostly from above
-            var maxAvailableThumb = GetMaxAvailableThumb(asset, asset.FullThumbnailPolicy);
-            var realSize = new Size(asset.Width, asset.Height);
-            var thumbnailSizes = new ThumbnailSizes(thumbOnDisks.Length);
-            //var boundingSquares = asset.FullThumbnailPolicy.Sizes.OrderByDescending(i => i).ToList();
-            //var boundingSquares = asset.FullThumbnailPolicy.Sizes.OrderByDescending(i => i).ToList();
+            var bucketKey = rootKey.Key;
 
+            var thumbnailSizes = new ThumbnailSizes(thumbOnDisks.Length);
+            var maxAvailableThumb = GetMaxAvailableThumb(asset, asset.FullThumbnailPolicy);
+            
+            // dictionary of newPath : legacyPaths[]
+            var legacyCopies = new Dictionary<string, string[]>(thumbOnDisks.Length);
             foreach (var thumbCandidate in thumbOnDisks)
             {
                 var thumb = new Size(thumbCandidate.Width, thumbCandidate.Height);
+                bool isOpen = false;
 
-                var extension = thumbCandidate.Path.Substring(thumbCandidate.Path.LastIndexOf('.'));
-                
-                // Tizer lists the thumbnail image outputs in the order it made them,
-                // from largest (e.g., 1024) to smallest (e.g., 100).
-                // first should be the low quality one, i.e., a usable low-q jpg.
-                string thumbBucketKey1 = $"{bucketKeyNonExpanded}/low.jpg";
-                string thumbBucketKey2 = string.Empty;
-                
                 if (thumb.IsConfinedWithin(maxAvailableThumb))
                 {
                     thumbnailSizes.AddOpen(thumb);
+                    isOpen = true;
                 }
                 else
                 {
                     thumbnailSizes.AddAuth(thumb);
+                    isOpen = false;
                 }
+
+                var thumbKey = ThumbnailKeys.GetConfinedSquarePath(bucketKey, thumb, isOpen);
+                var objectInBucket = rootKey.CloneWithKey(thumbKey);
+                
+                // upload confined square thumb (new)
+                await bucketReader.WriteFileToBucket(objectInBucket, thumbCandidate.Path);
+
+                // build up a list of in-bucket copies to do to maintain legacy
+                legacyCopies.Add(
+                    thumbKey,
+                    GetPathsToCopyTo(bucketKey, maxAvailableThumb.MaxDimension, thumb)
+                );
             }
+
+            await CreateSizesJson(rootKey, thumbnailSizes);
             
-            // todo - CleanupRootConfinedSquareThumbs
+            await CreateLegacyThumbsFromConfinedSquare(rootKey, legacyCopies);
+
+            // Clean up legacy format from before /open /auth paths
+            await CleanupRootConfinedSquareThumbs(rootKey, keysInTargetBucket);
         }
 
-        private static bool HasCurrentLayout(ObjectInBucket rootKey, string[] keysInTargetBucket) =>
-            keysInTargetBucket.Contains($"{rootKey.Key}{thumbConsts.SizesJsonKey}");
+        private static bool HasCurrentLayout(ObjectInBucket rootKey, string[] keysInTargetBucket)
+            => keysInTargetBucket.Contains(ThumbnailKeys.GetSizesJsonPath(rootKey.Key));
 
         private static Size GetMaxAvailableThumb(Asset asset, ThumbnailPolicy policy)
         {
@@ -141,25 +146,25 @@ namespace DLCS.Repository.Assets
             return Size.Square(maxDimensions.maxBoundedSize);
         }
 
-        private async Task CreateThumbnails(ObjectInBucket rootKey, List<int> boundingSquares, ThumbnailSizes thumbnailSizes)
+        private async Task CreateConfinedSquareThumbnailsFromLegacy(ObjectInBucket rootKey, List<int> boundingSquares, ThumbnailSizes thumbnailSizes)
         {
             var copyTasks = new List<Task>(thumbnailSizes.Count);
             
             // low.jpg becomes the first in this list
             var largestSize = boundingSquares[0];
-            var largestSlug = thumbnailSizes.Auth.IsNullOrEmpty() ? thumbConsts.OpenSlug : thumbConsts.AuthorisedSlug;
+            var largestIsOpen = thumbnailSizes.Auth.IsNullOrEmpty();
             copyTasks.Add(bucketReader.CopyWithinBucket(rootKey.Bucket,
-                $"{rootKey.Key}low.jpg",
-                $"{rootKey.Key}{largestSlug}/{largestSize}.jpg"));
+                ThumbnailKeys.GetLowPath(rootKey.Key),
+                ThumbnailKeys.GetConfinedSquarePath(rootKey.Key, largestSize, largestIsOpen)));
             
-            copyTasks.AddRange(ProcessThumbBatch(rootKey, thumbnailSizes.Auth, thumbConsts.AuthorisedSlug, largestSize));
-            copyTasks.AddRange(ProcessThumbBatch(rootKey, thumbnailSizes.Open, thumbConsts.OpenSlug, largestSize));
+            copyTasks.AddRange(ProcessCopyThumbBatch(rootKey, thumbnailSizes.Auth, false, largestSize));
+            copyTasks.AddRange(ProcessCopyThumbBatch(rootKey, thumbnailSizes.Open, true, largestSize));
             
             await Task.WhenAll(copyTasks);
         }
 
-        private IEnumerable<Task> ProcessThumbBatch(ObjectInBucket rootKey, IEnumerable<int[]> thumbnailSizes,
-            string slug, int largestSize)
+        private IEnumerable<Task> ProcessCopyThumbBatch(ObjectInBucket rootKey, IEnumerable<int[]> thumbnailSizes,
+            bool isOpen, int largestSize)
         {
             foreach (var wh in thumbnailSizes)
             {
@@ -167,16 +172,44 @@ namespace DLCS.Repository.Assets
                 if (size.MaxDimension == largestSize) continue;
 
                 yield return bucketReader.CopyWithinBucket(rootKey.Bucket,
-                    $"{rootKey.Key}full/{size.Width},{size.Height}/0/default.jpg",
-                    $"{rootKey.Key}{slug}/{size.MaxDimension}.jpg");
+                    ThumbnailKeys.GetThumbnailWHPath(rootKey.Key, size),
+                    ThumbnailKeys.GetConfinedSquarePath(rootKey.Key, size, isOpen));
             }
         }
 
         private async Task CreateSizesJson(ObjectInBucket rootKey, ThumbnailSizes thumbnailSizes)
         {
-            var sizesKey = string.Concat(rootKey.Key, thumbConsts.SizesJsonKey); 
-            var sizesDest = rootKey.CloneWithKey(sizesKey);
+            var sizesDest = rootKey.CloneWithKey(ThumbnailKeys.GetSizesJsonPath(rootKey.Key));
             await bucketReader.WriteToBucket(sizesDest, JsonConvert.SerializeObject(thumbnailSizes), "application/json");
+        }
+        
+        private string[] GetPathsToCopyTo(string key, int maxSize, Size thumb)
+        {
+            // If this is biggest, copy to low.jpg
+            if (thumb.MaxDimension == maxSize)
+            {
+                return new[] {ThumbnailKeys.GetLowPath(key)};
+            }
+
+            // else copy to "w,h" and "w," paths
+            return new[] {ThumbnailKeys.GetThumbnailWPath(key, thumb), ThumbnailKeys.GetThumbnailWHPath(key, thumb)};
+        }
+        
+        private async Task CreateLegacyThumbsFromConfinedSquare(ObjectInBucket rootKey, Dictionary<string,string[]> legacyCopies)
+        {
+            List<Task> copyOperations = new List<Task>(legacyCopies.Count * 2);
+            var bucket = rootKey.Bucket;
+            
+            foreach (var (key, legacyKeys) in legacyCopies)
+            {
+                foreach (var dest in legacyKeys)
+                {
+                    logger.LogTrace("Copying '{key}' to '{dest}' (bucket: '{bucket}'", key, dest, bucket);
+                    copyOperations.Add(bucketReader.CopyWithinBucket(bucket, key, dest));
+                }
+            }
+
+            await Task.WhenAll(copyOperations);
         }
 
         private async Task CleanupRootConfinedSquareThumbs(ObjectInBucket rootKey, string[] s3ObjectKeys)
@@ -205,7 +238,7 @@ namespace DLCS.Repository.Assets
                 await bucketReader.DeleteFromBucket(toDelete.ToArray());
             }
         }
-        
+
         public void DeleteOldLayout()
         {
             throw new NotImplementedException("Not yet! Need to be sure of all the others first!");

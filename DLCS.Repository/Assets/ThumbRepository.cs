@@ -18,18 +18,18 @@ namespace DLCS.Repository.Assets
         private readonly ILogger<ThumbRepository> logger;
         private readonly IBucketReader bucketReader;
         private readonly IOptionsMonitor<ThumbsSettings> settings;
-        private readonly IThumbReorganiser thumbReorganiser;
+        private readonly IThumbLayoutManager thumbLayoutManager;
 
         public ThumbRepository(
             ILogger<ThumbRepository> logger,
             IBucketReader bucketReader,
             IOptionsMonitor<ThumbsSettings> settings,
-            IThumbReorganiser thumbReorganiser)
+            IThumbLayoutManager thumbLayoutManager)
         {
             this.logger = logger;
             this.bucketReader = bucketReader;
             this.settings = settings;
-            this.thumbReorganiser = thumbReorganiser;
+            this.thumbLayoutManager = thumbLayoutManager;
         }
 
         public async Task<ObjectInBucket> GetThumbLocation(int customerId, int spaceId, ImageRequest imageRequest)
@@ -122,7 +122,7 @@ namespace DLCS.Repository.Assets
                 GetKeyRoot(customerId, spaceId, imageRequest)
             );
 
-            return thumbReorganiser.EnsureNewLayout(rootKey);
+            return thumbLayoutManager.EnsureNewLayout(rootKey);
         }
     }
 }

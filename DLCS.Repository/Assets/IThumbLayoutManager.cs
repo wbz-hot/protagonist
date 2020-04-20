@@ -5,10 +5,10 @@ using DLCS.Model.Storage;
 
 namespace DLCS.Repository.Assets
 {
-    public interface IThumbReorganiser
+    public interface IThumbLayoutManager
     {
         Task EnsureNewLayout(ObjectInBucket rootKey);
 
-        Task CreateNewThumbs(Asset asset, IEnumerable<ThumbOnDisk> thumbsToProcess);
+        Task CreateNewThumbs(Asset asset, IEnumerable<ThumbOnDisk> thumbsToProcess, ObjectInBucket rootKey);
     }
 }

@@ -16,7 +16,7 @@ namespace DLCS.Model.Storage
         
         Task<string[]> GetMatchingKeys(ObjectInBucket rootKey);
         
-        Task CopyWithinBucket(string bucket, string sourceKey, string destKey);
+        Task<bool> CopyWithinBucket(string bucket, string sourceKey, string destKey);
         
         Task<bool> WriteToBucket(ObjectInBucket dest, string content, string contentType);
         

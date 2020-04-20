@@ -60,7 +60,7 @@ namespace DLCS.Repository.Storage.S3
             }
         }
 
-        public async Task CopyWithinBucket(string bucket, string sourceKey, string destKey)
+        public async Task<bool> CopyWithinBucket(string bucket, string sourceKey, string destKey)
         {
             logger.LogDebug("Copying {Source} to {Destination} in {Bucket}", sourceKey, destKey, bucket);
             try
@@ -73,6 +73,7 @@ namespace DLCS.Repository.Storage.S3
                     DestinationKey = destKey
                 };
                 CopyObjectResponse response = await s3Client.CopyObjectAsync(request);
+                return true;
             }
             catch (AmazonS3Exception e)
             {
@@ -84,6 +85,8 @@ namespace DLCS.Repository.Storage.S3
                 logger.LogWarning(e, "Unknown encountered on server. Message:'{Message}' when writing an object",
                     e.Message);
             }
+
+            return false;
         }
 
         public async Task<bool> WriteToBucket(ObjectInBucket dest, string content, string contentType)

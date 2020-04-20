@@ -24,19 +24,19 @@ namespace Engine.Ingest.Image
         private readonly ILogger<ImageProcessor> logger;
         private readonly IConfiguration configuration;
         private readonly IBucketReader bucketReader;
-        private readonly IThumbReorganiser thumbReorganiser;
+        private readonly IThumbLayoutManager thumbLayoutManager;
 
         public ImageProcessor(
             HttpClient httpClient, 
             IBucketReader bucketReader,
-            IThumbReorganiser thumbReorganiser,
+            IThumbLayoutManager thumbLayoutManager,
             IOptionsMonitor<EngineSettings> engineOptionsMonitor,
             ILogger<ImageProcessor> logger,
             IConfiguration configuration)
         {
             this.httpClient = httpClient;
             this.bucketReader = bucketReader;
-            this.thumbReorganiser = thumbReorganiser;
+            this.thumbLayoutManager = thumbLayoutManager;
             this.engineOptionsMonitor = engineOptionsMonitor;
             this.logger = logger;
             this.configuration = configuration;
@@ -110,8 +110,10 @@ namespace Engine.Ingest.Image
         private async Task ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             UpdateImageSize(context.Asset, responseModel);
-            
-            var rootObject = new ObjectInBucket(engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket);
+
+            var rootObject = new ObjectInBucket(
+                engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket,
+                context.Asset.GetStorageKey());
 
             var imageLocation = await GetImageLocation(context, rootObject);
             
@@ -169,12 +171,12 @@ namespace Engine.Ingest.Image
         private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel,
             ObjectInBucket rootObject)
         {
-            SetThumbsDiskLocation(context, responseModel);
+            SetThumbsOnDiskLocation(context, responseModel);
 
-            await thumbReorganiser.CreateNewThumbs(context.Asset, responseModel.Thumbs);
+            await thumbLayoutManager.CreateNewThumbs(context.Asset, responseModel.Thumbs, rootObject);
         }
 
-        private void SetThumbsDiskLocation(IngestionContext context, ImageProcessorResponseModel responseModel)
+        private void SetThumbsOnDiskLocation(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             // Update the location of all thumbs to be full path
             var settings = engineOptionsMonitor.CurrentValue;
