@@ -110,9 +110,12 @@ namespace Engine.Ingest.Image
         private async Task ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             UpdateImageSize(context.Asset, responseModel);
-            var imageLocation = await GetImageLocation(context);
+            
+            var rootObject = new ObjectInBucket(engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket);
 
-            await CreateNewThumbs(context, responseModel);
+            var imageLocation = await GetImageLocation(context, rootObject);
+            
+            await CreateNewThumbs(context, responseModel, rootObject);
 
             /* TODO
                - Save Image + ImageLocation records 
@@ -127,7 +130,7 @@ namespace Engine.Ingest.Image
             asset.Width = responseModel.Width;
         }
 
-        private async Task<ImageLocation> GetImageLocation(IngestionContext context)
+        private async Task<ImageLocation> GetImageLocation(IngestionContext context, ObjectInBucket rootObject)
         {
             var engineSettings = engineOptionsMonitor.CurrentValue;
             var asset = context.Asset;
@@ -137,13 +140,9 @@ namespace Engine.Ingest.Image
             if (!context.AssetFromOrigin.CustomerOriginStrategy.Optimised)
             {
                 // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
-                var objectInBucket = new ObjectInBucket
-                {
-                    Bucket = engineSettings.Thumbs.StorageBucket,
-                    Key = $"{baseBucket}/{asset.GetUniqueName()}.jp2"
-                };
+                var jp2Object = rootObject.CloneWithKey($"{baseBucket}/{asset.GetUniqueName()}.jp2"); 
 
-                if (!await bucketReader.WriteFileToBucket(objectInBucket, context.AssetFromOrigin.LocationOnDisk))
+                if (!await bucketReader.WriteFileToBucket(jp2Object, context.AssetFromOrigin.LocationOnDisk))
                 {
                     // TODO - exception type
                     throw new ApplicationException("Failed to write jp2 to storage bucket");
@@ -167,7 +166,8 @@ namespace Engine.Ingest.Image
             return imageLocation;
         }
         
-        private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel)
+        private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel,
+            ObjectInBucket rootObject)
         {
             SetThumbsDiskLocation(context, responseModel);
 

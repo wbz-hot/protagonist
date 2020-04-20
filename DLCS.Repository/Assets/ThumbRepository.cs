@@ -73,11 +73,12 @@ namespace DLCS.Repository.Assets
                     longestEdge = Math.Max(sizes[0][0], sizes[0][1]);
                 }
             }
+
             return new ObjectInBucket
-            {
-                Bucket = settings.CurrentValue.ThumbsBucket,
-                Key = $"{GetKeyRoot(customerId, spaceId, imageRequest)}open/{longestEdge}.jpg"
-            };
+            (
+                settings.CurrentValue.ThumbsBucket,
+                $"{GetKeyRoot(customerId, spaceId, imageRequest)}open/{longestEdge}.jpg"
+            );
         }
 
         public async Task<List<int[]>> GetSizes(int customerId, int spaceId, ImageRequest imageRequest)
@@ -85,10 +86,10 @@ namespace DLCS.Repository.Assets
             await EnsureNewLayout(customerId, spaceId, imageRequest);
 
             ObjectInBucket sizesList = new ObjectInBucket
-            {
-                Bucket = settings.CurrentValue.ThumbsBucket,
-                Key = string.Concat(GetKeyRoot(customerId, spaceId, imageRequest), ThumbsSettings.Constants.SizesJsonKey)
-            };
+            (
+                settings.CurrentValue.ThumbsBucket,
+                string.Concat(GetKeyRoot(customerId, spaceId, imageRequest), ThumbsSettings.Constants.SizesJsonKey)
+            );
             
             await using var stream = await bucketReader.GetObjectFromBucket(sizesList);
             if (stream == null)
@@ -116,10 +117,10 @@ namespace DLCS.Repository.Assets
             }
 
             var rootKey = new ObjectInBucket
-            {
-                Bucket = currentSettings.ThumbsBucket,
-                Key = GetKeyRoot(customerId, spaceId, imageRequest)
-            };
+            (
+                currentSettings.ThumbsBucket,
+                GetKeyRoot(customerId, spaceId, imageRequest)
+            );
 
             return thumbReorganiser.EnsureNewLayout(rootKey);
         }

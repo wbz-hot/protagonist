@@ -99,15 +99,37 @@ namespace DLCS.Repository.Assets
 
             // /1/2/imagename
             var bucketKeyNonExpanded = asset.GetStorageKey();
+                
+            // TODO - this mostly from above
+            var maxAvailableThumb = GetMaxAvailableThumb(asset, asset.FullThumbnailPolicy);
+            var realSize = new Size(asset.Width, asset.Height);
+            var thumbnailSizes = new ThumbnailSizes(thumbOnDisks.Length);
+            //var boundingSquares = asset.FullThumbnailPolicy.Sizes.OrderByDescending(i => i).ToList();
+            //var boundingSquares = asset.FullThumbnailPolicy.Sizes.OrderByDescending(i => i).ToList();
 
             foreach (var thumbCandidate in thumbOnDisks)
             {
-                // TODO - this is all from above
-                var maxAvailableThumb = GetMaxAvailableThumb(asset, asset.FullThumbnailPolicy);
+                var thumb = new Size(thumbCandidate.Width, thumbCandidate.Height);
 
-                var realSize = new Size(asset.Width, asset.Height);
-                var boundingSquares = asset.FullThumbnailPolicy.Sizes.OrderByDescending(i => i).ToList();
+                var extension = thumbCandidate.Path.Substring(thumbCandidate.Path.LastIndexOf('.'));
+                
+                // Tizer lists the thumbnail image outputs in the order it made them,
+                // from largest (e.g., 1024) to smallest (e.g., 100).
+                // first should be the low quality one, i.e., a usable low-q jpg.
+                string thumbBucketKey1 = $"{bucketKeyNonExpanded}/low.jpg";
+                string thumbBucketKey2 = string.Empty;
+                
+                if (thumb.IsConfinedWithin(maxAvailableThumb))
+                {
+                    thumbnailSizes.AddOpen(thumb);
+                }
+                else
+                {
+                    thumbnailSizes.AddAuth(thumb);
+                }
             }
+            
+            // todo - CleanupRootConfinedSquareThumbs
         }
 
         private static bool HasCurrentLayout(ObjectInBucket rootKey, string[] keysInTargetBucket) =>
@@ -152,8 +174,8 @@ namespace DLCS.Repository.Assets
 
         private async Task CreateSizesJson(ObjectInBucket rootKey, ThumbnailSizes thumbnailSizes)
         {
-            var sizesDest = rootKey.Clone();
-            sizesDest.Key += thumbConsts.SizesJsonKey;
+            var sizesKey = string.Concat(rootKey.Key, thumbConsts.SizesJsonKey); 
+            var sizesDest = rootKey.CloneWithKey(sizesKey);
             await bucketReader.WriteToBucket(sizesDest, JsonConvert.SerializeObject(thumbnailSizes), "application/json");
         }
 
@@ -174,11 +196,7 @@ namespace DLCS.Repository.Assets
                 if (BoundedThumbRegex.IsMatch(item) || item == oldSizesJsonKey)
                 {
                     logger.LogDebug($"Deleting legacy confined-thumb object: '{key}'");
-                    toDelete.Add(new ObjectInBucket
-                    {
-                        Bucket = rootKey.Bucket,
-                        Key = key
-                    });
+                    toDelete.Add(new ObjectInBucket(rootKey.Bucket, key));
                 }
             }
 

@@ -7,37 +7,23 @@ namespace DLCS.Model.Tests.Storage
 {
     public class RegionalisedObjectInBucketTests
     {
-        [Fact]
-        public void Parse_Correct_S3Qualified()
-        {
-            // Arrange
-            const string uri = "s3://eu-west-1/dlcs-storage/2/1/foo-bar";
-            var expected = new RegionalisedObjectInBucket
-            {
-                Bucket = "dlcs-storage",
-                Key = "2/1/foo-bar",
-                Region = "eu-west-1"
-            };
-
-            // Act
-            var actual = RegionalisedObjectInBucket.Parse(uri);
-
-            // Assert
-            actual.Should().BeEquivalentTo(expected);
-        }
-        
         [Theory]
-        [InlineData("http://s3-eu-west-1.amazonaws.com/dlcs-storage/2/1/foo-bar")]
-        [InlineData("https://s3.eu-west-1.amazonaws.com/dlcs-storage/2/1/foo-bar")]
-        public void Parse_Correct_Http1(string uri)
+        [InlineData("s3://eu-west-1/dlcs-storage/2/1/foo-bar", true)]
+        [InlineData("http://s3-eu-west-1.amazonaws.com/dlcs-storage/2/1/foo-bar", true)]
+        [InlineData("https://s3.eu-west-1.amazonaws.com/dlcs-storage/2/1/foo-bar", true)]
+        [InlineData("http://dlcs-storage.s3.amazonaws.com/2/1/foo-bar", false)]
+        [InlineData("https://dlcs-storage.s3.amazonaws.com/2/1/foo-bar", false)]
+        [InlineData("http://dlcs-storage.s3.eu-west-1.amazonaws.com/2/1/foo-bar", true)]
+        [InlineData("https://dlcs-storage.s3.eu-west-1.amazonaws.com/2/1/foo-bar", true)]
+        [InlineData("http://s3.amazonaws.com/dlcs-storage/2/1/foo-bar", false)]
+        [InlineData("https://s3.amazonaws.com/dlcs-storage/2/1/foo-bar", false)]
+        public void Parse_Correct_Http1(string uri, bool hasRegion)
         {
             // Arrange
-            var expected = new RegionalisedObjectInBucket
-            {
-                Bucket = "dlcs-storage",
-                Key = "2/1/foo-bar",
-                Region = "eu-west-1"
-            };
+            var expected = new RegionalisedObjectInBucket(
+                "dlcs-storage",
+                "2/1/foo-bar",
+                hasRegion ? "eu-west-1" : null);
 
             // Act
             var actual = RegionalisedObjectInBucket.Parse(uri);
@@ -45,65 +31,7 @@ namespace DLCS.Model.Tests.Storage
             // Assert
             actual.Should().BeEquivalentTo(expected);
         }
-        
-        [Theory]
-        [InlineData("http://dlcs-storage.s3.amazonaws.com/2/1/foo-bar")]
-        [InlineData("https://dlcs-storage.s3.amazonaws.com/2/1/foo-bar")]
-        public void Parse_Correct_Http2(string uri)
-        {
-            // Arrange
-            var expected = new RegionalisedObjectInBucket
-            {
-                Bucket = "dlcs-storage",
-                Key = "2/1/foo-bar",
-            };
 
-            // Act
-            var actual = RegionalisedObjectInBucket.Parse(uri);
-
-            // Assert
-            actual.Should().BeEquivalentTo(expected);
-        }
-        
-        [Theory]
-        [InlineData("http://dlcs-storage.s3.eu-west-1.amazonaws.com/2/1/foo-bar")]
-        [InlineData("https://dlcs-storage.s3.eu-west-1.amazonaws.com/2/1/foo-bar")]
-        public void Parse_Correct_Http3(string uri)
-        {
-            // Arrange
-            var expected = new RegionalisedObjectInBucket
-            {
-                Bucket = "dlcs-storage",
-                Key = "2/1/foo-bar",
-                Region = "eu-west-1"
-            };
-
-            // Act
-            var actual = RegionalisedObjectInBucket.Parse(uri);
-
-            // Assert
-            actual.Should().BeEquivalentTo(expected);
-        }
-        
-        [Theory]
-        [InlineData("http://s3.amazonaws.com/dlcs-storage/2/1/foo-bar")]
-        [InlineData("https://s3.amazonaws.com/dlcs-storage/2/1/foo-bar")]
-        public void Parse_Correct_Http4(string uri)
-        {
-            // Arrange
-            var expected = new RegionalisedObjectInBucket
-            {
-                Bucket = "dlcs-storage",
-                Key = "2/1/foo-bar",
-            };
-
-            // Act
-            var actual = RegionalisedObjectInBucket.Parse(uri);
-
-            // Assert
-            actual.Should().BeEquivalentTo(expected);
-        }
-        
         [Fact]
         public void Parse_Null_IfNoMatches()
         {
@@ -124,11 +52,7 @@ namespace DLCS.Model.Tests.Storage
         public void GetS3QualifiedUri_Throws_IfRegionNullOrEmpty(string region)
         {
             // Arrange
-            var bucket = new RegionalisedObjectInBucket
-            {
-                Bucket = "dlcs-storage",
-                Key = "2/1/foo-bar"
-            };
+            var bucket = new RegionalisedObjectInBucket("dlcs-storage", "2/1/foo-bar");
 
             Action action = () => bucket.GetS3QualifiedUri();
 
@@ -140,12 +64,10 @@ namespace DLCS.Model.Tests.Storage
         public void GetS3QualifiedUri_Correct()
         {
             // Arrange
-            var bucket = new RegionalisedObjectInBucket
-            {
-                Bucket = "dlcs-storage",
-                Key = "2/1/foo-bar",
-                Region = "eu-west-1"
-            };
+            var bucket = new RegionalisedObjectInBucket(
+                "dlcs-storage",
+                "2/1/foo-bar",
+                "eu-west-1");
             const string expected = "s3://eu-west-1/dlcs-storage/2/1/foo-bar";
 
             // Act

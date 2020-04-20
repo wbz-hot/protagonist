@@ -7,6 +7,11 @@ namespace DLCS.Model.Storage
     {
         public string Region { get; set; }
         
+        public RegionalisedObjectInBucket(string bucket, string key = null, string region = null) : base(bucket, key)
+        {
+            Region = region;
+        }
+        
         /// <summary>
         /// Get fully qualified S3 uri (e.g. s3://eu-west-1/bucket/key
         /// </summary>
@@ -72,29 +77,23 @@ namespace DLCS.Model.Storage
             {
                 if (following)
                 {
-                    bucket = new RegionalisedObjectInBucket
-                    {
-                        Region = match.Groups[2].Value,
-                        Bucket = match.Groups[1].Value,
-                        Key = match.Groups[3].Value
-                    };
+                    bucket = new RegionalisedObjectInBucket(
+                        match.Groups[1].Value,
+                        match.Groups[3].Value,
+                        match.Groups[2].Value);
                     return true;
                 }
 
-                bucket = new RegionalisedObjectInBucket
-                {
-                    Region = match.Groups[1].Value,
-                    Bucket = match.Groups[2].Value,
-                    Key = match.Groups[3].Value
-                };
+                bucket = new RegionalisedObjectInBucket(
+                    match.Groups[2].Value,
+                    match.Groups[3].Value,
+                    match.Groups[1].Value);
                 return true;
             }
 
-            bucket = new RegionalisedObjectInBucket
-            {
-                Bucket = match.Groups[1].Value,
-                Key = match.Groups[2].Value
-            };
+            bucket = new RegionalisedObjectInBucket(
+                match.Groups[1].Value,
+                match.Groups[2].Value);
             return true;
         }
     }
