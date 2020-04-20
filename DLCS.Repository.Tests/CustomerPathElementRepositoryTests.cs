@@ -8,6 +8,7 @@ using FluentAssertions;
 using LazyCache;
 using LazyCache.Mocks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace DLCS.Repository.Tests
@@ -15,7 +16,6 @@ namespace DLCS.Repository.Tests
     public class CustomerPathElementRepositoryTests
     {
         private readonly ICustomerRepository customerRepository;
-        private readonly ILogger<CustomerPathElementRepository> logger;
         private readonly IAppCache appCache;
         private readonly CustomerPathElementRepository sut;
         private const int CustomerId = 3;
@@ -27,10 +27,9 @@ namespace DLCS.Repository.Tests
             A.CallTo(() => customerRepository.GetCustomerIdLookup())
                 .Returns(new Dictionary<string, int> {[CustomerName] = CustomerId});
             
-            logger = A.Fake<ILogger<CustomerPathElementRepository>>();
             appCache = new MockCachingService();
             
-            sut = new CustomerPathElementRepository(appCache, customerRepository, logger);
+            sut = new CustomerPathElementRepository(appCache, customerRepository, new NullLogger<CustomerPathElementRepository>());
         }
         
         [Fact]

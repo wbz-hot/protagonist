@@ -6,7 +6,7 @@ using DLCS.Model.Storage;
 using DLCS.Repository.Assets;
 using FakeItEasy;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -14,19 +14,17 @@ namespace DLCS.Repository.Tests.Assets
 {
     public class ThumbLayoutManagerTests
     {
-        private readonly ILogger<ThumbRepository> logger;
         private readonly IAssetRepository assetRepository;
         private readonly IAssetPolicyRepository thumbPolicyRepository;
 
         public ThumbLayoutManagerTests()
         {
-            logger = A.Fake<ILogger<ThumbRepository>>();
             assetRepository = A.Fake<IAssetRepository>();
             thumbPolicyRepository = A.Fake<IAssetPolicyRepository>();
         }
 
         private ThumbLayoutManager GetSut(IBucketReader bucketReader)
-            => new ThumbLayoutManager(bucketReader, logger, assetRepository, thumbPolicyRepository);
+            => new ThumbLayoutManager(bucketReader, new NullLogger<ThumbLayoutManager>(), assetRepository, thumbPolicyRepository);
 
         [Fact]
         public async Task EnsureNewLayout_DoesNothing_IfSizesJsonExists()

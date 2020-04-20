@@ -77,7 +77,8 @@ namespace DLCS.Repository.Assets
             return new ObjectInBucket
             (
                 settings.CurrentValue.ThumbsBucket,
-                $"{GetKeyRoot(customerId, spaceId, imageRequest)}open/{longestEdge}.jpg"
+                StorageKeyGenerator.GetConfinedSquarePath(GetKeyRoot(customerId, spaceId, imageRequest), longestEdge,
+                    true)
             );
         }
 
@@ -106,7 +107,7 @@ namespace DLCS.Repository.Assets
         }
 
         private static string GetKeyRoot(int customerId, int spaceId, ImageRequest imageRequest) 
-            => StorageKeyGenerator.GetStorageKey(customerId, spaceId, imageRequest.Identifier);
+            => $"{StorageKeyGenerator.GetStorageKey(customerId, spaceId, imageRequest.Identifier)}/";
 
         private Task EnsureNewLayout(int customerId, int spaceId, ImageRequest imageRequest)
         {

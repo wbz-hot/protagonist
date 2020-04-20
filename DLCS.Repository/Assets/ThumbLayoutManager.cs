@@ -7,6 +7,7 @@ using DLCS.Core.Collections;
 using DLCS.Core.Threading;
 using DLCS.Model.Assets;
 using DLCS.Model.Storage;
+using DLCS.Repository.Storage;
 using IIIF;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -16,7 +17,7 @@ namespace DLCS.Repository.Assets
     public class ThumbLayoutManager : IThumbLayoutManager
     {
         private readonly IBucketReader bucketReader;
-        private readonly ILogger<ThumbRepository> logger;
+        private readonly ILogger<ThumbLayoutManager> logger;
         private readonly IAssetRepository assetRepository;
         private readonly IAssetPolicyRepository assetPolicyRepository;
         private readonly AsyncKeyedLock asyncLocker = new AsyncKeyedLock();
@@ -24,7 +25,7 @@ namespace DLCS.Repository.Assets
 
         public ThumbLayoutManager(
             IBucketReader bucketReader,
-            ILogger<ThumbRepository> logger,
+            ILogger<ThumbLayoutManager> logger,
             IAssetRepository assetRepository,
             IAssetPolicyRepository assetPolicyRepository )
         {
@@ -119,7 +120,7 @@ namespace DLCS.Repository.Assets
                     isOpen = false;
                 }
 
-                var thumbKey = ThumbnailKeys.GetConfinedSquarePath(bucketKey, thumb, isOpen);
+                var thumbKey = StorageKeyGenerator.GetConfinedSquarePath(bucketKey, thumb, isOpen);
                 var objectInBucket = rootKey.CloneWithKey(thumbKey);
                 
                 // upload confined square thumb (new)
@@ -141,7 +142,7 @@ namespace DLCS.Repository.Assets
         }
 
         private static bool HasCurrentLayout(ObjectInBucket rootKey, string[] keysInTargetBucket)
-            => keysInTargetBucket.Contains(ThumbnailKeys.GetSizesJsonPath(rootKey.Key));
+            => keysInTargetBucket.Contains(StorageKeyGenerator.GetSizesJsonPath(rootKey.Key));
 
         private static Size GetMaxAvailableThumb(Asset asset, ThumbnailPolicy policy)
         {
@@ -157,8 +158,8 @@ namespace DLCS.Repository.Assets
             var largestSize = boundingSquares[0];
             var largestIsOpen = thumbnailSizes.Auth.IsNullOrEmpty();
             copyTasks.Add(bucketReader.CopyWithinBucket(rootKey.Bucket,
-                ThumbnailKeys.GetLowPath(rootKey.Key),
-                ThumbnailKeys.GetConfinedSquarePath(rootKey.Key, largestSize, largestIsOpen)));
+                StorageKeyGenerator.GetLowPath(rootKey.Key),
+                StorageKeyGenerator.GetConfinedSquarePath(rootKey.Key, largestSize, largestIsOpen)));
             
             copyTasks.AddRange(ProcessCopyThumbBatch(rootKey, thumbnailSizes.Auth, false, largestSize));
             copyTasks.AddRange(ProcessCopyThumbBatch(rootKey, thumbnailSizes.Open, true, largestSize));
@@ -175,14 +176,14 @@ namespace DLCS.Repository.Assets
                 if (size.MaxDimension == largestSize) continue;
 
                 yield return bucketReader.CopyWithinBucket(rootKey.Bucket,
-                    ThumbnailKeys.GetThumbnailWHPath(rootKey.Key, size),
-                    ThumbnailKeys.GetConfinedSquarePath(rootKey.Key, size, isOpen));
+                    StorageKeyGenerator.GetThumbnailWHPath(rootKey.Key, size),
+                    StorageKeyGenerator.GetConfinedSquarePath(rootKey.Key, size, isOpen));
             }
         }
 
         private async Task CreateSizesJson(ObjectInBucket rootKey, ThumbnailSizes thumbnailSizes)
         {
-            var sizesDest = rootKey.CloneWithKey(ThumbnailKeys.GetSizesJsonPath(rootKey.Key));
+            var sizesDest = rootKey.CloneWithKey(StorageKeyGenerator.GetSizesJsonPath(rootKey.Key));
             await bucketReader.WriteToBucket(sizesDest, JsonConvert.SerializeObject(thumbnailSizes), "application/json");
         }
         
@@ -191,11 +192,11 @@ namespace DLCS.Repository.Assets
             // If this is biggest, copy to low.jpg
             if (thumb.MaxDimension == maxSize)
             {
-                return new[] {ThumbnailKeys.GetLowPath(key)};
+                return new[] {StorageKeyGenerator.GetLowPath(key)};
             }
 
             // else copy to "w,h" and "w," paths
-            return new[] {ThumbnailKeys.GetThumbnailWPath(key, thumb), ThumbnailKeys.GetThumbnailWHPath(key, thumb)};
+            return new[] {StorageKeyGenerator.GetThumbnailWPath(key, thumb), StorageKeyGenerator.GetThumbnailWHPath(key, thumb)};
         }
         
         private async Task CreateLegacyThumbsFromConfinedSquare(ObjectInBucket rootKey, Dictionary<string,string[]> legacyCopies)

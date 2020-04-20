@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using Amazon.SQS;
+using AutoMapper;
 using DLCS.Model.Assets;
+using DLCS.Model.Customer;
+using DLCS.Repository;
+using DLCS.Repository.Assets;
 using DLCS.Web.Handlers;
 using Engine.Ingest;
 using Engine.Ingest.Image;
@@ -19,6 +23,18 @@ namespace Engine.Infrastructure
     /// </summary>
     public static class ServiceCollectionX
     {
+        /// <summary>
+        /// Add services for data access.
+        /// </summary>
+        /// <param name="services">Current <see cref="IServiceCollection"/> object.</param>
+        /// <returns>Modified <see cref="IServiceCollection"/> object.</returns>
+        public static IServiceCollection AddDataAccess(this IServiceCollection services)
+            => services
+                .AddAutoMapper(typeof(DatabaseConnectionManager))
+                .AddSingleton<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
+                .AddSingleton<IAssetPolicyRepository, AssetPolicyRepository>()
+                .AddSingleton<IAssetRepository, AssetRepository>();
+
         /// <summary>
         /// Add SQS queue handlers to service collection.
         /// </summary>

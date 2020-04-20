@@ -111,13 +111,9 @@ namespace Engine.Ingest.Image
         {
             UpdateImageSize(context.Asset, responseModel);
 
-            var rootObject = new ObjectInBucket(
-                engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket,
-                context.Asset.GetStorageKey());
-
-            var imageLocation = await GetImageLocation(context, rootObject);
+            var imageLocation = await GetImageLocation(context);
             
-            await CreateNewThumbs(context, responseModel, rootObject);
+            await CreateNewThumbs(context, responseModel);
 
             /* TODO
                - Save Image + ImageLocation records 
@@ -132,18 +128,19 @@ namespace Engine.Ingest.Image
             asset.Width = responseModel.Width;
         }
 
-        private async Task<ImageLocation> GetImageLocation(IngestionContext context, ObjectInBucket rootObject)
+        private async Task<ImageLocation> GetImageLocation(IngestionContext context)
         {
+            var jp2Object = new ObjectInBucket(
+                engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket,
+                context.Asset.GetStorageKey());
+            
             var engineSettings = engineOptionsMonitor.CurrentValue;
             var asset = context.Asset;
-            var baseBucket = asset.GetStorageKey();
-            
+
             var imageLocation = new ImageLocation {Id = asset.Id};
             if (!context.AssetFromOrigin.CustomerOriginStrategy.Optimised)
             {
                 // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
-                var jp2Object = rootObject.CloneWithKey($"{baseBucket}/{asset.GetUniqueName()}.jp2"); 
-
                 if (!await bucketReader.WriteFileToBucket(jp2Object, context.AssetFromOrigin.LocationOnDisk))
                 {
                     // TODO - exception type
@@ -168,9 +165,12 @@ namespace Engine.Ingest.Image
             return imageLocation;
         }
         
-        private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel,
-            ObjectInBucket rootObject)
+        private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
+            var rootObject = new ObjectInBucket(
+                engineOptionsMonitor.CurrentValue.Thumbs.ThumbsBucket,
+                $"{context.Asset.GetStorageKey()}/");
+            
             SetThumbsOnDiskLocation(context, responseModel);
 
             await thumbLayoutManager.CreateNewThumbs(context.Asset, responseModel.Thumbs, rootObject);
@@ -181,11 +181,11 @@ namespace Engine.Ingest.Image
             // Update the location of all thumbs to be full path
             var settings = engineOptionsMonitor.CurrentValue;
             var partialTemplate = TemplatedFolders.GenerateTemplate(settings.ImageIngest.ThumbsTemplate,
-                settings.ScratchRoot, context.Asset, false);
+                settings.ScratchRoot, context.Asset);
             foreach (var thumb in responseModel.Thumbs)
             {
                 var key = thumb.Path.Substring(thumb.Path.LastIndexOf('/') + 1);
-                thumb.Path = partialTemplate.Replace(TemplatedFolders.Image, key);
+                thumb.Path = string.Concat(partialTemplate, key);
             }
         }
     }

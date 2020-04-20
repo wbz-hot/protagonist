@@ -13,6 +13,7 @@ using DLCS.Repository.Storage.S3;
 using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace DLCS.Repository.Tests.Storage.S3
@@ -20,14 +21,12 @@ namespace DLCS.Repository.Tests.Storage.S3
     public class BucketReaderTests
     {
         private readonly IAmazonS3 s3Client;
-        private readonly ILogger<BucketReader> logger;
         private readonly BucketReader sut;
         
         public BucketReaderTests()
         {
             s3Client = A.Fake<IAmazonS3>();
-            logger = A.Fake<ILogger<BucketReader>>();
-            sut = new BucketReader(s3Client, logger);
+            sut = new BucketReader(s3Client, new NullLogger<BucketReader>());
         }
 
         [Fact]
