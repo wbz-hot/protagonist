@@ -21,7 +21,7 @@ namespace DLCS.Repository.Assets
         /// Get path for "w," thumbnail ({key}/full/w,/0/default.jpg
         /// </summary>
         public static string GetThumbnailWPath(string key, Size size)
-            => $"{key}/full/{size.Width},/0/default.jpg";
+            => $"{key}full/{size.Width},/0/default.jpg";
 
         /// <summary>
         /// Get path for confined square thumbnail

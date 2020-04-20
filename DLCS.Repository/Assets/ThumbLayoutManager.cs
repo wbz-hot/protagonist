@@ -98,6 +98,9 @@ namespace DLCS.Repository.Assets
             var thumbnailSizes = new ThumbnailSizes(thumbOnDisks.Length);
             var maxAvailableThumb = GetMaxAvailableThumb(asset, asset.FullThumbnailPolicy);
             
+            // this is the largest thumb, regardless of being available or not.
+            var largestThumb = asset.FullThumbnailPolicy.Sizes[0];
+            
             // dictionary of newPath : legacyPaths[]
             var legacyCopies = new Dictionary<string, string[]>(thumbOnDisks.Length);
             foreach (var thumbCandidate in thumbOnDisks)
@@ -125,7 +128,7 @@ namespace DLCS.Repository.Assets
                 // build up a list of in-bucket copies to do to maintain legacy
                 legacyCopies.Add(
                     thumbKey,
-                    GetPathsToCopyTo(bucketKey, maxAvailableThumb.MaxDimension, thumb)
+                    GetPathsToCopyTo(bucketKey, largestThumb, thumb)
                 );
             }
 
