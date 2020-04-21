@@ -1,4 +1,5 @@
-﻿using DLCS.Model.Assets;
+﻿using System;
+using DLCS.Model.Assets;
 using FluentAssertions;
 using Xunit;
 
@@ -18,6 +19,20 @@ namespace DLCS.Model.Tests.Assets
 
             // Assert
             asset.GetUniqueName().Should().Be(expected);
+        }
+
+        [Fact]
+        public void MarkAsIngestComplete_SetsFinishedAndIngestingFields()
+        {
+            // Arrange
+            var asset = new Asset {Ingesting = true};
+            
+            // Act
+            asset.MarkAsIngestComplete();
+            
+            // Assert
+            asset.Ingesting.Should().BeFalse();
+            asset.Finished.Should().BeCloseTo(DateTime.Now);
         }
     }
 }

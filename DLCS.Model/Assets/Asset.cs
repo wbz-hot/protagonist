@@ -78,5 +78,12 @@ namespace DLCS.Model.Assets
             FullImageOptimisationPolicy = imageOptimisationPolicy.ThrowIfNull(nameof(imageOptimisationPolicy));
             return this;
         }
+
+        public Asset MarkAsIngestComplete()
+        {
+            Finished = DateTime.Now; // TODO should be DateTime.UtcNow
+            Ingesting = false;
+            return this;
+        }
     }
 }

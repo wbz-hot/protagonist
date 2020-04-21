@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Data;
 using System.Threading.Tasks;
 using AutoMapper;
 using Dapper;
-using Dapper.Contrib.Extensions;
 using DLCS.Core;
 using DLCS.Model.Assets;
 using DLCS.Repository.Entities;
@@ -39,13 +39,10 @@ namespace DLCS.Repository.Assets
 
             try
             {
-                var assetEntity = mapper.Map<AssetEntity>(asset);
-
                 bool success = await CallChain.ExecuteInSequence(
-                    () => connection.UpdateAsync(assetEntity, transaction),
-                    async () => (await connection.InsertAsync(imageLocation, transaction)) > 0,
-                    async () => (await connection.InsertAsync(imageStorage, transaction)) > 0
-                );
+                    () => UpdateAsset(asset, transaction),
+                    () => Insert(imageLocation, ImageLocationInsertSql, transaction),
+                    () => Insert(imageStorage, ImageStorageInsertSql, transaction));
 
                 if (success)
                 {
@@ -61,6 +58,38 @@ namespace DLCS.Repository.Assets
             await transaction.RollbackAsync();
             return false;
         }
+        
+        private async Task<bool> UpdateAsset(Asset asset, IDbTransaction transaction)
+        {
+            try
+            {
+                var assetEntity = mapper.Map<AssetEntity>(asset);
+                await transaction.Connection.ExecuteAsync(AssetUpdateSql, assetEntity, transaction);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating asset {id}", asset.Id);
+                return false;
+            }
+        }
+
+        // TODO - move this to a base method? or a helper class?
+        private async Task<bool> Insert<T>(T type, string sql, IDbTransaction transaction)
+            where T : class
+        {
+            if (type == null) return true;
+            try
+            {
+                await transaction.Connection.ExecuteAsync(sql, type, transaction);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error inserting item of type {type}.", typeof(T).Name);
+                return false;
+            }
+        }
 
         private const string AssetGetSql = @"
 SELECT ""Id"", ""Customer"", ""Space"", ""Created"", ""Origin"", ""Tags"", ""Roles"", 
@@ -70,5 +99,16 @@ SELECT ""Id"", ""Customer"", ""Space"", ""Created"", ""Origin"", ""Tags"", ""Rol
 ""ThumbnailPolicy"", ""Family"", ""MediaType"", ""Duration""
   FROM public.""Images""
   WHERE ""Id""=@Id;";
+
+        private const string AssetUpdateSql =
+            @"UPDATE ""Images"" SET ""Width"" = @Width, ""Height"" = @Height, ""Error"" = @Error WHERE ""Id"" = @Id;";
+
+        private const string ImageLocationInsertSql =
+            @"INSERT INTO ""ImageLocation"" (""Id"", ""S3"", ""Nas"") VALUES (@Id, @S3, @Nas)";
+        
+        private const string ImageStorageInsertSql =
+            @"
+INSERT INTO ""ImageStorage"" (""Id"", ""Customer"", ""Space"", ""ThumbnailSize"", ""Size"", ""LastChecked"", ""CheckingInProgress"") 
+VALUES (@Id, @Customer, @Space, @ThumbnailSize, @Size, @LastChecked, @CheckingInProgress)";
     }
 }

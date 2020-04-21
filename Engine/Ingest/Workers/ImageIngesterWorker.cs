@@ -122,7 +122,7 @@ namespace Engine.Ingest.Workers
 
             try
             {
-                Directory.Delete(rootPath);
+                Directory.Delete(rootPath, true);
             }
             catch (Exception ex)
             {

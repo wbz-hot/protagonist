@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
+using DLCS.Model.Customer;
 using DLCS.Model.Storage;
 using DLCS.Repository.Assets;
 using DLCS.Repository.Storage;
@@ -45,15 +46,30 @@ namespace Engine.Ingest.Image
 
         public async Task<bool> ProcessImage(IngestionContext context)
         {
+            ImageLocation imageLocation = null;
+            ImageStorage imageStorage = null;
+            var errorProcessing = false;
             try
             {
                 var responseModel = await CallImageProcessor(context);
-                var success = await ProcessResponse(context, responseModel);
-                return success;
+                (imageLocation, imageStorage) = await ProcessResponse(context, responseModel);
             }
             catch (Exception e)
             {
                 logger.LogError(e, "Error processing image {asset}", context.Asset.Id);
+                context.Asset.Error = e.Message;
+                errorProcessing = true;
+            }
+
+            try
+            {
+                context.Asset.MarkAsIngestComplete();
+                var success = await assetRepository.UpdateIngestedAsset(context.Asset, imageLocation, imageStorage);
+                return errorProcessing && success;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error updating image {asset}", context.Asset.Id);
                 return false;
             }
         }
@@ -109,20 +125,18 @@ namespace Engine.Ingest.Image
             return requestModel;
         }
 
-        private async Task<bool> ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
+        private async Task<(ImageLocation imageLocation, ImageStorage imageStorage)> ProcessResponse(
+            IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             UpdateImageSize(context.Asset, responseModel);
 
             var imageLocation = await ProcessOriginImage(context);
-            
+
             await CreateNewThumbs(context, responseModel);
 
             var imageStorage = GetImageStorage(context, responseModel);
 
-            bool success = await assetRepository.UpdateIngestedAsset(context.Asset, imageLocation, imageStorage);
-
-            return success;
-            
+            return (imageLocation, imageStorage);
             /* TODO
                - Update Batch - IncrementCompleted and IncrementErrors. Probably at a level higher up than this.
              */
@@ -139,28 +153,16 @@ namespace Engine.Ingest.Image
             var jp2Object = new ObjectInBucket(
                 engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket,
                 context.Asset.GetStorageKey());
-            
+
             var engineSettings = engineOptionsMonitor.CurrentValue;
             var asset = context.Asset;
 
             var imageLocation = new ImageLocation {Id = asset.Id};
-            
-            if (!context.AssetFromOrigin.CustomerOriginStrategy.Optimised)
-            {
-                // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
-                if (!await bucketReader.WriteFileToBucket(jp2Object, context.AssetFromOrigin.LocationOnDisk))
-                {
-                    // TODO - exception type
-                    throw new ApplicationException("Failed to write jp2 to storage bucket");
-                }
 
-                imageLocation.S3 = string.Format(engineSettings.S3Template, asset.Customer, asset.Space,
-                    asset.GetUniqueName());
-            }
-            else
+            var originStrategy = context.AssetFromOrigin.CustomerOriginStrategy;
+            if (originStrategy.Optimised && originStrategy.Strategy == OriginStrategy.S3Ambient)
             {
                 // Optimised strategy - we don't want to store, just set imageLocation
-                // TODO only do this if the type is S3 AND it's Optimised
                 var regionalisedBucket = RegionalisedObjectInBucket.Parse(asset.Origin);
                 if (string.IsNullOrEmpty(regionalisedBucket.Region))
                 {
@@ -168,11 +170,27 @@ namespace Engine.Ingest.Image
                 }
 
                 imageLocation.S3 = regionalisedBucket.GetS3QualifiedUri();
+                return imageLocation;
             }
 
+            if (originStrategy.Optimised)
+            {
+                logger.LogWarning("Asset {id} has originStrategy '{originStrategy}', which is optimised but not S3",
+                    asset.Id, originStrategy.Id);
+            }
+
+            // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
+            if (!await bucketReader.WriteFileToBucket(jp2Object, context.AssetFromOrigin.LocationOnDisk))
+            {
+                // TODO - exception type
+                throw new ApplicationException("Failed to write jp2 to storage bucket");
+            }
+
+            imageLocation.S3 = string.Format(engineSettings.S3Template, asset.Customer, asset.Space,
+                asset.GetUniqueName());
             return imageLocation;
         }
-        
+
         private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             var rootObject = new ObjectInBucket(
