@@ -208,7 +208,6 @@ namespace DLCS.Repository.Assets
             {
                 foreach (var dest in legacyKeys)
                 {
-                    logger.LogTrace("Copying '{key}' to '{dest}' (bucket: '{bucket}'", key, dest, bucket);
                     copyOperations.Add(bucketReader.CopyWithinBucket(bucket, key, dest));
                 }
             }

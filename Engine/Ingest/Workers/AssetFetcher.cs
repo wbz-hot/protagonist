@@ -32,7 +32,7 @@ namespace Engine.Ingest.Workers
         public async Task<AssetFromOrigin> CopyAssetFromOrigin(Asset asset, string destinationFolder,
             CancellationToken cancellationToken)
         {
-            destinationFolder += $"{asset.Customer}/{asset.Space}";
+            destinationFolder += $"{Path.DirectorySeparatorChar}{asset.Customer}{Path.DirectorySeparatorChar}{asset.Space}";
             var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset);
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
