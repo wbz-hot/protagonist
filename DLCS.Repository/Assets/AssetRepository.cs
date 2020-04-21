@@ -1,48 +1,37 @@
 ﻿using System;
-using System.Data;
 using System.Threading.Tasks;
-using AutoMapper;
-using Dapper;
 using DLCS.Core;
 using DLCS.Model.Assets;
 using DLCS.Repository.Entities;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace DLCS.Repository.Assets
 {
     public class AssetRepository : IAssetRepository
     {
-        private readonly IConfiguration configuration;
-        private readonly IMapper mapper;
         private readonly ILogger<AssetRepository> logger;
+        private readonly DatabaseAccessor dbFactory;
 
-        public AssetRepository(IConfiguration configuration, IMapper mapper, ILogger<AssetRepository> logger)
+        public AssetRepository(DatabaseAccessor dbFactory, ILogger<AssetRepository> logger)
         {
-            this.configuration = configuration;
-            this.mapper = mapper;
+            this.dbFactory = dbFactory;
             this.logger = logger;
         }
 
-        public async Task<Asset> GetAsset(string id)
-        {
-            await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
-            var asset = await connection.QuerySingleOrDefaultAsync<AssetEntity>(AssetGetSql, new {Id = id});
-
-            return mapper.Map<Asset>(asset);
-        }
+        public Task<Asset> GetAsset(string id)
+            => dbFactory.SelectAndMap<AssetEntity, Asset>(AssetGetSql, new {Id = id});
 
         public async Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage)
         {
-            await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
+            await using var connection = await dbFactory.GetOpenDbConnection();
             await using var transaction = await connection.BeginTransactionAsync();
 
             try
             {
-                bool success = await CallChain.ExecuteInSequence(
-                    () => UpdateAsset(asset, transaction),
-                    () => Insert(imageLocation, ImageLocationInsertSql, transaction),
-                    () => Insert(imageStorage, ImageStorageInsertSql, transaction));
+                var success = await CallChain.ExecuteInSequence(
+                    () => dbFactory.MapAndExecute<Asset, AssetEntity>(asset, AssetUpdateSql, transaction),
+                    () => dbFactory.Execute(imageLocation, ImageLocationUpdateSql, transaction),
+                    () => dbFactory.Execute(imageStorage, ImageStorageInsertSql, transaction));
 
                 if (success)
                 {
@@ -58,38 +47,6 @@ namespace DLCS.Repository.Assets
             await transaction.RollbackAsync();
             return false;
         }
-        
-        private async Task<bool> UpdateAsset(Asset asset, IDbTransaction transaction)
-        {
-            try
-            {
-                var assetEntity = mapper.Map<AssetEntity>(asset);
-                await transaction.Connection.ExecuteAsync(AssetUpdateSql, assetEntity, transaction);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error updating asset {id}", asset.Id);
-                return false;
-            }
-        }
-
-        // TODO - move this to a base method? or a helper class?
-        private async Task<bool> Insert<T>(T type, string sql, IDbTransaction transaction)
-            where T : class
-        {
-            if (type == null) return true;
-            try
-            {
-                await transaction.Connection.ExecuteAsync(sql, type, transaction);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error inserting item of type {type}.", typeof(T).Name);
-                return false;
-            }
-        }
 
         private const string AssetGetSql = @"
 SELECT ""Id"", ""Customer"", ""Space"", ""Created"", ""Origin"", ""Tags"", ""Roles"", 
@@ -101,14 +58,17 @@ SELECT ""Id"", ""Customer"", ""Space"", ""Created"", ""Origin"", ""Tags"", ""Rol
   WHERE ""Id""=@Id;";
 
         private const string AssetUpdateSql =
-            @"UPDATE ""Images"" SET ""Width"" = @Width, ""Height"" = @Height, ""Error"" = @Error WHERE ""Id"" = @Id;";
+            @"UPDATE ""Images"" SET ""Width"" = @Width, ""Height"" = @Height, ""Error"" = @Error, ""Finished"" = @Finished, ""Ingesting"" = @Ingesting WHERE ""Id"" = @Id;";
 
         private const string ImageLocationInsertSql =
-            @"INSERT INTO ""ImageLocation"" (""Id"", ""S3"", ""Nas"") VALUES (@Id, @S3, @Nas)";
+            @"INSERT INTO ""ImageLocation"" (""Id"", ""S3"", ""Nas"") VALUES (@Id, @S3, @Nas);";
+        
+        private const string ImageLocationUpdateSql =
+            @"UPDATE ""ImageLocation"" SET ""S3"" = @S3, ""Nas""= @Nas WHERE ""Id"" = @Id;";
         
         private const string ImageStorageInsertSql =
             @"
 INSERT INTO ""ImageStorage"" (""Id"", ""Customer"", ""Space"", ""ThumbnailSize"", ""Size"", ""LastChecked"", ""CheckingInProgress"") 
-VALUES (@Id, @Customer, @Space, @ThumbnailSize, @Size, @LastChecked, @CheckingInProgress)";
+VALUES (@Id, @Customer, @Space, @ThumbnailSize, @Size, @LastChecked, @CheckingInProgress);";
     }
 }

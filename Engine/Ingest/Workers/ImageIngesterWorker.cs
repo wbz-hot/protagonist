@@ -44,7 +44,7 @@ namespace Engine.Ingest.Workers
 
             // Processing has occurred, clear down the root folder used for processing
             CleanupWorkingFolder(sourceDir);
-            
+
             // TODO - handle calling Orchestrator if customer specific value (or override) set.
 
             return processSuccess ? IngestResult.Success : IngestResult.Failed;
@@ -71,7 +71,7 @@ namespace Engine.Ingest.Workers
                 unixPath += $".{extension}";
                 targetPath = $"{sourceDir}.{extension}";
 
-                File.Copy(assetOnDisk, targetPath, true);
+                File.Move(assetOnDisk, targetPath, true);
 
                 context.AssetFromOrigin.LocationOnDisk = targetPath;
                 context.AssetFromOrigin.RelativeLocationOnDisk = unixPath;
@@ -90,8 +90,14 @@ namespace Engine.Ingest.Workers
         {
             var root = engineSettings.ScratchRoot;
             var imageIngest = engineSettings.ImageIngest;
+            
+            // source is the main folder for storing
             var source = TemplatedFolders.GenerateTemplate(imageIngest.SourceTemplate, root, context.Asset);
+            
+            // dest is the folder where image-processor will copy output
             var dest = TemplatedFolders.GenerateTemplate(imageIngest.DestinationTemplate, root, context.Asset);
+            
+            // thumb is the folder where generated thumbnails will be output
             var thumb = TemplatedFolders.GenerateTemplate(imageIngest.ThumbsTemplate, engineSettings.ScratchRoot,
                 context.Asset);
 

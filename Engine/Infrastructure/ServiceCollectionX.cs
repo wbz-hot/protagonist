@@ -31,9 +31,10 @@ namespace Engine.Infrastructure
         public static IServiceCollection AddDataAccess(this IServiceCollection services)
             => services
                 .AddAutoMapper(typeof(DatabaseConnectionManager))
-                .AddSingleton<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
-                .AddSingleton<IAssetPolicyRepository, AssetPolicyRepository>()
-                .AddSingleton<IAssetRepository, AssetRepository>();
+                .AddTransient<DatabaseAccessor>()
+                .AddTransient<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
+                .AddTransient<IAssetPolicyRepository, AssetPolicyRepository>()
+                .AddTransient<IAssetRepository, AssetRepository>();
 
         /// <summary>
         /// Add SQS queue handlers to service collection.

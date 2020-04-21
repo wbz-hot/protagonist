@@ -65,7 +65,7 @@ namespace Engine.Ingest.Image
             {
                 context.Asset.MarkAsIngestComplete();
                 var success = await assetRepository.UpdateIngestedAsset(context.Asset, imageLocation, imageStorage);
-                return errorProcessing && success;
+                return !errorProcessing && success;
             }
             catch (Exception e)
             {

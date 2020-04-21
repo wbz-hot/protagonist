@@ -21,7 +21,7 @@ namespace Engine.Ingest.Workers
         /// The current location of the asset on scratch disk.
         /// </summary>
         public string LocationOnDisk { get; set; }
-        
+
         /// <summary>
         /// The current location of the asset on scratch disk.
         /// </summary>
@@ -37,8 +37,6 @@ namespace Engine.Ingest.Workers
         /// The customer origin strategy used to process this asset.
         /// </summary>
         public CustomerOriginStrategy CustomerOriginStrategy { get; set; }
-
-        // TODO - for ContentType - can the type of the Asset be used here?
 
         public AssetFromOrigin(string assetId, long assetSize, string locationOnDisk, string contentType)
         {

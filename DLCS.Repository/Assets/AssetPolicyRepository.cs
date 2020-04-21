@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Dapper;
+using DLCS.Model;
 using DLCS.Model.Assets;
 using DLCS.Repository.Entities;
 using LazyCache;
@@ -15,20 +16,17 @@ namespace DLCS.Repository.Assets
     public class AssetPolicyRepository : IAssetPolicyRepository
     {
         private readonly IAppCache appCache;
-        private readonly IConfiguration configuration;
         private readonly ILogger<AssetPolicyRepository> logger;
-        private readonly IMapper mapper;
+        private readonly DatabaseAccessor databaseAccessor;
         private static readonly int AvailablePolicies = Enum.GetValues(typeof(AssetPolicies)).Length - 1;
 
         public AssetPolicyRepository(IAppCache appCache,
-            IConfiguration configuration,
             ILogger<AssetPolicyRepository> logger,
-            IMapper mapper)
+            DatabaseAccessor databaseAccessor)
         {
             this.appCache = appCache;
-            this.configuration = configuration;
             this.logger = logger;
-            this.mapper = mapper;
+            this.databaseAccessor = databaseAccessor;
         }
 
         public async Task<ThumbnailPolicy> GetThumbnailPolicy(string thumbnailPolicyId)
@@ -94,7 +92,7 @@ namespace DLCS.Repository.Assets
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
                 logger.LogInformation("Refreshing ThumbnailPolicies from database");
                 const string policiesQuery = "SELECT \"Id\", \"Name\", \"Sizes\" FROM \"ThumbnailPolicies\"";
-                return GetPolicies<ThumbnailPolicyEntity, ThumbnailPolicy>(policiesQuery);
+                return databaseAccessor.SelectAndMapList<ThumbnailPolicyEntity, ThumbnailPolicy>(policiesQuery);
             });
         }
 
@@ -108,15 +106,8 @@ namespace DLCS.Repository.Assets
                 logger.LogInformation("Refreshing ThumbnailPolicies from database");
                 const string policiesQuery =
                     "SELECT \"Id\", \"Name\", \"TechnicalDetails\" FROM \"ImageOptimisationPolicies\"";
-                return GetPolicies<ImageOptimisationPolicyEntity, ImageOptimisationPolicy>(policiesQuery);
+                return databaseAccessor.SelectAndMapList<ImageOptimisationPolicyEntity, ImageOptimisationPolicy>(policiesQuery);
             });
-        }
-
-        private async Task<List<TModel>> GetPolicies<TEntity, TModel>(string query)
-        {
-            await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
-            var policies = await connection.QueryAsync<TEntity>(query);
-            return mapper.Map<List<TModel>>(policies);
         }
     }
 }

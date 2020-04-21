@@ -55,7 +55,7 @@ namespace Engine.Ingest
         {
             var ingestor = resolver(request.Asset.Family);
 
-             return ingestor.Ingest(request, cancellationToken);
+            return ingestor.Ingest(request, cancellationToken);
         }
     }
 }

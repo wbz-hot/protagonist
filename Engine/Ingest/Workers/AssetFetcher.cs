@@ -32,6 +32,7 @@ namespace Engine.Ingest.Workers
         public async Task<AssetFromOrigin> CopyAssetFromOrigin(Asset asset, string destinationFolder,
             CancellationToken cancellationToken)
         {
+            destinationFolder += $"{asset.Customer}/{asset.Space}";
             var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset);
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
@@ -63,7 +64,6 @@ namespace Engine.Ingest.Workers
 
         private async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationFolder, OriginResponse originResponse)
         {
-            // TODO - is this unique name correct? Should it have path etc?
             var targetPath = Path.Combine(destinationFolder, asset.GetUniqueName());
             if (File.Exists(targetPath))
             {

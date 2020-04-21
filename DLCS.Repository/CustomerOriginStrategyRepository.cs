@@ -21,24 +21,22 @@ namespace DLCS.Repository
 
         private static readonly CustomerOriginStrategy DefaultStrategy = new CustomerOriginStrategy
             {Id = "_default_", Strategy = OriginStrategy.Default};
-        
+
+        private readonly DatabaseAccessor databaseAccessor;
         private readonly IAppCache appCache;
-        private readonly IConfiguration configuration;
         private readonly ILogger<CustomerOriginStrategyRepository> logger;
-        private readonly IMapper mapper;
         private readonly string originRegexAppSetting;
         private const string CustomerOriginSql = "SELECT \"Id\", \"Customer\", \"Regex\", \"Strategy\", \"Credentials\", \"Optimised\" FROM \"CustomerOriginStrategies\"";
 
         public CustomerOriginStrategyRepository(
+            DatabaseAccessor databaseAccessor,
             IAppCache appCache,
             IConfiguration configuration,
-            ILogger<CustomerOriginStrategyRepository> logger,
-            IMapper mapper)
+            ILogger<CustomerOriginStrategyRepository> logger)
         {
+            this.databaseAccessor = databaseAccessor;
             this.appCache = appCache;
-            this.configuration = configuration;
             this.logger = logger;
-            this.mapper = mapper;
             originRegexAppSetting = configuration[OriginRegexAppSettings]
                 .ThrowIfNullOrWhiteSpace($"appsetting:{OriginRegexAppSettings}");
         }
@@ -67,12 +65,10 @@ namespace DLCS.Repository
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
                 logger.LogInformation("Refreshing CustomerOriginStrategy from database for customer {customer}",
                     customer);
-                
-                await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
-                var entities = await connection.QueryAsync<CustomerOriginStrategyEntity>(
-                    $"{CustomerOriginSql} WHERE \"Customer\" = @Id", new {Id = customer});
 
-                var origins = mapper.Map<List<CustomerOriginStrategy>>(entities);
+                var origins =
+                    await databaseAccessor.SelectAndMapList<CustomerOriginStrategyEntity, CustomerOriginStrategy>(
+                        $"{CustomerOriginSql} WHERE \"Customer\" = @Id", new {Id = customer});
                 origins.Add(GetPortalOriginStrategy(customer));
                 return origins;
             });
@@ -88,7 +84,6 @@ namespace DLCS.Repository
                 Strategy = OriginStrategy.S3Ambient
             };
 
-        // TODO - should these regexs be compiled?
         private static CustomerOriginStrategy? FindMatchingStrategy(
             string origin,
             IEnumerable<CustomerOriginStrategy> customerStrategies)

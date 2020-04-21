@@ -11,18 +11,16 @@ namespace DLCS.Repository
 {
     public class CustomerRepository : ICustomerRepository
     {
-        private readonly IConfiguration configuration;
-        private readonly ILogger<CustomerRepository> logger;
+        private readonly DatabaseAccessor databaseAccessor;
 
-        public CustomerRepository(IConfiguration configuration, ILogger<CustomerRepository> logger)
+        public CustomerRepository(DatabaseAccessor databaseAccessor)
         {
-            this.configuration = configuration;
-            this.logger = logger;
+            this.databaseAccessor = databaseAccessor;
         }
 
         public async Task<Dictionary<string, int>> GetCustomerIdLookup()
         {
-            await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
+            await using var connection = await databaseAccessor.GetOpenDbConnection();
             var results = await connection.QueryAsync<CustomerPathElement>("SELECT \"Id\", \"Name\" FROM \"Customers\"");
             return results.ToDictionary(cpe => cpe.Name, cpe => cpe.Id);
         }

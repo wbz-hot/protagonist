@@ -23,6 +23,7 @@ namespace Engine.Ingest.Workers
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken)
         {
+            // TODO - error handling
             var engineSettings = EngineOptionsMonitor.CurrentValue;
             var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
                 engineSettings.ProcessingFolder,
@@ -32,12 +33,12 @@ namespace Engine.Ingest.Workers
 
             // call image or ElasticTranscoder
             var context = new IngestionContext(ingestAssetRequest.Asset, fetchedAsset);
-            await FamilySpecificIngest(context);
+            var result = await FamilySpecificIngest(context);
             
             // update batch
             // set response (if image)
 
-            return IngestResult.Success;
+            return result;
         }
 
         // TODO - return some sort of response code/bool to signify if complete?

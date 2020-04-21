@@ -38,12 +38,13 @@ namespace Thumbs
             services.AddAWSService<IAmazonS3>();
             services.AddSingleton<IBucketReader, BucketReader>();
             services.AddSingleton<AssetDeliveryPathParser>();
-            services.AddSingleton<ICustomerRepository, CustomerRepository>();
-            services.AddSingleton<IPathCustomerRepository, CustomerPathElementRepository>();
+            services.AddTransient<DatabaseAccessor>();
+            services.AddTransient<ICustomerRepository, CustomerRepository>();
+            services.AddTransient<IPathCustomerRepository, CustomerPathElementRepository>();
             services.AddSingleton<IThumbRepository, ThumbRepository>();
             services.AddSingleton<IThumbLayoutManager, ThumbLayoutManager>();
-            services.AddSingleton<IAssetPolicyRepository, AssetPolicyRepository>();
-            services.AddSingleton<IAssetRepository, AssetRepository>();
+            services.AddTransient<IAssetPolicyRepository, AssetPolicyRepository>();
+            services.AddTransient<IAssetRepository, AssetRepository>();
             services.AddAutoMapper(typeof(DatabaseConnectionManager));
 
             services.Configure<ThumbsSettings>(Configuration.GetSection("Repository"));

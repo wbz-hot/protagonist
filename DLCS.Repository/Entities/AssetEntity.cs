@@ -1,11 +1,12 @@
 ﻿using System;
+using DLCS.Model;
 
 namespace DLCS.Repository.Entities
 {
     /// <summary>
     /// Represents Asset entity as stored in DLCS database.
     /// </summary>
-    internal class AssetEntity
+    internal class AssetEntity : IEntity
     {
         public string Id { get; set; }
         public int Customer { get; set; }
@@ -43,5 +44,16 @@ namespace DLCS.Repository.Entities
         public string Family { get; set; }
         public string MediaType { get; set; }
         public long Duration { get; set; }
+        
+        public void PrepareForDatabase()
+        {
+            // set fields that may be NULL but are non-nullable in DB
+            PreservedUri ??= string.Empty;
+            Roles ??= string.Empty;
+            Tags ??= string.Empty;
+            Reference1 ??= string.Empty;
+            Reference2 ??= string.Empty;
+            Reference3 ??= string.Empty;
+        }
     }
 }
