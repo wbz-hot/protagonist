@@ -111,14 +111,16 @@ namespace Engine.Ingest.Image
         {
             UpdateImageSize(context.Asset, responseModel);
 
-            var imageLocation = await GetImageLocation(context);
+            var imageLocation = await ProcessSourceImage(context);
             
             await CreateNewThumbs(context, responseModel);
 
+            var imageStorage = GetImageStorage(context, responseModel);
+
             /* TODO
-               - Save Image + ImageLocation records 
-               - create thumbs (new + legacy). Which we should have some of for thumbRearranger.
-               - create info.json
+               - Save Image, ImageLocation and ImageStorage records  - imageStorage needs to read thumbs to get the sizes
+               - Update Batch - IncrementCompleted and IncrementErrors. Probably at a level higher up than this.
+               - Create info.json??
              */
         }
 
@@ -128,7 +130,7 @@ namespace Engine.Ingest.Image
             asset.Width = responseModel.Width;
         }
 
-        private async Task<ImageLocation> GetImageLocation(IngestionContext context)
+        private async Task<ImageLocation> ProcessSourceImage(IngestionContext context)
         {
             var jp2Object = new ObjectInBucket(
                 engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket,
@@ -153,6 +155,7 @@ namespace Engine.Ingest.Image
             else
             {
                 // Optimised strategy - we don't want to store, just set imageLocation
+                // TODO - this shouldn't assume
                 var regionalisedBucket = RegionalisedObjectInBucket.Parse(asset.Origin);
                 if (string.IsNullOrEmpty(regionalisedBucket.Region))
                 {
@@ -178,7 +181,7 @@ namespace Engine.Ingest.Image
 
         private void SetThumbsOnDiskLocation(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
-            // Update the location of all thumbs to be full path
+            // Update the location of all thumbs to be full path on disk.
             var settings = engineOptionsMonitor.CurrentValue;
             var partialTemplate = TemplatedFolders.GenerateTemplate(settings.ImageIngest.ThumbsTemplate,
                 settings.ScratchRoot, context.Asset);
@@ -186,6 +189,37 @@ namespace Engine.Ingest.Image
             {
                 var key = thumb.Path.Substring(thumb.Path.LastIndexOf('/') + 1);
                 thumb.Path = string.Concat(partialTemplate, key);
+            }
+        }
+        
+        private ImageStorage GetImageStorage(IngestionContext context, ImageProcessorResponseModel responseModel)
+        { 
+            var asset = context.Asset;
+
+            var thumbSizes = responseModel.Thumbs.Sum(t => GetFileSize(t.Path));
+            
+            return new ImageStorage
+            {
+                Id = asset.Id,
+                Customer = asset.Customer,
+                Space = asset.Space,
+                LastChecked = DateTime.Now, // TODO - this should be DateTime.UtcNow
+                Size = context.AssetFromOrigin.AssetSize,
+                ThumbnailSize = thumbSizes
+            };
+        }
+
+        private long GetFileSize(string path)
+        {
+            try
+            {
+                var fi = new FileInfo(path);
+                return fi.Length;
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(ex, "Error getting fileSize for {path}", path);
+                return 0;
             }
         }
     }

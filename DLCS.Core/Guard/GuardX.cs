@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using DLCS.Core.Collections;
 
 namespace DLCS.Core.Guard
 {
@@ -34,9 +36,30 @@ namespace DLCS.Core.Guard
         /// <exception cref="ArgumentNullException">Thrown if provided argument is null.</exception>
         public static string ThrowIfNullOrWhiteSpace(this string argument, string argName)
         {
-            if (string.IsNullOrWhiteSpace(argument)) throw new ArgumentNullException(argName);
+            if (string.IsNullOrWhiteSpace(argument))
+            {
+                throw new ArgumentNullException(argName);
+            }
 
             return argument;
+        }
+
+        /// <summary>
+        /// Throw <see cref="ArgumentNullException"/> if provided array is null or empty.
+        /// </summary>
+        /// <param name="array">Array to check.</param>
+        /// <param name="argName">Name of argument.</param>
+        /// <typeparam name="T">Type of array to check.</typeparam>
+        /// <returns>Passed array, if not null or empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if provided array is null or empty.</exception>
+        public static IList<T> ThrowIfNullOrEmpty<T>(this IList<T> array, string argName)
+        {
+            if (array.IsNullOrEmpty())
+            {
+                throw new ArgumentNullException(argName);
+            }
+
+            return array;
         }
     }
 }
