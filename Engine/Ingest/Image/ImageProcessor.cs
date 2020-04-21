@@ -8,6 +8,7 @@ using DLCS.Model.Assets;
 using DLCS.Model.Storage;
 using DLCS.Repository.Assets;
 using DLCS.Repository.Storage;
+using DLCS.Web.Requests;
 using Engine.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,7 +23,7 @@ namespace Engine.Ingest.Image
         private readonly HttpClient httpClient;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
         private readonly ILogger<ImageProcessor> logger;
-        private readonly IConfiguration configuration;
+        private readonly IAssetRepository assetRepository;
         private readonly IBucketReader bucketReader;
         private readonly IThumbLayoutManager thumbLayoutManager;
 
@@ -32,20 +33,29 @@ namespace Engine.Ingest.Image
             IThumbLayoutManager thumbLayoutManager,
             IOptionsMonitor<EngineSettings> engineOptionsMonitor,
             ILogger<ImageProcessor> logger,
-            IConfiguration configuration)
+            IAssetRepository assetRepository)
         {
             this.httpClient = httpClient;
             this.bucketReader = bucketReader;
             this.thumbLayoutManager = thumbLayoutManager;
             this.engineOptionsMonitor = engineOptionsMonitor;
             this.logger = logger;
-            this.configuration = configuration;
+            this.assetRepository = assetRepository;
         }
 
-        public async Task ProcessImage(IngestionContext context)
+        public async Task<bool> ProcessImage(IngestionContext context)
         {
-            var responseModel = await CallImageProcessor(context);
-            await ProcessResponse(context, responseModel);
+            try
+            {
+                var responseModel = await CallImageProcessor(context);
+                var success = await ProcessResponse(context, responseModel);
+                return success;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error processing image {asset}", context.Asset.Id);
+                return false;
+            }
         }
         
         private async Task<ImageProcessorResponseModel> CallImageProcessor(IngestionContext context)
@@ -54,15 +64,7 @@ namespace Engine.Ingest.Image
             var requestModel = CreateModel(context, engineOptionsMonitor.CurrentValue);
             
             using var request = new HttpRequestMessage(HttpMethod.Post, (Uri)null);
-            
-            var serializer = new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
-            };
-            
-            using var requestBody = new StringContent(JsonConvert.SerializeObject(requestModel, serializer), Encoding.UTF8,
-                "application/json");
-            request.Content = requestBody;
+            request.SetJsonContent(requestModel);
 
             using var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
@@ -107,20 +109,22 @@ namespace Engine.Ingest.Image
             return requestModel;
         }
 
-        private async Task ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
+        private async Task<bool> ProcessResponse(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             UpdateImageSize(context.Asset, responseModel);
 
-            var imageLocation = await ProcessSourceImage(context);
+            var imageLocation = await ProcessOriginImage(context);
             
             await CreateNewThumbs(context, responseModel);
 
             var imageStorage = GetImageStorage(context, responseModel);
 
+            bool success = await assetRepository.UpdateIngestedAsset(context.Asset, imageLocation, imageStorage);
+
+            return success;
+            
             /* TODO
-               - Save Image, ImageLocation and ImageStorage records  - imageStorage needs to read thumbs to get the sizes
                - Update Batch - IncrementCompleted and IncrementErrors. Probably at a level higher up than this.
-               - Create info.json??
              */
         }
 
@@ -130,7 +134,7 @@ namespace Engine.Ingest.Image
             asset.Width = responseModel.Width;
         }
 
-        private async Task<ImageLocation> ProcessSourceImage(IngestionContext context)
+        private async Task<ImageLocation> ProcessOriginImage(IngestionContext context)
         {
             var jp2Object = new ObjectInBucket(
                 engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket,
@@ -140,6 +144,7 @@ namespace Engine.Ingest.Image
             var asset = context.Asset;
 
             var imageLocation = new ImageLocation {Id = asset.Id};
+            
             if (!context.AssetFromOrigin.CustomerOriginStrategy.Optimised)
             {
                 // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
@@ -155,11 +160,11 @@ namespace Engine.Ingest.Image
             else
             {
                 // Optimised strategy - we don't want to store, just set imageLocation
-                // TODO - this shouldn't assume
+                // TODO only do this if the type is S3 AND it's Optimised
                 var regionalisedBucket = RegionalisedObjectInBucket.Parse(asset.Origin);
                 if (string.IsNullOrEmpty(regionalisedBucket.Region))
                 {
-                    regionalisedBucket.Region = configuration["AWS:Region"];
+                    regionalisedBucket.Region = bucketReader.DefaultRegion;
                 }
 
                 imageLocation.S3 = regionalisedBucket.GetS3QualifiedUri();

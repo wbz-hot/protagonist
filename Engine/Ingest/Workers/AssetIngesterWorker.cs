@@ -28,7 +28,6 @@ namespace Engine.Ingest.Workers
                 engineSettings.ProcessingFolder,
                 cancellationToken);
             
-            // TODO - create and update ImageLocation record
             // TODO - CheckStoragePolicy. Checks if there is enough space to store this 
 
             // call image or ElasticTranscoder
@@ -42,6 +41,6 @@ namespace Engine.Ingest.Workers
         }
 
         // TODO - return some sort of response code/bool to signify if complete?
-        protected abstract Task FamilySpecificIngest(IngestionContext ingestionContext);
+        protected abstract Task<IngestResult> FamilySpecificIngest(IngestionContext ingestionContext);
     }
 }

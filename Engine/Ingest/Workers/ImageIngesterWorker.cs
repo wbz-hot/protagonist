@@ -29,35 +29,39 @@ namespace Engine.Ingest.Workers
             this.logger = logger;
         }
 
-        protected override async Task FamilySpecificIngest(IngestionContext ingestionContext)
+        protected override async Task<IngestResult> FamilySpecificIngest(IngestionContext ingestionContext)
         {
-            var engineSettings = EngineOptionsMonitor.CurrentValue;
-
             // set Thumbnail and ImageOptimisation policies
             var setAssetPolicies = assetPolicyRepository.HydratePolicies(ingestionContext.Asset, AssetPolicies.All);
 
             // Put file in correct place for processing 
-            CopyAssetFromProcessingToTemplatedFolder(ingestionContext, engineSettings);
+            var sourceDir = CopyAssetFromProcessingToTemplatedFolder(ingestionContext, EngineOptionsMonitor.CurrentValue);
 
             await setAssetPolicies;
 
-            // Call tizer/appetiser to process images
-            await imageProcessor.ProcessImage(ingestionContext);
+            // Call tizer/appetiser to process images - create thumbs, update DB
+            var processSuccess = await imageProcessor.ProcessImage(ingestionContext);
 
-            // TODO tidy up? Save new image sizes to DB? Check deliverator
+            // Processing has occurred, clear down the root folder used for processing
+            CleanupWorkingFolder(sourceDir);
+            
+            // TODO - handle calling Orchestrator if customer specific value (or override) set.
+
+            return processSuccess ? IngestResult.Success : IngestResult.Failed;
         }
 
-        private void CopyAssetFromProcessingToTemplatedFolder(IngestionContext context, EngineSettings engineSettings)
+        private string CopyAssetFromProcessingToTemplatedFolder(IngestionContext context, EngineSettings engineSettings)
         {
-            var sourcePath = context.AssetFromOrigin.LocationOnDisk;
+            var assetOnDisk = context.AssetFromOrigin.LocationOnDisk;
             var targetPath = string.Empty;
+            var sourceDir = string.Empty;
 
             try
             {
                 var extension = GetFileExtension(context);
-                targetPath = GetTargetPath(context, engineSettings);
+                sourceDir = GetSourceDir(context, engineSettings);
 
-                // HACK - this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
+                // HACK - this is to get it working nice locally as appetiser/tizer root needs to be unix + relative
                 var unixRoot = string.IsNullOrEmpty(engineSettings.ImageProcessorRoot)
                     ? engineSettings.ScratchRoot
                     : engineSettings.ImageProcessorRoot;
@@ -65,9 +69,9 @@ namespace Engine.Ingest.Workers
                     unixRoot, context.Asset);
 
                 unixPath += $".{extension}";
-                targetPath += $".{extension}";
+                targetPath = $"{sourceDir}.{extension}";
 
-                File.Copy(sourcePath, targetPath, true);
+                File.Copy(assetOnDisk, targetPath, true);
 
                 context.AssetFromOrigin.LocationOnDisk = targetPath;
                 context.AssetFromOrigin.RelativeLocationOnDisk = unixPath;
@@ -75,25 +79,27 @@ namespace Engine.Ingest.Workers
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error copying image {assetId} from {sourcePath} to {targetPath}", context.Asset.Id,
-                    sourcePath, targetPath);
-                throw new ApplicationException($"Error copying image asset from {sourcePath} to {targetPath}.", ex);
+                    assetOnDisk, targetPath);
+                throw new ApplicationException($"Error copying image asset from {assetOnDisk} to {targetPath}.", ex);
             }
+
+            return sourceDir;
         }
         
-        private string GetTargetPath(IngestionContext context, EngineSettings engineSettings)
+        private string GetSourceDir(IngestionContext context, EngineSettings engineSettings)
         {
             var root = engineSettings.ScratchRoot;
             var imageIngest = engineSettings.ImageIngest;
-            var targetPath = TemplatedFolders.GenerateTemplate(imageIngest.SourceTemplate, root, context.Asset);
+            var source = TemplatedFolders.GenerateTemplate(imageIngest.SourceTemplate, root, context.Asset);
             var dest = TemplatedFolders.GenerateTemplate(imageIngest.DestinationTemplate, root, context.Asset);
             var thumb = TemplatedFolders.GenerateTemplate(imageIngest.ThumbsTemplate, engineSettings.ScratchRoot,
                 context.Asset);
 
             Directory.CreateDirectory(dest);
             Directory.CreateDirectory(thumb);
-            Directory.CreateDirectory(targetPath);
+            Directory.CreateDirectory(source);
 
-            return targetPath;
+            return source;
         }
 
         private string GetFileExtension(IngestionContext context)
@@ -108,6 +114,20 @@ namespace Engine.Ingest.Workers
             }
 
             return extension;
+        }
+        
+        private void CleanupWorkingFolder(string rootPath)
+        {
+            if (string.IsNullOrEmpty(rootPath)) return;
+
+            try
+            {
+                Directory.Delete(rootPath);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unable to delete directory {rootPath}", rootPath);
+            }
         }
     }
 }

@@ -8,6 +8,8 @@ namespace DLCS.Model.Storage
     /// </summary>
     public interface IBucketReader
     {
+        string DefaultRegion { get; }
+        
         /// <summary>
         /// Get specified object from bucket.
         /// </summary>

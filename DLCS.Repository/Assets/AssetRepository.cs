@@ -32,10 +32,10 @@ namespace DLCS.Repository.Assets
             return mapper.Map<Asset>(asset);
         }
 
-        public async Task<bool> UpdateAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage)
+        public async Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage)
         {
             await using var connection = await DatabaseConnectionManager.GetOpenNpgSqlConnection(configuration);
-            var transaction = await connection.BeginTransactionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
 
             try
             {

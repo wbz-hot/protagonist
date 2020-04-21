@@ -6,6 +6,6 @@ namespace DLCS.Model.Assets
     {
         public Task<Asset> GetAsset(string id);
 
-        public Task<bool> UpdateAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage);
+        public Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage);
     }
 }

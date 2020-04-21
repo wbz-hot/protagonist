@@ -8,6 +8,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using DLCS.Core.Exceptions;
 using DLCS.Model.Storage;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace DLCS.Repository.Storage.S3
@@ -15,13 +16,17 @@ namespace DLCS.Repository.Storage.S3
     public class BucketReader : IBucketReader
     {
         private readonly IAmazonS3 s3Client;
+        private readonly IConfiguration configuration;
         private readonly ILogger<BucketReader> logger;
 
-        public BucketReader(IAmazonS3 s3Client, ILogger<BucketReader> logger)
+        public BucketReader(IAmazonS3 s3Client, IConfiguration configuration, ILogger<BucketReader> logger)
         {
             this.s3Client = s3Client;
+            this.configuration = configuration;
             this.logger = logger;
         }
+
+        public string DefaultRegion => configuration["AWS:Region"];
 
         public async Task<Stream?> GetObjectFromBucket(ObjectInBucket objectInBucket)
         {

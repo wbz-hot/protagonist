@@ -12,9 +12,9 @@ namespace Engine.Ingest.Workers
         {
         }
         
-        protected override Task FamilySpecificIngest(IngestionContext ingestionContext)
+        protected override Task<IngestResult> FamilySpecificIngest(IngestionContext ingestionContext)
         {
-            return Task.CompletedTask;
+            return Task.FromResult(IngestResult.Unknown);
         }
     }
 }

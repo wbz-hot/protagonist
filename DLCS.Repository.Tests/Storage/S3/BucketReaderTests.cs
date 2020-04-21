@@ -26,7 +26,7 @@ namespace DLCS.Repository.Tests.Storage.S3
         public BucketReaderTests()
         {
             s3Client = A.Fake<IAmazonS3>();
-            sut = new BucketReader(s3Client, new NullLogger<BucketReader>());
+            sut = new BucketReader(s3Client, null, new NullLogger<BucketReader>());
         }
 
         [Fact]

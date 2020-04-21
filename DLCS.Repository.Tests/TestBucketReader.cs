@@ -77,6 +77,8 @@ namespace DLCS.Repository.Tests
             }
         }
 
+        public string DefaultRegion => "Fake-Region";
+
         public Task<Stream?> GetObjectFromBucket(ObjectInBucket objectInBucket)
         {
             throw new System.NotImplementedException();
