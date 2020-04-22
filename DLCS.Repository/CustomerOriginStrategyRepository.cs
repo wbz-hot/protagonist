@@ -25,7 +25,7 @@ namespace DLCS.Repository
         private readonly DatabaseAccessor databaseAccessor;
         private readonly IAppCache appCache;
         private readonly ILogger<CustomerOriginStrategyRepository> logger;
-        private readonly string originRegexAppSetting;
+        private readonly string s3OriginRegex;
         private const string CustomerOriginSql = "SELECT \"Id\", \"Customer\", \"Regex\", \"Strategy\", \"Credentials\", \"Optimised\" FROM \"CustomerOriginStrategies\"";
 
         public CustomerOriginStrategyRepository(
@@ -37,7 +37,7 @@ namespace DLCS.Repository
             this.databaseAccessor = databaseAccessor;
             this.appCache = appCache;
             this.logger = logger;
-            originRegexAppSetting = configuration[OriginRegexAppSettings]
+            s3OriginRegex = configuration[OriginRegexAppSettings]
                 .ThrowIfNullOrWhiteSpace($"appsetting:{OriginRegexAppSettings}");
         }
 
@@ -80,7 +80,7 @@ namespace DLCS.Repository
             {
                 Customer = customer,
                 Id = "_default_portal_",
-                Regex = originRegexAppSetting,
+                Regex = s3OriginRegex,
                 Strategy = OriginStrategy.S3Ambient
             };
 

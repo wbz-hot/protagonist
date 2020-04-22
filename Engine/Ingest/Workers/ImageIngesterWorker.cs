@@ -103,10 +103,8 @@ namespace Engine.Ingest.Workers
                 var extension = GetFileExtension(context);
                 sourceDir = GetSourceDir(context, engineSettings);
 
-                // HACK - this is to get it working nice locally as appetiser/tizer root needs to be unix + relative
-                var unixRoot = string.IsNullOrEmpty(engineSettings.ImageProcessorRoot)
-                    ? engineSettings.ScratchRoot
-                    : engineSettings.ImageProcessorRoot;
+                // this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
+                var unixRoot = engineSettings.GetRoot(true);
                 var unixPath = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.SourceTemplate,
                     unixRoot, context.Asset);
 
@@ -130,7 +128,7 @@ namespace Engine.Ingest.Workers
         
         private string GetSourceDir(IngestionContext context, EngineSettings engineSettings)
         {
-            var root = engineSettings.ScratchRoot;
+            var root = engineSettings.GetRoot();
             var imageIngest = engineSettings.ImageIngest;
             
             // source is the main folder for storing
@@ -140,8 +138,7 @@ namespace Engine.Ingest.Workers
             var dest = TemplatedFolders.GenerateTemplate(imageIngest.DestinationTemplate, root, context.Asset);
             
             // thumb is the folder where generated thumbnails will be output
-            var thumb = TemplatedFolders.GenerateTemplate(imageIngest.ThumbsTemplate, engineSettings.ScratchRoot,
-                context.Asset);
+            var thumb = TemplatedFolders.GenerateTemplate(imageIngest.ThumbsTemplate, root, context.Asset);
 
             Directory.CreateDirectory(dest);
             Directory.CreateDirectory(thumb);

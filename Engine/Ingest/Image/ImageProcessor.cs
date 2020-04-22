@@ -88,10 +88,8 @@ namespace Engine.Ingest.Image
                     imageOptimisationPolicy.Id, imageOptimisationPolicy.TechnicalDetails.Count);
             }
 
-            // HACK - this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
-            var root = string.IsNullOrEmpty(engineSettings.ImageProcessorRoot)
-                ? engineSettings.ScratchRoot
-                : engineSettings.ImageProcessorRoot;
+            // this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
+            var root = engineSettings.GetRoot(true);
 
             var destFolder =
                 TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.DestinationTemplate, root, asset);
@@ -193,7 +191,7 @@ namespace Engine.Ingest.Image
             // Update the location of all thumbs to be full path on disk.
             var settings = engineOptionsMonitor.CurrentValue;
             var partialTemplate = TemplatedFolders.GenerateTemplate(settings.ImageIngest.ThumbsTemplate,
-                settings.ScratchRoot, context.Asset);
+                settings.GetRoot(), context.Asset);
             foreach (var thumb in responseModel.Thumbs)
             {
                 var key = thumb.Path.Substring(thumb.Path.LastIndexOf('/') + 1);
