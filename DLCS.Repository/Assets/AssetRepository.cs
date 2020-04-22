@@ -25,6 +25,7 @@ namespace DLCS.Repository.Assets
 
         public async Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage)
         {
+            logger.LogDebug("Marking asset {assetId} as completed", asset.Id);
             asset.MarkAsIngestComplete();
             
             await using var connection = await dbFactory.GetOpenDbConnection();
@@ -35,7 +36,7 @@ namespace DLCS.Repository.Assets
                 var success = await CallChain.ExecuteInSequence(
                     () => dbFactory.MapAndExecute<Asset, AssetEntity>(asset, AssetUpdateSql, transaction),
                     () => dbFactory.Execute(imageLocation, ImageLocationUpdateSql, transaction),
-                    () => dbFactory.Execute(imageStorage, ImageStorageInsertSql, transaction),
+                    () => dbFactory.Execute(imageStorage, ImageStorageUpsertSql, transaction),
                     () => UpdateBatch(asset, transaction));
 
                 if (success)
@@ -46,7 +47,7 @@ namespace DLCS.Repository.Assets
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error updating asset {id}", asset.Id);
+                logger.LogError(ex, "Error updating asset {assetId}", asset.Id);
             }
             
             await transaction.RollbackAsync();
@@ -85,10 +86,14 @@ SELECT ""Id"", ""Customer"", ""Space"", ""Created"", ""Origin"", ""Tags"", ""Rol
         private const string ImageLocationUpdateSql =
             @"UPDATE ""ImageLocation"" SET ""S3"" = @S3, ""Nas""= @Nas WHERE ""Id"" = @Id;";
         
-        private const string ImageStorageInsertSql =
+        private const string ImageStorageUpsertSql =
             @"
-INSERT INTO ""ImageStorage"" (""Id"", ""Customer"", ""Space"", ""ThumbnailSize"", ""Size"", ""LastChecked"", ""CheckingInProgress"") 
-VALUES (@Id, @Customer, @Space, @ThumbnailSize, @Size, @LastChecked, @CheckingInProgress);";
+INSERT INTO ""ImageStorage"" (""Id"", ""Customer"", ""Space"", ""ThumbnailSize"", ""Size"", ""LastChecked"", ""CheckingInProgress"")
+VALUES (@Id, @Customer, @Space, @ThumbnailSize, @Size, @LastChecked, @CheckingInProgress)
+ON CONFLICT (""Id"", ""Customer"", ""Space"") DO UPDATE
+  SET ""Customer""=excluded.""Customer"", ""Space""=excluded.""Space"", ""ThumbnailSize""=excluded.""ThumbnailSize"",
+      ""Size""=excluded.""Size"", ""LastChecked""=excluded.""LastChecked"", ""CheckingInProgress""=excluded.""CheckingInProgress"";
+";
         
         private const string IncrementBatchErrorsSql = @"
 UPDATE ""Batches"" SET ""Errors""=""Errors""+1 WHERE ""Id"" = @Id;

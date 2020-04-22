@@ -53,6 +53,7 @@ namespace DLCS.Model.Tests.Storage
         {
             // Arrange
             var bucket = new RegionalisedObjectInBucket("dlcs-storage", "2/1/foo-bar");
+            bucket.Region = region;
 
             Action action = () => bucket.GetS3QualifiedUri();
 

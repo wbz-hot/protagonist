@@ -15,7 +15,7 @@ namespace DLCS.Model.Storage
         /// <summary>
         /// Get fully qualified S3 uri (e.g. s3://eu-west-1/bucket/key
         /// </summary>
-        public string GetS3QualifiedUri() => $"s3://{Region.ThrowIfNull(nameof(Region))}/{Bucket}/{Key}";
+        public string GetS3QualifiedUri() => $"s3://{Region.ThrowIfNullOrWhiteSpace(nameof(Region))}/{Bucket}/{Key}";
         
         // NOTE(DG) Regex's and logic moved from deliverator
         private static readonly Regex RegexS3Qualified = new Regex(@"s3\:\/\/(.*?)\/(.*?)\/(.*)", RegexOptions.Compiled);
