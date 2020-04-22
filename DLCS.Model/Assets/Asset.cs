@@ -16,6 +16,11 @@ namespace DLCS.Model.Assets
         public int Customer { get; set; }
         public int Space { get; set; }
         public DateTime Created { get; set; }
+        
+        /// <summary>
+        /// Origin to use for first ingestion only.
+        /// </summary>
+        public string InitialOrigin { get; set; }
         public string Origin { get; set; }
         
         public List<string> Tags { get; set; }

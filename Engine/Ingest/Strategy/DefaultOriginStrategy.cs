@@ -35,7 +35,8 @@ namespace Engine.Ingest.Strategy
 
             try
             {
-                var response = await httpClient.GetAsync(asset.Origin, cancellationToken);
+                var assetOrigin = GetOrigin(asset);
+                var response = await httpClient.GetAsync(assetOrigin, cancellationToken);
                 var originResponse = await CreateOriginResponse(response);
                 return originResponse;
             }
@@ -44,6 +45,13 @@ namespace Engine.Ingest.Strategy
                 logger.LogError(ex, "Error fetching asset from Origin: {url}", asset.Origin);
                 return null;
             }
+        }
+
+        private string GetOrigin(Asset asset)
+        {
+            var assetOrigin = string.IsNullOrEmpty(asset.InitialOrigin) ? asset.Origin : asset.InitialOrigin;
+            logger.LogDebug("Using origin {assetOrigin} for asset {assetId}", assetOrigin, asset.Id);
+            return assetOrigin;
         }
 
         private static async Task<OriginResponse> CreateOriginResponse(HttpResponseMessage response)

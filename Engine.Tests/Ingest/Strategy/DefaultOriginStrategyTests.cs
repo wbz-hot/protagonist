@@ -49,6 +49,23 @@ namespace Engine.Tests.Ingest.Strategy
         }
         
         [Fact]
+        public async Task LoadAssetFromOrigin_UsesInitialOrigin_IfSpecified()
+        {
+            // Arrange
+            var response = httpHandler.GetResponseMessage("", HttpStatusCode.OK);
+            httpHandler.SetResponse(response);
+            const string originUri = "https://test.example.com/string";
+            const string initialOrigin = "https://initial.origin.com";
+            
+            // Act
+            await sut.LoadAssetFromOrigin(new Asset {Origin = originUri, InitialOrigin = initialOrigin},
+                new CustomerOriginStrategy());
+            
+            // Assert
+            httpHandler.CallsMade.Should().ContainSingle(initialOrigin);
+        }
+        
+        [Fact]
         public async Task LoadAssetFromOrigin_HandlesNoContentLengthAndType()
         {
             // Arrange
