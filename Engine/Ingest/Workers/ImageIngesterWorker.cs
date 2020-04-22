@@ -87,7 +87,7 @@ namespace Engine.Ingest.Workers
             var processSuccess = await imageProcessor.ProcessImage(ingestionContext);
 
             // Processing has occurred, clear down the root folder used for processing
-            CleanupWorkingFolder(sourceDir);
+            CleanupWorkingAssets(sourceDir, ingestionContext.AssetFromOrigin.LocationOnDisk);
 
             return processSuccess;
         }
@@ -164,17 +164,16 @@ namespace Engine.Ingest.Workers
             return extension;
         }
         
-        private void CleanupWorkingFolder(string rootPath)
+        private void CleanupWorkingAssets(string rootPath, string locationOnDisk)
         {
-            if (string.IsNullOrEmpty(rootPath)) return;
-
             try
             {
                 Directory.Delete(rootPath, true);
+                File.Delete(locationOnDisk);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unable to delete directory {rootPath}", rootPath);
+                logger.LogError(ex, "Error cleaning up working assets. {rootPath}, {locationOnDisk}", rootPath, locationOnDisk);
             }
         }
     }
