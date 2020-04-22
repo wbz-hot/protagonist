@@ -15,7 +15,6 @@ namespace Engine.Ingest.Strategy
         /// </summary>
         public OriginStrategy Strategy { get; }
 
-        // TODO - does this need to be handled nicer?
         /// <summary>
         /// Loads specified <see cref="Asset"/> from origin, using details in specified <see cref="CustomerOriginStrategy"/>
         /// </summary>

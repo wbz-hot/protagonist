@@ -62,7 +62,6 @@ namespace Engine.Infrastructure
         public static IServiceCollection AddAssetIngestion(this IServiceCollection services,
             EngineSettings engineSettings)
         {
-            // TODO - verify lifecycles - make singletons?
             // TODO - if a/v and image ingestion deployed separately there will need to be some logic on registered deps
             services
                 .AddTransient<TimebasedIngesterWorker>()

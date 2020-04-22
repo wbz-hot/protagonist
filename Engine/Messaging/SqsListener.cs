@@ -19,7 +19,6 @@ namespace Engine.Messaging
         private readonly QueueHandlerResolver handlerResolver;
         private readonly ILogger<SqsListener> logger;
 
-        // TODO - this makes the assumption that all handlers will be the same for all queues
         // if that differs IngestHandler will need to be something smarter
         public SqsListener(IAmazonSQS client, SubscribedToQueue queue, QueueHandlerResolver handlerResolver, ILoggerFactory loggerFactory)
         {

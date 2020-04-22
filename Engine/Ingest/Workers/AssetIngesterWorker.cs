@@ -41,7 +41,6 @@ namespace Engine.Ingest.Workers
             return result;
         }
 
-        // TODO - return some sort of response code/bool to signify if complete?
         protected abstract Task<IngestResult> FamilySpecificIngest(IngestionContext ingestionContext);
     }
 }
