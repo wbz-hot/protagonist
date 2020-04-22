@@ -121,7 +121,7 @@ namespace Engine.Ingest.Image
 
             var imageStorage = GetImageStorage(context, responseModel);
 
-            return (imageLocation, imageStorage);
+           return (imageLocation, imageStorage);
             /* TODO
                - Update Batch - IncrementCompleted and IncrementErrors. Probably at a level higher up than this.
              */
@@ -135,16 +135,17 @@ namespace Engine.Ingest.Image
 
         private async Task<ImageLocation> ProcessOriginImage(IngestionContext context)
         {
+            var engineSettings = engineOptionsMonitor.CurrentValue;
+            
             var jp2Object = new ObjectInBucket(
-                engineOptionsMonitor.CurrentValue.Thumbs.StorageBucket,
+                engineSettings.Thumbs.StorageBucket,
                 context.Asset.GetStorageKey());
 
-            var engineSettings = engineOptionsMonitor.CurrentValue;
             var asset = context.Asset;
-
             var imageLocation = new ImageLocation {Id = asset.Id};
 
             var originStrategy = context.AssetFromOrigin.CustomerOriginStrategy;
+            
             if (originStrategy.Optimised && originStrategy.Strategy == OriginStrategy.S3Ambient)
             {
                 // Optimised strategy - we don't want to store, just set imageLocation

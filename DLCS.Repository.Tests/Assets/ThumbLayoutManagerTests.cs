@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Storage;
 using DLCS.Repository.Assets;
+using DLCS.Test.Helpers;
+using DLCS.Test.Helpers.Storage;
 using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;

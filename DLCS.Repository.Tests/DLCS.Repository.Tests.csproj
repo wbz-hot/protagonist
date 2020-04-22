@@ -20,6 +20,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DLCS.Repository\DLCS.Repository.csproj" />
+      <ProjectReference Include="..\DLCS.Test.Helpers\DLCS.Test.Helpers.csproj" />
     </ItemGroup>
 
 </Project>

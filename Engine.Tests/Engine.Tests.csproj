@@ -18,6 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\DLCS.Test.Helpers\DLCS.Test.Helpers.csproj" />
       <ProjectReference Include="..\Engine\Engine.csproj" />
     </ItemGroup>
 

@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Test.Helpers.Web;
 using Engine.Ingest.Strategy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -80,7 +81,7 @@ namespace Engine.Tests.Ingest.Strategy
             httpHandler.CallsMade.Should().Contain(originUri);
             result.Stream.Should().NotBeNull();
             result.ContentLength.Should().BeNull();
-            result.ContentType.Should().BeNull();
+            result.ContentType.Should().Be("text/plain");
         }
         
         [Theory]

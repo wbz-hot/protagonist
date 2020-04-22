@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Engine.Tests.Ingest.Strategy
+namespace DLCS.Test.Helpers.Web
 {
     /// <summary>
     /// Controllable HttpMessageHandler for unit testing HttpClient.
@@ -17,14 +17,7 @@ namespace Engine.Tests.Ingest.Strategy
 
         public HttpResponseMessage GetResponseMessage(string content, HttpStatusCode httpStatusCode)
         {
-            var memStream = new MemoryStream();
-
-            var sw = new StreamWriter(memStream);
-            sw.Write(content);
-            sw.Flush();
-            memStream.Position = 0;
-
-            var httpContent = new StreamContent(memStream);
+            var httpContent = new StringContent(content);
 
             response = new HttpResponseMessage
             {

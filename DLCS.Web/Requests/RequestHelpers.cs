@@ -24,6 +24,6 @@ namespace DLCS.Web.Requests
             var serialized = JsonConvert.SerializeObject(content, Serializer);
             var requestBody = new StringContent(serialized, Encoding.UTF8, "application/json");
             request.Content = requestBody;
-        } 
+        }
     }
 }

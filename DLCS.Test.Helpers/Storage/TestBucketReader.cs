@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using DLCS.Model.Storage;
 using FluentAssertions.Execution;
 
-namespace DLCS.Repository.Tests
+namespace DLCS.Test.Helpers.Storage
 {
     /// <summary>
     ///  Test bucket reader implementation that maintains in-memory list of addition/copy.
