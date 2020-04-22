@@ -1,17 +1,22 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Core;
 using DLCS.Model.Assets;
 using Engine.Ingest.Image;
+using Engine.Ingest.Models;
 using Engine.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Engine.Ingest.Workers
 {
-    public class ImageIngesterWorker : AssetIngesterWorker
+    public class ImageIngesterWorker : IAssetIngesterWorker
     {
+        private readonly IAssetFetcher assetFetcher;
+        private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
+        private readonly IAssetRepository assetRepository;
         private readonly ImageProcessor imageProcessor;
         private readonly IAssetPolicyRepository assetPolicyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
@@ -21,21 +26,60 @@ namespace Engine.Ingest.Workers
             IAssetFetcher assetFetcher,
             IAssetPolicyRepository assetPolicyRepository,
             IOptionsMonitor<EngineSettings> engineOptionsMonitor,
+            IAssetRepository assetRepository,
             ILogger<ImageIngesterWorker> logger)
-            : base(assetFetcher, engineOptionsMonitor)
         {
+            this.assetFetcher = assetFetcher;
+            this.engineOptionsMonitor = engineOptionsMonitor;
+            this.assetRepository = assetRepository;
             this.imageProcessor = imageProcessor;
             this.assetPolicyRepository = assetPolicyRepository;
             this.logger = logger;
         }
+        
+        public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
+            CancellationToken cancellationToken)
+        {
+            // TODO - error handling
+            var engineSettings = engineOptionsMonitor.CurrentValue;
+            var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
+                engineSettings.ProcessingFolder,
+                cancellationToken);
+            
+            // TODO - CheckStoragePolicy. Checks if there is enough space to store this 
 
-        protected override async Task<IngestResult> FamilySpecificIngest(IngestionContext ingestionContext)
+            var context = new IngestionContext(ingestAssetRequest.Asset, fetchedAsset);
+            var ingestSuccess = await DoIngest(context);
+
+            var markIngestAsComplete = await MarkIngestAsComplete(context);
+            
+            // TODO - handle calling Orchestrator if customer specific value (or override) set.
+
+            return ingestSuccess && markIngestAsComplete ? IngestResult.Success : IngestResult.Failed;
+        }
+
+        private async Task<bool> MarkIngestAsComplete(IngestionContext context)
+        {
+            try
+            {
+                var success =
+                    await assetRepository.UpdateIngestedAsset(context.Asset, context.ImageLocation, context.ImageStorage);
+                return success;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error updating image {asset}", context.Asset.Id);
+                return false;
+            }
+        }
+
+        private async Task<bool> DoIngest(IngestionContext ingestionContext)
         {
             // set Thumbnail and ImageOptimisation policies
             var setAssetPolicies = assetPolicyRepository.HydratePolicies(ingestionContext.Asset, AssetPolicies.All);
 
             // Put file in correct place for processing 
-            var sourceDir = CopyAssetFromProcessingToTemplatedFolder(ingestionContext, EngineOptionsMonitor.CurrentValue);
+            var sourceDir = CopyAssetFromProcessingToTemplatedFolder(ingestionContext, engineOptionsMonitor.CurrentValue);
 
             await setAssetPolicies;
 
@@ -45,9 +89,7 @@ namespace Engine.Ingest.Workers
             // Processing has occurred, clear down the root folder used for processing
             CleanupWorkingFolder(sourceDir);
 
-            // TODO - handle calling Orchestrator if customer specific value (or override) set.
-
-            return processSuccess ? IngestResult.Success : IngestResult.Failed;
+            return processSuccess;
         }
 
         private string CopyAssetFromProcessingToTemplatedFolder(IngestionContext context, EngineSettings engineSettings)

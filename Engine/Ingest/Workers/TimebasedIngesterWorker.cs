@@ -1,20 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Engine.Ingest.Models;
-using Engine.Settings;
-using Microsoft.Extensions.Options;
 
 namespace Engine.Ingest.Workers
 {
-    public class TimebasedIngesterWorker : AssetIngesterWorker
+    public class TimebasedIngesterWorker : IAssetIngesterWorker
     {
-        public TimebasedIngesterWorker(IAssetFetcher assetFetcher, IOptionsMonitor<EngineSettings> engineOptionsMonitor) 
-            : base(assetFetcher, engineOptionsMonitor)
+        public Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest, CancellationToken cancellationToken)
         {
-        }
-        
-        protected override Task<IngestResult> FamilySpecificIngest(IngestionContext ingestionContext)
-        {
-            return Task.FromResult(IngestResult.Unknown);
+            throw new System.NotImplementedException();
         }
     }
 }

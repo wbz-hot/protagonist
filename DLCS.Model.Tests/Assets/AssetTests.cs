@@ -34,5 +34,28 @@ namespace DLCS.Model.Tests.Assets
             asset.Ingesting.Should().BeFalse();
             asset.Finished.Should().BeCloseTo(DateTime.Now);
         }
+        
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData(" ")]
+        public void HasError_False_IfErrorHasNoValue(string error)
+        {
+            // Arrange
+            var asset = new Asset {Error = error};
+            
+            // Assert
+            asset.HasError.Should().BeFalse();
+        }
+
+        [Fact]
+        public void HasError_True_IfErrorHasValue()
+        {
+            // Arrange
+            var asset = new Asset {Error = "foo"};
+            
+            // Assert
+            asset.HasError.Should().BeTrue();
+        }
     }
 }

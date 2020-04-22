@@ -103,7 +103,7 @@ namespace DLCS.Repository.Assets
             {
                 // TODO - config
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-                logger.LogInformation("Refreshing ThumbnailPolicies from database");
+                logger.LogInformation("Refreshing ImageOptimisationPolicies from database");
                 const string policiesQuery =
                     "SELECT \"Id\", \"Name\", \"TechnicalDetails\" FROM \"ImageOptimisationPolicies\"";
                 return databaseAccessor.SelectAndMapList<ImageOptimisationPolicyEntity, ImageOptimisationPolicy>(policiesQuery);

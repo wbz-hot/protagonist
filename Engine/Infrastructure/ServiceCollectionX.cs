@@ -69,7 +69,7 @@ namespace Engine.Infrastructure
                 .AddTransient<AssetIngester>()
                 .AddTransient<IngestorResolver>(provider => family => family switch
                 {
-                    AssetFamily.Image => (AssetIngesterWorker) provider.GetService<ImageIngesterWorker>(),
+                    AssetFamily.Image => provider.GetService<ImageIngesterWorker>(),
                     AssetFamily.Timebased => provider.GetService<TimebasedIngesterWorker>(),
                     AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
                     _ => throw new KeyNotFoundException()

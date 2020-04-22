@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Data;
 using System.Threading.Tasks;
+using Dapper;
 using DLCS.Core;
 using DLCS.Model.Assets;
 using DLCS.Repository.Entities;
@@ -23,6 +25,8 @@ namespace DLCS.Repository.Assets
 
         public async Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage)
         {
+            asset.MarkAsIngestComplete();
+            
             await using var connection = await dbFactory.GetOpenDbConnection();
             await using var transaction = await connection.BeginTransactionAsync();
 
@@ -31,7 +35,8 @@ namespace DLCS.Repository.Assets
                 var success = await CallChain.ExecuteInSequence(
                     () => dbFactory.MapAndExecute<Asset, AssetEntity>(asset, AssetUpdateSql, transaction),
                     () => dbFactory.Execute(imageLocation, ImageLocationUpdateSql, transaction),
-                    () => dbFactory.Execute(imageStorage, ImageStorageInsertSql, transaction));
+                    () => dbFactory.Execute(imageStorage, ImageStorageInsertSql, transaction),
+                    () => UpdateBatch(asset, transaction));
 
                 if (success)
                 {
@@ -46,6 +51,20 @@ namespace DLCS.Repository.Assets
             
             await transaction.RollbackAsync();
             return false;
+        }
+
+        private async Task<bool> UpdateBatch(Asset asset, IDbTransaction transaction)
+        {
+            // Batch is non nullable, 0 == no batch
+            if (asset.Batch == 0) return true;
+            
+            // TODO - this should be DateTime.UtcNow
+            var param = new {Id = asset.Batch, Now = DateTime.Now};
+            var result = asset.HasError
+                ? await transaction.Connection.ExecuteAsync(IncrementBatchErrorsSql, param, transaction)
+                : await transaction.Connection.ExecuteAsync(IncrementBatchCompletedSql, param, transaction);
+
+            return result > 0;
         }
 
         private const string AssetGetSql = @"
@@ -70,5 +89,14 @@ SELECT ""Id"", ""Customer"", ""Space"", ""Created"", ""Origin"", ""Tags"", ""Rol
             @"
 INSERT INTO ""ImageStorage"" (""Id"", ""Customer"", ""Space"", ""ThumbnailSize"", ""Size"", ""LastChecked"", ""CheckingInProgress"") 
 VALUES (@Id, @Customer, @Space, @ThumbnailSize, @Size, @LastChecked, @CheckingInProgress);";
+        
+        private const string IncrementBatchErrorsSql = @"
+UPDATE ""Batches"" SET ""Errors""=""Errors""+1 WHERE ""Id"" = @Id;
+UPDATE ""Batches"" SET ""Finished""=@Now WHERE ""Id"" = @Id AND ""Completed""+""Errors""=""Count""";
+        
+        private const string IncrementBatchCompletedSql = @"
+UPDATE ""Batches"" SET ""Completed""=""Completed""+1 WHERE ""Id"" = @Id;
+UPDATE ""Batches"" SET ""Finished""=@Now WHERE ""Id"" = @Id AND ""Completed""+""Errors""=""Count""";
+            
     }
 }

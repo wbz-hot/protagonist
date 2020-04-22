@@ -15,4 +15,9 @@ namespace Engine.Ingest.Workers
         Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken);
     }
+
+    public interface IAssetIngesterCompleted
+    {
+        Task<IngestResult> IngestComplete(IngestionContext ingestionContext);
+    }
 }

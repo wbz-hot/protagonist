@@ -24,7 +24,6 @@ namespace Engine.Ingest.Image
         private readonly HttpClient httpClient;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
         private readonly ILogger<ImageProcessor> logger;
-        private readonly IAssetRepository assetRepository;
         private readonly IBucketReader bucketReader;
         private readonly IThumbLayoutManager thumbLayoutManager;
 
@@ -33,43 +32,30 @@ namespace Engine.Ingest.Image
             IBucketReader bucketReader,
             IThumbLayoutManager thumbLayoutManager,
             IOptionsMonitor<EngineSettings> engineOptionsMonitor,
-            ILogger<ImageProcessor> logger,
-            IAssetRepository assetRepository)
+            ILogger<ImageProcessor> logger)
         {
             this.httpClient = httpClient;
             this.bucketReader = bucketReader;
             this.thumbLayoutManager = thumbLayoutManager;
             this.engineOptionsMonitor = engineOptionsMonitor;
             this.logger = logger;
-            this.assetRepository = assetRepository;
         }
 
         public async Task<bool> ProcessImage(IngestionContext context)
         {
             ImageLocation imageLocation = null;
             ImageStorage imageStorage = null;
-            var errorProcessing = false;
             try
             {
                 var responseModel = await CallImageProcessor(context);
                 (imageLocation, imageStorage) = await ProcessResponse(context, responseModel);
+                context.WithLocation(imageLocation).WithStorage(imageStorage);
+                return true;
             }
             catch (Exception e)
             {
                 logger.LogError(e, "Error processing image {asset}", context.Asset.Id);
                 context.Asset.Error = e.Message;
-                errorProcessing = true;
-            }
-
-            try
-            {
-                context.Asset.MarkAsIngestComplete();
-                var success = await assetRepository.UpdateIngestedAsset(context.Asset, imageLocation, imageStorage);
-                return !errorProcessing && success;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error updating image {asset}", context.Asset.Id);
                 return false;
             }
         }
@@ -182,7 +168,6 @@ namespace Engine.Ingest.Image
             // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
             if (!await bucketReader.WriteFileToBucket(jp2Object, context.AssetFromOrigin.LocationOnDisk))
             {
-                // TODO - exception type
                 throw new ApplicationException("Failed to write jp2 to storage bucket");
             }
 

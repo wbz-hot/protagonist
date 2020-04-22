@@ -54,9 +54,19 @@ namespace DLCS.Model.Assets
         public ThumbnailPolicy FullThumbnailPolicy { get; private set; }
         
         public ImageOptimisationPolicy FullImageOptimisationPolicy { get; private set; }
+        
+        /// <summary>
+        /// Get value indicating if this Asset is in an Error state.
+        /// </summary>
+        public bool HasError => !string.IsNullOrWhiteSpace(Error);
 
         private string uniqueName;
 
+        /// <summary>
+        /// Get the identifier part from from Id.
+        /// Id contains {cust}/{space}/{identifier}
+        /// </summary>
+        /// <returns></returns>
         public string GetUniqueName()
         {
             if (string.IsNullOrWhiteSpace(uniqueName))
