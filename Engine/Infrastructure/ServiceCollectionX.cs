@@ -5,8 +5,10 @@ using Amazon.SQS;
 using AutoMapper;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Model.Security;
 using DLCS.Repository;
 using DLCS.Repository.Assets;
+using DLCS.Repository.Security;
 using DLCS.Web.Handlers;
 using Engine.Ingest;
 using Engine.Ingest.Image;
@@ -34,7 +36,8 @@ namespace Engine.Infrastructure
                 .AddTransient<DatabaseAccessor>()
                 .AddTransient<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
                 .AddTransient<IAssetPolicyRepository, AssetPolicyRepository>()
-                .AddTransient<IAssetRepository, AssetRepository>();
+                .AddTransient<IAssetRepository, AssetRepository>()
+                .AddSingleton<ICredentialsRepository, CredentialsRepository>();
 
         /// <summary>
         /// Add SQS queue handlers to service collection.
@@ -76,7 +79,6 @@ namespace Engine.Infrastructure
                 })
                 .AddTransient<IAssetFetcher, AssetFetcher>()
                 .AddTransient<IOriginStrategy, S3AmbientOriginStrategy>()
-                .AddTransient<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddTransient<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>();
 
@@ -90,13 +92,18 @@ namespace Engine.Infrastructure
                 .AddHttpMessageHandler<RequestTimeLoggingHandler>();
             
             // defaultOriginStrategy gets httpClient for fetching assets via http
-            // TODO - this could be a named client and shared by basic-http-authentication strategy
             services
-                .AddHttpClient<IOriginStrategy, DefaultOriginStrategy>(client =>
+                .AddHttpClient<IOriginStrategy, DefaultOriginStrategy>(client => ConfigureDlcsClient(client))
+                .AddHttpMessageHandler<RequestTimeLoggingHandler>()
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
                 {
-                    client.DefaultRequestHeaders.Add("Accept", "*/*");
-                    client.DefaultRequestHeaders.Add("User-Agent", "DLCS/2.0");
-                })
+                    AllowAutoRedirect = true,
+                    MaxAutomaticRedirections = 8
+                });
+
+            // basicHttpAuthOriginStrategy gets httpClient for fetching assets via http
+            services
+                .AddHttpClient<IOriginStrategy, BasicHttpAuthOriginStrategy>(client => ConfigureDlcsClient(client))
                 .AddHttpMessageHandler<RequestTimeLoggingHandler>()
                 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
                 {
@@ -107,5 +114,11 @@ namespace Engine.Infrastructure
             return services;
         }
 
+        private static HttpClient ConfigureDlcsClient(HttpClient client)
+        {
+            client.DefaultRequestHeaders.Add("Accept", "*/*");
+            client.DefaultRequestHeaders.Add("User-Agent", "DLCS/2.0");
+            return client;
+        }
     }
 }
