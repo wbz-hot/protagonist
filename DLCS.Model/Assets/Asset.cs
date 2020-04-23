@@ -100,5 +100,11 @@ namespace DLCS.Model.Assets
             Ingesting = false;
             return this;
         }
+
+        /// <summary>
+        /// Get origin to use for ingestion. This will be 'initialOrigin' if present, else origin.
+        /// </summary>
+        public string GetIngestOrigin()
+            => string.IsNullOrWhiteSpace(InitialOrigin) ? Origin : InitialOrigin;
     }
 }

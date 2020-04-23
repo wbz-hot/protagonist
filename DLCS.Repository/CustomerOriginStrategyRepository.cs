@@ -44,13 +44,15 @@ namespace DLCS.Repository
         public Task<IEnumerable<CustomerOriginStrategy>> GetCustomerOriginStrategies(int customer) 
             => GetStrategiesForCustomer(customer);
 
-        public async Task<CustomerOriginStrategy> GetCustomerOriginStrategy(Asset asset)
+        public async Task<CustomerOriginStrategy> GetCustomerOriginStrategy(Asset asset, bool initialIngestion = false)
         {
             asset.ThrowIfNull(nameof(asset));
             
             var customerStrategies = await GetCustomerOriginStrategies(asset.Customer);
-            var matching = FindMatchingStrategy(asset.Origin, customerStrategies) ?? DefaultStrategy;
-            logger.LogTrace("Using strategy '{strategyId}' for handling asset '{assetId}'", matching.Id, asset.Id);
+
+            var assetOrigin = initialIngestion ? asset.GetIngestOrigin() : asset.Origin;
+            var matching = FindMatchingStrategy(assetOrigin, customerStrategies) ?? DefaultStrategy;
+            logger.LogTrace("Using strategy: {strategy} ('{strategyId}') for handling asset '{assetId}'", matching.Strategy, matching.Id, asset.Id);
             
             return matching;
         }

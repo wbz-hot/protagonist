@@ -31,7 +31,7 @@ namespace Engine.Ingest.Strategy
             // NOTE(DG): This will follow up to 8 redirections, as per deliverator.
             // However, https -> http will fail. 
             // Need to test relative redirects too.
-            var assetOrigin = GetOrigin(asset);
+            var assetOrigin = asset.GetIngestOrigin();
             logger.LogDebug("Fetching asset from Origin: {url}", assetOrigin);
 
             try
@@ -46,9 +46,7 @@ namespace Engine.Ingest.Strategy
                 return null;
             }
         }
-
         
-
         private static async Task<OriginResponse> CreateOriginResponse(HttpResponseMessage response)
         {
             response.EnsureSuccessStatusCode();

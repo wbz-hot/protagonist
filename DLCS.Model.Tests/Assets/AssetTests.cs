@@ -57,5 +57,22 @@ namespace DLCS.Model.Tests.Assets
             // Assert
             asset.HasError.Should().BeTrue();
         }
+        
+        [Theory]
+        [InlineData("https://origin", "s3://initial-origin", "s3://initial-origin")]
+        [InlineData("https://origin", null, "https://origin")]
+        [InlineData("https://origin", "", "https://origin")]
+        [InlineData("https://origin", " ", "https://origin")]
+        public void GetOrigin_ReturnsCorrectOrigin_IfForIngestion(string origin, string initialOrigin, string expected)
+        {
+            // Arrange
+            var asset = new Asset {Origin = origin, InitialOrigin = initialOrigin};
+            
+            // Act
+            var actual = asset.GetIngestOrigin();
+            
+            // Assert
+            actual.Should().Be(expected);
+        }
     }
 }

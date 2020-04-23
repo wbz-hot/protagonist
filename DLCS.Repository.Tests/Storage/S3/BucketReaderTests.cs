@@ -70,10 +70,10 @@ namespace DLCS.Repository.Tests.Storage.S3
             var objectInBucket = new ObjectInBucket("MyBucket", "MyKey");
 
             // Act
-            var result = await sut.GetObjectFromBucket(objectInBucket);
+            var result = await sut.GetObjectContentFromBucket(objectInBucket);
 
             // Assert
-            result.Should().BeNull();
+            result.Should().Be(Stream.Null);
         }
 
         [Theory]

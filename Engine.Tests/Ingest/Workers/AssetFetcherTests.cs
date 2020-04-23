@@ -56,7 +56,7 @@ namespace Engine.Tests.Ingest.Workers
             // Arrange
             var asset = new Asset();
             var cos = new CustomerOriginStrategy {Strategy = strategy};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset)).Returns(cos);
+            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             // Act
             Func<Task> action = () => sut.CopyAssetFromOrigin(asset, "./here");
@@ -71,7 +71,7 @@ namespace Engine.Tests.Ingest.Workers
             // Arrange
             var asset = new Asset {Id = "/2/1/godzilla"};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset)).Returns(cos);
+            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns<OriginResponse>(null);
             
@@ -88,7 +88,7 @@ namespace Engine.Tests.Ingest.Workers
             // Arrange
             var asset = new Asset {Id = "/2/1/godzilla"};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset)).Returns(cos);
+            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(new OriginResponse(Stream.Null));
             
@@ -108,7 +108,7 @@ namespace Engine.Tests.Ingest.Workers
             var destination = $".{c}";
             var asset = new Asset {Id = "/2/1/godzilla", Customer = 2, Space = 1};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset)).Returns(cos);
+            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             var responseStream = new MemoryStream(Encoding.Default.GetBytes("{\"foo\":\"bar\"}"));
             var originResponse = new OriginResponse(responseStream).WithContentType("application/json");
@@ -139,7 +139,7 @@ namespace Engine.Tests.Ingest.Workers
             var destination = $".{c}";
             var asset = new Asset {Id = "/2/1/godzilla1", Customer = 2, Space = 1};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset)).Returns(cos);
+            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             var responseStream = new MemoryStream(Encoding.Default.GetBytes("{\"foo\":\"bar\"}"));
             var originResponse = new OriginResponse(responseStream)

@@ -28,7 +28,7 @@ namespace Engine.Ingest.Strategy
         protected override async Task<OriginResponse?> LoadAssetFromOriginImpl(Asset asset,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
-            var assetOrigin = GetOrigin(asset);
+            var assetOrigin = asset.GetIngestOrigin();
             logger.LogDebug("Fetching asset from Origin: {url}", assetOrigin);
 
             try

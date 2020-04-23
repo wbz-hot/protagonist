@@ -35,7 +35,7 @@ namespace Engine.Ingest.Workers
             destinationFolder.ThrowIfNullOrWhiteSpace(nameof(destinationFolder));
             
             destinationFolder += $"{asset.Customer}{Path.DirectorySeparatorChar}{asset.Space}";
-            var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset);
+            var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset, true);
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
             {
