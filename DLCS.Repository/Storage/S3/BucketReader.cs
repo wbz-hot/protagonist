@@ -28,23 +28,44 @@ namespace DLCS.Repository.Storage.S3
 
         public string DefaultRegion => configuration["AWS:Region"];
 
-        public async Task<Stream?> GetObjectFromBucket(ObjectInBucket objectInBucket)
+        public async Task<Stream?> GetObjectContentFromBucket(ObjectInBucket objectInBucket)
         {
             var getObjectRequest = objectInBucket.AsGetObjectRequest();
             try
             {
-                var getResponse = await s3Client.GetObjectAsync(getObjectRequest);
+                GetObjectResponse getResponse = await s3Client.GetObjectAsync(getObjectRequest);
                 return getResponse.ResponseStream;
             }
             catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
             {
                 logger.LogInformation(e, "Could not find S3 object '{S3ObjectRequest}'", getObjectRequest.AsBucketAndKey());
-                return null;
+                return Stream.Null;
             }
             catch (AmazonS3Exception e)
             {
                 logger.LogWarning(e, "Could not copy S3 Stream for {S3ObjectRequest}; {StatusCode}",
-                    getObjectRequest, e.StatusCode);
+                    getObjectRequest.AsBucketAndKey(), e.StatusCode);
+                throw new HttpException(e.StatusCode, $"Error copying S3 stream for {getObjectRequest.AsBucketAndKey()}", e);
+            }
+        }
+        
+        public async Task<ObjectFromBucket> GetObjectFromBucket(ObjectInBucket objectInBucket)
+        {
+            var getObjectRequest = objectInBucket.AsGetObjectRequest();
+            try
+            {
+                GetObjectResponse getResponse = await s3Client.GetObjectAsync(getObjectRequest);
+                return getResponse.AsObjectInBucket(objectInBucket);
+            }
+            catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound)
+            {
+                logger.LogInformation(e, "Could not find S3 object '{S3ObjectRequest}'", getObjectRequest.AsBucketAndKey());
+                return new ObjectFromBucket(objectInBucket, null, null);
+            }
+            catch (AmazonS3Exception e)
+            {
+                logger.LogWarning(e, "Could not copy S3 object for {S3ObjectRequest}; {StatusCode}",
+                    getObjectRequest.AsBucketAndKey(), e.StatusCode);
                 throw new HttpException(e.StatusCode, $"Error copying S3 stream for {getObjectRequest.AsBucketAndKey()}", e);
             }
         }

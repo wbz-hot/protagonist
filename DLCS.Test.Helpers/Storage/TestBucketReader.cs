@@ -79,9 +79,14 @@ namespace DLCS.Test.Helpers.Storage
 
         public string DefaultRegion => "Fake-Region";
 
-        public Task<Stream?> GetObjectFromBucket(ObjectInBucket objectInBucket)
+        public Task<Stream?> GetObjectContentFromBucket(ObjectInBucket objectInBucket)
         {
             throw new System.NotImplementedException();
+        }
+
+        public Task<ObjectFromBucket> GetObjectFromBucket(ObjectInBucket objectInBucket)
+        {
+            throw new NotImplementedException();
         }
 
         public Task<string[]> GetMatchingKeys(ObjectInBucket rootKey)

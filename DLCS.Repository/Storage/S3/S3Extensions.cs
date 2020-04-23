@@ -21,5 +21,25 @@ namespace DLCS.Repository.Storage.S3
 
         public static string AsBucketAndKey(this GetObjectRequest getObjectRequest) =>
             $"{getObjectRequest.BucketName}/{getObjectRequest.Key}";
+
+        public static ObjectFromBucket AsObjectInBucket(this GetObjectResponse getObjectResponse,
+            ObjectInBucket objectInBucket)
+            => new ObjectFromBucket(
+                objectInBucket,
+                getObjectResponse.ResponseStream,
+                getObjectResponse.Headers.AsObjectInBucketHeaders()
+            );
+
+        public static ObjectInBucketHeaders AsObjectInBucketHeaders(this HeadersCollection headersCollection)
+            => new ObjectInBucketHeaders
+            {
+                CacheControl = headersCollection.CacheControl,
+                ContentDisposition = headersCollection.ContentDisposition,
+                ContentEncoding = headersCollection.ContentEncoding,
+                ContentLength = headersCollection.ContentLength == -1L ? (long?) null : headersCollection.ContentLength,
+                ContentMD5 = headersCollection.ContentMD5,
+                ContentType = headersCollection.ContentType,
+                ExpiresUtc = headersCollection.ExpiresUtc
+            };
     }
 }

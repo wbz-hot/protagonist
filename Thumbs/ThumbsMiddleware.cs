@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using DLCS.Core.Exceptions;
@@ -66,9 +67,9 @@ namespace Thumbs
                 request.Customer.Id, request.Space, request.IIIFImageRequest);
             context.Response.ContentType = "image/jpeg";
             SetCacheControl(context);
-            var response = await bucketReader.GetObjectFromBucket(await thumbInBucket);
+            var response = await bucketReader.GetObjectContentFromBucket(await thumbInBucket);
 
-            if (response == null)
+            if (response == null || response == Stream.Null)
             {
                 await StatusCodeResponse
                     .NotFound("Could not find requested thumbnail")

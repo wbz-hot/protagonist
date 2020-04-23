@@ -14,7 +14,12 @@ namespace DLCS.Model.Storage
         /// Get specified object from bucket.
         /// </summary>
         /// <param name="objectInBucket">Object to read.</param>
-        Task<Stream?> GetObjectFromBucket(ObjectInBucket objectInBucket);
+        Task<Stream?> GetObjectContentFromBucket(ObjectInBucket objectInBucket);
+
+        /// <summary>
+        /// Get full object from bucket, including content and headers.
+        /// </summary>
+        Task<ObjectFromBucket> GetObjectFromBucket(ObjectInBucket objectInBucket);
         
         Task<string[]> GetMatchingKeys(ObjectInBucket rootKey);
         

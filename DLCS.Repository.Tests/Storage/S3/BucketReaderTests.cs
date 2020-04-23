@@ -30,7 +30,7 @@ namespace DLCS.Repository.Tests.Storage.S3
         }
 
         [Fact]
-        public async Task GetObjectFromBucket_ReturnsFoundObjectAsStream()
+        public async Task GetObjectContentFromBucket_ReturnsFoundObjectAsStream()
         {
             // Arrange
             const string bucket = "MyBucket";
@@ -47,7 +47,7 @@ namespace DLCS.Repository.Tests.Storage.S3
             var objectInBucket = new ObjectInBucket(bucket, key);
 
             // Act
-            var targetStream = await sut.GetObjectFromBucket(objectInBucket);
+            var targetStream = await sut.GetObjectContentFromBucket(objectInBucket);
 
             // Assert
             var memoryStream = new MemoryStream();
@@ -58,7 +58,7 @@ namespace DLCS.Repository.Tests.Storage.S3
         }
         
         [Fact]
-        public async Task GetObjectFromBucket_ReturnsNull_IfKeyNotFound()
+        public async Task GetObjectContentFromBucket_ReturnsNull_IfKeyNotFound()
         {
             // Arrange
             A.CallTo(() =>
@@ -80,7 +80,7 @@ namespace DLCS.Repository.Tests.Storage.S3
         [InlineData(HttpStatusCode.Redirect)]
         [InlineData(HttpStatusCode.BadRequest)]
         [InlineData(HttpStatusCode.InternalServerError)]
-        public void GetObjectFromBucket_ThrowsHttpException_IfS3CopyFails_DueToNon404(HttpStatusCode statusCode)
+        public void GetObjectContentFromBucket_ThrowsHttpException_IfS3CopyFails_DueToNon404(HttpStatusCode statusCode)
         {
             // Arrange
             A.CallTo(() =>

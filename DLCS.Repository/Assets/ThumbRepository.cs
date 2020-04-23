@@ -92,7 +92,7 @@ namespace DLCS.Repository.Assets
                 string.Concat(GetKeyRoot(customerId, spaceId, imageRequest), ThumbsSettings.Constants.SizesJsonKey)
             );
             
-            await using var stream = await bucketReader.GetObjectFromBucket(sizesList);
+            await using var stream = await bucketReader.GetObjectContentFromBucket(sizesList);
             if (stream == null)
             {
                 logger.LogError("Could not find sizes file for request '{OriginalPath}'", imageRequest.OriginalPath);

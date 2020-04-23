@@ -34,5 +34,8 @@ namespace Engine.Ingest.Strategy
 
             return LoadAssetFromOriginImpl(asset, customerOriginStrategy, cancellationToken);
         }
+
+        protected string GetOrigin(Asset asset) =>
+            string.IsNullOrEmpty(asset.InitialOrigin) ? asset.Origin : asset.InitialOrigin;
     }
 }

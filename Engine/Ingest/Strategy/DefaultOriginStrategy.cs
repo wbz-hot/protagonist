@@ -31,28 +31,23 @@ namespace Engine.Ingest.Strategy
             // NOTE(DG): This will follow up to 8 redirections, as per deliverator.
             // However, https -> http will fail. 
             // Need to test relative redirects too.
-            logger.LogDebug("Fetching asset from Origin: {url}", asset.Origin);
+            var assetOrigin = GetOrigin(asset);
+            logger.LogDebug("Fetching asset from Origin: {url}", assetOrigin);
 
             try
             {
-                var assetOrigin = GetOrigin(asset);
                 var response = await httpClient.GetAsync(assetOrigin, cancellationToken);
                 var originResponse = await CreateOriginResponse(response);
                 return originResponse;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error fetching asset from Origin: {url}", asset.Origin);
+                logger.LogError(ex, "Error fetching asset from Origin: {url}", assetOrigin);
                 return null;
             }
         }
 
-        private string GetOrigin(Asset asset)
-        {
-            var assetOrigin = string.IsNullOrEmpty(asset.InitialOrigin) ? asset.Origin : asset.InitialOrigin;
-            logger.LogDebug("Using origin {assetOrigin} for asset {assetId}", assetOrigin, asset.Id);
-            return assetOrigin;
-        }
+        
 
         private static async Task<OriginResponse> CreateOriginResponse(HttpResponseMessage response)
         {
