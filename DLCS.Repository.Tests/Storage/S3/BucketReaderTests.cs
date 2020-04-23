@@ -10,6 +10,7 @@ using Amazon.S3.Model;
 using DLCS.Core.Exceptions;
 using DLCS.Model.Storage;
 using DLCS.Repository.Storage.S3;
+using DLCS.Test.Helpers;
 using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -37,7 +38,7 @@ namespace DLCS.Repository.Tests.Storage.S3
             const string key = "MyKey";
             const string bucketResponse = "This is a response from s3";
             
-            var responseStream = new MemoryStream(Encoding.Default.GetBytes(bucketResponse));
+            var responseStream = bucketResponse.ToMemoryStream();
             A.CallTo(() =>
                     s3Client.GetObjectAsync(
                         A<GetObjectRequest>.That.Matches(r => r.BucketName == bucket && r.Key == key),

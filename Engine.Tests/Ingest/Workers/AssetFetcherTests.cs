@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Test.Helpers;
 using Engine.Ingest.Strategy;
 using Engine.Ingest.Workers;
 using FakeItEasy;
@@ -110,7 +111,7 @@ namespace Engine.Tests.Ingest.Workers
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
             A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
-            var responseStream = new MemoryStream(Encoding.Default.GetBytes("{\"foo\":\"bar\"}"));
+            var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
             var originResponse = new OriginResponse(responseStream).WithContentType("application/json");
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(originResponse);
@@ -141,7 +142,7 @@ namespace Engine.Tests.Ingest.Workers
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
             A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
-            var responseStream = new MemoryStream(Encoding.Default.GetBytes("{\"foo\":\"bar\"}"));
+            var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
             var originResponse = new OriginResponse(responseStream)
                 .WithContentType("application/json")
                 .WithContentLength(8);

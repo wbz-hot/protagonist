@@ -19,6 +19,7 @@ namespace DLCS.Repository.Storage.S3
         private readonly IConfiguration configuration;
         private readonly ILogger<BucketReader> logger;
 
+        // TODO - this implementation always assumes that bucket is in the same region
         public BucketReader(IAmazonS3 s3Client, IConfiguration configuration, ILogger<BucketReader> logger)
         {
             this.s3Client = s3Client;

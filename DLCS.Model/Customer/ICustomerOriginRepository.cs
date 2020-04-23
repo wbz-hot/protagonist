@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
+using DLCS.Model.Security;
 
 namespace DLCS.Model.Customer
 {

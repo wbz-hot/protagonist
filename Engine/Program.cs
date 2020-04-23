@@ -1,4 +1,5 @@
 using System;
+using DLCS.Model.Security;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -36,6 +37,7 @@ namespace Engine
                     => loggerConfiguration
                         .ReadFrom.Configuration(hostingContext.Configuration)
                         .Enrich.FromLogContext()
+                        .Destructure.ByTransforming<BasicCredentials>(credentials => new {credentials.User})
                 )
                 .ConfigureAppConfiguration((context, builder) =>
                 {

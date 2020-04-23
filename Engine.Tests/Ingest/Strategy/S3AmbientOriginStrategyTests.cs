@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Model.Storage;
+using DLCS.Test.Helpers;
 using Engine.Ingest.Strategy;
 using FakeItEasy;
 using FluentAssertions;
@@ -37,7 +38,7 @@ namespace Engine.Tests.Ingest.Strategy
             const string contentType = "application/json";
             const long contentLength = 4324;
             var response = new ObjectFromBucket(new ObjectInBucket("bucket"),
-                new MemoryStream(Encoding.UTF8.GetBytes("this is a test")),
+                "this is a test".ToMemoryStream(),
                 new ObjectInBucketHeaders
                 {
                     ContentType = contentType,
@@ -92,7 +93,7 @@ namespace Engine.Tests.Ingest.Strategy
         {
             // Arrange
             var response = new ObjectFromBucket(new ObjectInBucket("bucket"),
-                new MemoryStream(Encoding.UTF8.GetBytes("this is a test")),
+                "this is a test".ToMemoryStream(),
                 new ObjectInBucketHeaders()
             );
             

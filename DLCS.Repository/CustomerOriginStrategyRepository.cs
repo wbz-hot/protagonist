@@ -8,6 +8,7 @@ using Dapper;
 using DLCS.Core.Guard;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Model.Security;
 using DLCS.Repository.Entities;
 using LazyCache;
 using Microsoft.Extensions.Configuration;
