@@ -82,7 +82,7 @@ namespace Engine.Infrastructure
 
             // image-processor gets httpClient for calling appetiser/tizer
             services
-                .AddHttpClient<ImageProcessor>(client =>
+                .AddHttpClient<IImageProcessor, ImageProcessor>(client =>
                     {
                         client.BaseAddress = engineSettings.ImageIngest.ImageProcessorUrl;
                         client.Timeout = TimeSpan.FromMilliseconds(engineSettings.ImageIngest.ImageProcessorTimeoutMs);

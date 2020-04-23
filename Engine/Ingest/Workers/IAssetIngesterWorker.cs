@@ -13,7 +13,7 @@ namespace Engine.Ingest.Workers
         /// Ingest provided asset
         /// </summary>
         Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
-            CancellationToken cancellationToken);
+            CancellationToken cancellationToken = default);
     }
 
     public interface IAssetIngesterCompleted

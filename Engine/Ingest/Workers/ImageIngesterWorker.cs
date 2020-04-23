@@ -15,22 +15,22 @@ namespace Engine.Ingest.Workers
     public class ImageIngesterWorker : IAssetIngesterWorker
     {
         private readonly IAssetFetcher assetFetcher;
-        private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
+        private readonly EngineSettings engineSettings;
         private readonly IAssetRepository assetRepository;
-        private readonly ImageProcessor imageProcessor;
+        private readonly IImageProcessor imageProcessor;
         private readonly IAssetPolicyRepository assetPolicyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
 
         public ImageIngesterWorker(
-            ImageProcessor imageProcessor,
+            IImageProcessor imageProcessor,
             IAssetFetcher assetFetcher,
             IAssetPolicyRepository assetPolicyRepository,
-            IOptionsMonitor<EngineSettings> engineOptionsMonitor,
+            IOptionsMonitor<EngineSettings> engineOptions,
             IAssetRepository assetRepository,
             ILogger<ImageIngesterWorker> logger)
         {
             this.assetFetcher = assetFetcher;
-            this.engineOptionsMonitor = engineOptionsMonitor;
+            engineSettings = engineOptions.CurrentValue;
             this.assetRepository = assetRepository;
             this.imageProcessor = imageProcessor;
             this.assetPolicyRepository = assetPolicyRepository;
@@ -38,11 +38,10 @@ namespace Engine.Ingest.Workers
         }
         
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                var engineSettings = engineOptionsMonitor.CurrentValue;
                 var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
                     engineSettings.ProcessingFolder,
                     cancellationToken);
@@ -60,22 +59,8 @@ namespace Engine.Ingest.Workers
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Error ingesting image {assetId}", ingestAssetRequest.Asset.Id);
                 return IngestResult.Failed;
-            }
-        }
-
-        private async Task<bool> MarkIngestAsComplete(IngestionContext context)
-        {
-            try
-            {
-                var success =
-                    await assetRepository.UpdateIngestedAsset(context.Asset, context.ImageLocation, context.ImageStorage);
-                return success;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error updating image {asset}", context.Asset.Id);
-                return false;
             }
         }
 
@@ -85,7 +70,7 @@ namespace Engine.Ingest.Workers
             var setAssetPolicies = assetPolicyRepository.HydratePolicies(ingestionContext.Asset, AssetPolicies.All);
 
             // Put file in correct place for processing 
-            var sourceDir = CopyAssetFromProcessingToTemplatedFolder(ingestionContext, engineOptionsMonitor.CurrentValue);
+            var sourceDir = CopyAssetFromProcessingToTemplatedFolder(ingestionContext, engineSettings);
 
             await setAssetPolicies;
 
@@ -177,6 +162,21 @@ namespace Engine.Ingest.Workers
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error cleaning up working assets. {rootPath}, {locationOnDisk}", rootPath, locationOnDisk);
+            }
+        }
+
+        private async Task<bool> MarkIngestAsComplete(IngestionContext context)
+        {
+            try
+            {
+                var success =
+                    await assetRepository.UpdateIngestedAsset(context.Asset, context.ImageLocation, context.ImageStorage);
+                return success;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error updating image {asset}", context.Asset.Id);
+                return false;
             }
         }
     }

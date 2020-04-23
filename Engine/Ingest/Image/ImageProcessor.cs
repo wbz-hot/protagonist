@@ -20,7 +20,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace Engine.Ingest.Image
 {
-    public class ImageProcessor
+    public class ImageProcessor : IImageProcessor
     {
         private readonly HttpClient httpClient;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;

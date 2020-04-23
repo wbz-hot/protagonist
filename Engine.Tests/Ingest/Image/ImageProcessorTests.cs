@@ -11,6 +11,7 @@ using DLCS.Model.Customer;
 using DLCS.Model.Storage;
 using DLCS.Repository.Assets;
 using DLCS.Repository.Settings;
+using DLCS.Test.Helpers.Settings;
 using DLCS.Test.Helpers.Storage;
 using DLCS.Test.Helpers.Web;
 using Engine.Ingest;
@@ -54,8 +55,8 @@ namespace Engine.Tests.Ingest.Image
                 }
             };
             thumbLayoutManager = A.Fake<IThumbLayoutManager>();
-            var optionsMonitor = A.Fake<IOptionsMonitor<EngineSettings>>();
-            A.CallTo(() => optionsMonitor.CurrentValue).Returns(engineSettings);
+
+            var optionsMonitor = OptionsHelpers.GetOptionsMonitor(engineSettings);
             
             var httpClient = new HttpClient(httpHandler);
             httpClient.BaseAddress = new Uri("http://image-processor/");
