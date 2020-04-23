@@ -21,6 +21,7 @@ namespace Engine.Ingest.Strategy
         public Task<OriginResponse?> LoadAssetFromOrigin(Asset asset, CustomerOriginStrategy customerOriginStrategy,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             customerOriginStrategy.ThrowIfNull(nameof(customerOriginStrategy));
             asset.ThrowIfNull(nameof(asset));
                 

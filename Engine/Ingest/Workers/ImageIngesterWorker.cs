@@ -40,22 +40,28 @@ namespace Engine.Ingest.Workers
         public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
             CancellationToken cancellationToken)
         {
-            // TODO - error handling
-            var engineSettings = engineOptionsMonitor.CurrentValue;
-            var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
-                engineSettings.ProcessingFolder,
-                cancellationToken);
-            
-            // TODO - CheckStoragePolicy. Checks if there is enough space to store this 
+            try
+            {
+                var engineSettings = engineOptionsMonitor.CurrentValue;
+                var fetchedAsset = await assetFetcher.CopyAssetFromOrigin(ingestAssetRequest.Asset,
+                    engineSettings.ProcessingFolder,
+                    cancellationToken);
 
-            var context = new IngestionContext(ingestAssetRequest.Asset, fetchedAsset);
-            var ingestSuccess = await DoIngest(context);
+                // TODO - CheckStoragePolicy. Checks if there is enough space to store this 
 
-            var markIngestAsComplete = await MarkIngestAsComplete(context);
-            
-            // TODO - handle calling Orchestrator if customer specific value (or override) set.
+                var context = new IngestionContext(ingestAssetRequest.Asset, fetchedAsset);
+                var ingestSuccess = await DoIngest(context);
 
-            return ingestSuccess && markIngestAsComplete ? IngestResult.Success : IngestResult.Failed;
+                var markIngestAsComplete = await MarkIngestAsComplete(context);
+
+                // TODO - handle calling Orchestrator if customer specific value (or override) set.
+
+                return ingestSuccess && markIngestAsComplete ? IngestResult.Success : IngestResult.Failed;
+            }
+            catch (Exception ex)
+            {
+                return IngestResult.Failed;
+            }
         }
 
         private async Task<bool> MarkIngestAsComplete(IngestionContext context)

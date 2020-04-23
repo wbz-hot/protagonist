@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
@@ -21,10 +20,23 @@ namespace Engine.Tests.Ingest.Strategy
         }
         
         [Fact]
+        public void LoadAssetFromOrigin_Throws_IfTokenCancelled()
+        {
+            // Act
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+            Func<Task> action = () => sut.LoadAssetFromOrigin(new Asset(), new CustomerOriginStrategy(), cts.Token);
+            
+            // Assert
+            action.Should()
+                .Throw<OperationCanceledException>();
+        }
+        
+        [Fact]
         public void LoadAssetFromOrigin_Throws_IfCustomerOriginStrategyNull()
         {
             // Act
-            Action action = () => sut.LoadAssetFromOrigin(new Asset(), null);
+            Func<Task> action = () => sut.LoadAssetFromOrigin(new Asset(), null);
             
             // Assert
             action.Should()
@@ -42,7 +54,7 @@ namespace Engine.Tests.Ingest.Strategy
             var customerOriginStrategy = new CustomerOriginStrategy {Strategy = strategy};
             
             // Act
-            Action action = () => sut.LoadAssetFromOrigin(new Asset(), customerOriginStrategy);
+            Func<Task> action = () => sut.LoadAssetFromOrigin(new Asset(), customerOriginStrategy);
             
             // Assert
             action.Should()
@@ -56,7 +68,7 @@ namespace Engine.Tests.Ingest.Strategy
             var customerOriginStrategy = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
             
             // Act
-            Action action = () => sut.LoadAssetFromOrigin(null, customerOriginStrategy);
+            Func<Task> action = () => sut.LoadAssetFromOrigin(null, customerOriginStrategy);
             
             // Assert
             action.Should()

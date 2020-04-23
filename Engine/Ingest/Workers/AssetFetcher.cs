@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Core.Guard;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using Engine.Ingest.Strategy;
@@ -12,7 +13,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Ingest.Workers
 {
-    // TODO - name this better
     public class AssetFetcher : IAssetFetcher
     {
         private readonly ICustomerOriginRepository customerOriginRepository;
@@ -30,9 +30,11 @@ namespace Engine.Ingest.Workers
         }
         
         public async Task<AssetFromOrigin> CopyAssetFromOrigin(Asset asset, string destinationFolder,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            destinationFolder += $"{Path.DirectorySeparatorChar}{asset.Customer}{Path.DirectorySeparatorChar}{asset.Space}";
+            destinationFolder.ThrowIfNullOrWhiteSpace(nameof(destinationFolder));
+            
+            destinationFolder += $"{asset.Customer}{Path.DirectorySeparatorChar}{asset.Space}";
             var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset);
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
@@ -43,28 +45,27 @@ namespace Engine.Ingest.Workers
             
             await using var originResponse = await strategy.LoadAssetFromOrigin(asset, customerOriginStrategy, cancellationToken);
             
-            if (originResponse == null)
+            if (originResponse == null || originResponse.Stream == Stream.Null)
             {
                 // TODO correct type of exception?
                 logger.LogWarning("Unable to get asset {assetId} from origin using {strategy}", asset.Id, asset.Origin,
                     strategy.Strategy);
-                throw new ApplicationException($"Unable to get asset '{asset.Id}' from origin");
+                throw new ApplicationException($"Unable to get asset '{asset.Id}' from origin '{asset.Origin}'");
             }
 
             cancellationToken.ThrowIfCancellationRequested();
             var assetFromOrigin = await CopyAssetToDisk(asset, destinationFolder, originResponse);
             assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
             return assetFromOrigin;
-
-            /* TODO:
-             - should this handle ImageLocation too?
-             - and/or ImageStorage?
-             */
         }
 
         private async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationFolder, OriginResponse originResponse)
         {
             var targetPath = Path.Combine(destinationFolder, asset.GetUniqueName());
+            if (!Directory.Exists(destinationFolder))
+            {
+                Directory.CreateDirectory(destinationFolder);
+            }
             if (File.Exists(targetPath))
             {
                 logger.LogInformation("Target file '{file}' already exists, deleting", targetPath);
