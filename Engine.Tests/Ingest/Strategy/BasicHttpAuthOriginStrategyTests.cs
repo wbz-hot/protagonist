@@ -26,10 +26,13 @@ namespace Engine.Tests.Ingest.Strategy
             credentialsRepository = A.Fake<ICredentialsRepository>();
             httpHandler = new ControllableHttpMessageHandler();
 
+            var httpClientFactory = A.Fake<IHttpClientFactory>();
             var httpClient = new HttpClient(httpHandler);
+            A.CallTo(() => httpClientFactory.CreateClient("OriginStrategy")).Returns(httpClient);
+
             customerOriginStrategy = new CustomerOriginStrategy {Strategy = OriginStrategy.BasicHttp};
 
-            sut = new BasicHttpAuthOriginStrategy(httpClient, credentialsRepository,
+            sut = new BasicHttpAuthOriginStrategy(httpClientFactory, credentialsRepository,
                 new NullLogger<BasicHttpAuthOriginStrategy>());
         }
         

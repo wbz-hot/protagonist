@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Model.Security;
+using Engine.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Ingest.Strategy
@@ -17,18 +18,18 @@ namespace Engine.Ingest.Strategy
     /// </summary>
     public class BasicHttpAuthOriginStrategy : SafetyCheckOriginStrategy
     {
-        private readonly HttpClient httpClient;
+        private readonly IHttpClientFactory httpClientFactory;
         private readonly ICredentialsRepository credentialsRepository;
         private readonly ILogger<BasicHttpAuthOriginStrategy> logger;
         
         public override OriginStrategy Strategy => OriginStrategy.BasicHttp;
 
         public BasicHttpAuthOriginStrategy(
-            HttpClient httpClient,
+            IHttpClientFactory httpClientFactory,
             ICredentialsRepository credentialsRepository,
             ILogger<BasicHttpAuthOriginStrategy> logger)
         {
-            this.httpClient = httpClient;
+            this.httpClientFactory = httpClientFactory;
             this.credentialsRepository = credentialsRepository;
             this.logger = logger;
         }
@@ -57,6 +58,8 @@ namespace Engine.Ingest.Strategy
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, assetOrigin);
             request.Headers.Authorization = await SetBasicAuthHeader(customerOriginStrategy, request);
+
+            var httpClient = httpClientFactory.CreateClient(HttpClients.OriginStrategy);
             var response = await httpClient.SendAsync(request, cancellationToken);
             return response;
         }

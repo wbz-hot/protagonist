@@ -6,6 +6,7 @@ using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Test.Helpers.Web;
 using Engine.Ingest.Strategy;
+using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -21,8 +22,11 @@ namespace Engine.Tests.Ingest.Strategy
         {
             httpHandler = new ControllableHttpMessageHandler();
 
+            var httpClientFactory = A.Fake<IHttpClientFactory>();
             var httpClient = new HttpClient(httpHandler);
-            sut = new DefaultOriginStrategy(httpClient, new NullLogger<DefaultOriginStrategy>());
+            A.CallTo(() => httpClientFactory.CreateClient("OriginStrategy")).Returns(httpClient);
+            
+            sut = new DefaultOriginStrategy(httpClientFactory, new NullLogger<DefaultOriginStrategy>());
         }
 
         [Fact]

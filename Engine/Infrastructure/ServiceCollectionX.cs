@@ -79,6 +79,8 @@ namespace Engine.Infrastructure
                 })
                 .AddTransient<IAssetFetcher, AssetFetcher>()
                 .AddTransient<IOriginStrategy, S3AmbientOriginStrategy>()
+                .AddSingleton<IOriginStrategy, DefaultOriginStrategy>()
+                .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddTransient<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>();
 
@@ -91,19 +93,13 @@ namespace Engine.Infrastructure
                     })
                 .AddHttpMessageHandler<RequestTimeLoggingHandler>();
             
-            // defaultOriginStrategy gets httpClient for fetching assets via http
+            // Add a named httpClient for fetching from origins
             services
-                .AddHttpClient<IOriginStrategy, DefaultOriginStrategy>(client => ConfigureDlcsClient(client))
-                .AddHttpMessageHandler<RequestTimeLoggingHandler>()
-                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                .AddHttpClient(HttpClients.OriginStrategy, client =>
                 {
-                    AllowAutoRedirect = true,
-                    MaxAutomaticRedirections = 8
-                });
-
-            // basicHttpAuthOriginStrategy gets httpClient for fetching assets via http
-            services
-                .AddHttpClient<IOriginStrategy, BasicHttpAuthOriginStrategy>(client => ConfigureDlcsClient(client))
+                    client.DefaultRequestHeaders.Add("Accept", "*/*");
+                    client.DefaultRequestHeaders.Add("User-Agent", "DLCS/2.0");
+                })
                 .AddHttpMessageHandler<RequestTimeLoggingHandler>()
                 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
                 {

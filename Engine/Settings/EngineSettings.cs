@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using DLCS.Repository.Settings;
 
 namespace Engine.Settings
@@ -24,6 +25,13 @@ namespace Engine.Settings
         public string S3OriginRegex { get; set; }
         
         public string S3Template { get; set; }
+        
+        /// <summary>
+        /// Whether image should immediately be orchestrated after ingestion.
+        /// </summary>
+        public string OrchestrateImageAfterIngest { get; set; }
+        
+        public Dictionary<int, CustomerOverridesSettings> CustomerOverrides { get; set; }
 
         /// <summary>
         /// Get the root folder, if forImageProcessor will ensure that it is compatible with needs of image-processor
@@ -37,6 +45,19 @@ namespace Engine.Settings
                 ? ScratchRoot
                 : ImageProcessorRoot;
         }
+    }
+
+    public class CustomerOverridesSettings
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public string CustomerName { get; set; }
+        
+        /// <summary>
+        /// Whether image should immediately be orchestrated after ingestion.
+        /// </summary>
+        public string OrchestrateImageAfterIngest { get; set; }
     }
 
     /// <summary>

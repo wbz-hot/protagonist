@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using Engine.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Ingest.Strategy
@@ -14,15 +15,15 @@ namespace Engine.Ingest.Strategy
     /// </summary>
     public class DefaultOriginStrategy : SafetyCheckOriginStrategy
     {
-        private readonly HttpClient httpClient;
+        private readonly IHttpClientFactory httpClientFactory;
         private readonly ILogger<DefaultOriginStrategy> logger;
 
-        public DefaultOriginStrategy(HttpClient httpClient, ILogger<DefaultOriginStrategy> logger)
+        public DefaultOriginStrategy(IHttpClientFactory httpClientFactory, ILogger<DefaultOriginStrategy> logger)
         {
-            this.httpClient = httpClient;
+            this.httpClientFactory = httpClientFactory;
             this.logger = logger;
         }
-        
+
         public override OriginStrategy Strategy => OriginStrategy.Default;
 
         protected override async Task<OriginResponse?> LoadAssetFromOriginImpl(Asset asset,
@@ -36,6 +37,7 @@ namespace Engine.Ingest.Strategy
 
             try
             {
+                var httpClient = httpClientFactory.CreateClient(HttpClients.OriginStrategy);
                 var response = await httpClient.GetAsync(assetOrigin, cancellationToken);
                 var originResponse = await CreateOriginResponse(response);
                 return originResponse;
