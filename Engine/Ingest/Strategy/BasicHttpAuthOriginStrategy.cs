@@ -65,8 +65,15 @@ namespace Engine.Ingest.Strategy
         {
             var basicCredentials =
                 await credentialsRepository.GetBasicCredentialsForOriginStrategy(customerOriginStrategy);
+
+            if (basicCredentials == null)
+            {
+                throw new ApplicationException(
+                    $"Could not find credentials for customerOriginStrategy {customerOriginStrategy.Id}");
+            }
+            
             var creds = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{basicCredentials.User}:{basicCredentials.Password}"));
-            return AuthenticationHeaderValue.Parse($"basic {creds}");
+            return AuthenticationHeaderValue.Parse($"Basic {creds}");
         }
 
         private static async Task<OriginResponse> CreateOriginResponse(HttpResponseMessage response)
