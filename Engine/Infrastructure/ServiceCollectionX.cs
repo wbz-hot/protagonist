@@ -11,6 +11,7 @@ using DLCS.Repository.Assets;
 using DLCS.Repository.Security;
 using DLCS.Web.Handlers;
 using Engine.Ingest;
+using Engine.Ingest.Completion;
 using Engine.Ingest.Image;
 using Engine.Ingest.Strategy;
 using Engine.Ingest.Workers;
@@ -82,7 +83,8 @@ namespace Engine.Infrastructure
                 .AddSingleton<IOriginStrategy, DefaultOriginStrategy>()
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddTransient<IOriginStrategy, SftpOriginStrategy>()
-                .AddTransient<RequestTimeLoggingHandler>();
+                .AddTransient<RequestTimeLoggingHandler>()
+                .AddSingleton<IIngestorCompletion, ImageIngestorCompletion>();
 
             // image-processor gets httpClient for calling appetiser/tizer
             services
@@ -107,14 +109,15 @@ namespace Engine.Infrastructure
                     MaxAutomaticRedirections = 8
                 });
 
-            return services;
-        }
+            services
+                .AddHttpClient<OrchestratorClient>(client =>
+                {
+                    client.BaseAddress = engineSettings.OrchestratorBaseUrl;
+                    client.Timeout = TimeSpan.FromMilliseconds(engineSettings.OrchestratorTimeoutMs);
+                })
+                .AddHttpMessageHandler<RequestTimeLoggingHandler>();
 
-        private static HttpClient ConfigureDlcsClient(HttpClient client)
-        {
-            client.DefaultRequestHeaders.Add("Accept", "*/*");
-            client.DefaultRequestHeaders.Add("User-Agent", "DLCS/2.0");
-            return client;
+            return services;
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Test.Helpers.Settings;
 using Engine.Ingest;
+using Engine.Ingest.Completion;
 using Engine.Ingest.Image;
 using Engine.Ingest.Models;
 using Engine.Ingest.Workers;
@@ -23,7 +24,7 @@ namespace Engine.Tests.Ingest.Workers
     {
         private readonly IAssetFetcher assetFetcher;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
-        private readonly IAssetRepository assetRepository;
+        private readonly IIngestorCompletion ingestorCompletion;
         private readonly FakeImageProcessor imageProcessor;
         private readonly IAssetPolicyRepository assetPolicyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
@@ -47,12 +48,12 @@ namespace Engine.Tests.Ingest.Workers
             var optionsMonitor = OptionsHelpers.GetOptionsMonitor(engineSettings);
 
             assetFetcher = A.Fake<IAssetFetcher>();
-            assetRepository = A.Fake<IAssetRepository>();
+            ingestorCompletion = A.Fake<IIngestorCompletion>();
             imageProcessor = new FakeImageProcessor();
             assetPolicyRepository = A.Fake<IAssetPolicyRepository>();
             
             sut = new ImageIngesterWorker(imageProcessor, assetFetcher, assetPolicyRepository,optionsMonitor,
-                assetRepository, new NullLogger<ImageIngesterWorker>());
+                ingestorCompletion, new NullLogger<ImageIngesterWorker>());
         }
 
         [Fact]
@@ -100,10 +101,10 @@ namespace Engine.Tests.Ingest.Workers
         [Theory]
         [InlineData(true)]
         [InlineData(false)]        
-        public async Task Ingest_MarksAssetAsComplete_RegardlessOfImageProcessResult(bool imageProcessSuccess)
+        public async Task Ingest_CompletesIngestion_RegardlessOfImageProcessResult(bool imageProcessSuccess)
         {
             // Arrange
-            var target = $".{Path.PathSeparator}{nameof(Ingest_MarksAssetAsComplete_RegardlessOfImageProcessResult)}";
+            var target = $".{Path.PathSeparator}{nameof(Ingest_CompletesIngestion_RegardlessOfImageProcessResult)}";
 
             try
             {
@@ -118,7 +119,7 @@ namespace Engine.Tests.Ingest.Workers
                 await sut.Ingest(new IngestAssetRequest(asset, new DateTime()));
                 
                 // Assert
-                A.CallTo(() => assetRepository.UpdateIngestedAsset(A<Asset>._, A<ImageLocation>._, A<ImageStorage>._))
+                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess))
                     .MustHaveHappened();
                 imageProcessor.WasCalled.Should().BeTrue();
             }
@@ -147,7 +148,7 @@ namespace Engine.Tests.Ingest.Workers
                 A.CallTo(() => assetFetcher.CopyAssetFromOrigin(A<Asset>._, A<string>._, A<CancellationToken>._))
                     .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
 
-                A.CallTo(() => assetRepository.UpdateIngestedAsset(A<Asset>._, A<ImageLocation>._, A<ImageStorage>._))
+                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess))
                     .Returns(completeResult);
 
                 imageProcessor.ReturnValue = imageProcessSuccess;

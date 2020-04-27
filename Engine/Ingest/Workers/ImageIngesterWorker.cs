@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Core;
 using DLCS.Model.Assets;
+using Engine.Ingest.Completion;
 using Engine.Ingest.Image;
 using Engine.Ingest.Models;
 using Engine.Settings;
@@ -16,9 +17,9 @@ namespace Engine.Ingest.Workers
     {
         private readonly IAssetFetcher assetFetcher;
         private readonly EngineSettings engineSettings;
-        private readonly IAssetRepository assetRepository;
         private readonly IImageProcessor imageProcessor;
         private readonly IAssetPolicyRepository assetPolicyRepository;
+        private readonly IIngestorCompletion imageCompletion;
         private readonly ILogger<ImageIngesterWorker> logger;
 
         public ImageIngesterWorker(
@@ -26,14 +27,14 @@ namespace Engine.Ingest.Workers
             IAssetFetcher assetFetcher,
             IAssetPolicyRepository assetPolicyRepository,
             IOptionsMonitor<EngineSettings> engineOptions,
-            IAssetRepository assetRepository,
+            IIngestorCompletion imageCompletion,
             ILogger<ImageIngesterWorker> logger)
         {
             this.assetFetcher = assetFetcher;
             engineSettings = engineOptions.CurrentValue;
-            this.assetRepository = assetRepository;
             this.imageProcessor = imageProcessor;
             this.assetPolicyRepository = assetPolicyRepository;
+            this.imageCompletion = imageCompletion;
             this.logger = logger;
         }
         
@@ -51,11 +52,9 @@ namespace Engine.Ingest.Workers
                 var context = new IngestionContext(ingestAssetRequest.Asset, fetchedAsset);
                 var ingestSuccess = await DoIngest(context);
 
-                var markIngestAsComplete = await MarkIngestAsComplete(context);
+                var completionSuccess = await imageCompletion.CompleteIngestion(context, ingestSuccess);
 
-                // TODO - handle calling Orchestrator if customer specific value (or override) set.
-
-                return ingestSuccess && markIngestAsComplete ? IngestResult.Success : IngestResult.Failed;
+                return ingestSuccess && completionSuccess ? IngestResult.Success : IngestResult.Failed;
             }
             catch (Exception ex)
             {
@@ -70,7 +69,7 @@ namespace Engine.Ingest.Workers
             var setAssetPolicies = assetPolicyRepository.HydratePolicies(ingestionContext.Asset, AssetPolicies.All);
 
             // Put file in correct place for processing 
-            var sourceDir = CopyAssetFromProcessingToTemplatedFolder(ingestionContext, engineSettings);
+            var sourceDir = CopyAssetFromProcessingToTemplatedFolder(ingestionContext);
 
             await setAssetPolicies;
 
@@ -83,7 +82,7 @@ namespace Engine.Ingest.Workers
             return processSuccess;
         }
 
-        private string CopyAssetFromProcessingToTemplatedFolder(IngestionContext context, EngineSettings engineSettings)
+        private string CopyAssetFromProcessingToTemplatedFolder(IngestionContext context)
         {
             var assetOnDisk = context.AssetFromOrigin.LocationOnDisk;
             var targetPath = string.Empty;
@@ -162,21 +161,6 @@ namespace Engine.Ingest.Workers
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error cleaning up working assets. {rootPath}, {locationOnDisk}", rootPath, locationOnDisk);
-            }
-        }
-
-        private async Task<bool> MarkIngestAsComplete(IngestionContext context)
-        {
-            try
-            {
-                var success =
-                    await assetRepository.UpdateIngestedAsset(context.Asset, context.ImageLocation, context.ImageStorage);
-                return success;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error updating image {asset}", context.Asset.Id);
-                return false;
             }
         }
     }

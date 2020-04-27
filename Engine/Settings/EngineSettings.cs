@@ -29,9 +29,20 @@ namespace Engine.Settings
         /// <summary>
         /// Whether image should immediately be orchestrated after ingestion.
         /// </summary>
-        public string OrchestrateImageAfterIngest { get; set; }
+        public bool OrchestrateImageAfterIngest { get; set; }
         
-        public Dictionary<int, CustomerOverridesSettings> CustomerOverrides { get; set; }
+        /// <summary>
+        /// A collection of customer-specific overrides, keyed by customerId.
+        /// </summary> 
+        public Dictionary<string, CustomerOverridesSettings> CustomerOverrides { get; set; } =
+            new Dictionary<string, CustomerOverridesSettings>();
+        
+        /// <summary>
+        /// Base url for calling orchestrator.
+        /// </summary>
+        public Uri OrchestratorBaseUrl { get; set; }
+        
+        public int OrchestratorTimeoutMs { get; set; } = 5000;
 
         /// <summary>
         /// Get the root folder, if forImageProcessor will ensure that it is compatible with needs of image-processor
@@ -45,35 +56,15 @@ namespace Engine.Settings
                 ? ScratchRoot
                 : ImageProcessorRoot;
         }
-    }
 
-    public class CustomerOverridesSettings
-    {
         /// <summary>
-        /// 
+        /// Get CustomerSpecificSettings, if found. 
         /// </summary>
-        public string CustomerName { get; set; }
-        
-        /// <summary>
-        /// Whether image should immediately be orchestrated after ingestion.
-        /// </summary>
-        public string OrchestrateImageAfterIngest { get; set; }
-    }
-
-    /// <summary>
-    /// Settings directly related to image ingestion
-    /// </summary>
-    /// <remarks>These will be Tizer/Appetiser settings.</remarks>
-    public class ImageIngestSettings
-    {
-        public string SourceTemplate { get; set; }
-        
-        public string DestinationTemplate { get; set; }
-        
-        public string ThumbsTemplate { get; set; }
-        
-        public Uri ImageProcessorUrl { get; set; }
-
-        public int ImageProcessorTimeoutMs { get; set; } = 300000;
+        /// <param name="customerId">CustomerId to get settings for.</param>
+        /// <returns>Customer specific overrides, or default if not found.</returns>
+        public CustomerOverridesSettings GetCustomerSettings(int customerId)
+            => CustomerOverrides.TryGetValue(customerId.ToString(), out var settings)
+                ? settings
+                : CustomerOverridesSettings.Empty;
     }
 }
