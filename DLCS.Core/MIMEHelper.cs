@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DLCS.Core.Collections;
 
 namespace DLCS.Core
 {
@@ -9,30 +10,32 @@ namespace DLCS.Core
     /// <remarks>This has been copied over from previous solution.</remarks>
     public class MIMEHelper
     {
-        private static readonly Dictionary<string, string> ContentTypeToExtension =
-            new Dictionary<string, string>
+        // Forward = contentType:extension
+        // Reverse = extension:contentType
+        private static readonly ReadOnlyMap<string, string> ContentTypeExtensionMap =
+            new ReadOnlyMap<string, string>(new Dictionary<string, string>
             {
                 {"application/pdf", "pdf"},
-                {"audio/wav", "wav" },
-                {"audio/mp3", "mp3" },
-                {"audio/x-mpeg-3", "mp3" },
-                {"video/mpeg", "mpg" },
-                {"video/mp2", "mp2" },
-                {"video/mp4", "mp4" },
+                {"audio/wav", "wav"},
+                {"audio/mp3", "mp3"},
+                {"audio/x-mpeg-3", "mp3"},
+                {"video/mpeg", "mpg"},
+                {"video/mp2", "mp2"},
+                {"video/mp4", "mp4"},
                 {"image/bmp", "bmp"},
                 {"image/cgm", "cgm"},
                 {"image/gif", "gif"},
                 {"image/ief", "ief"},
                 {"image/jp2", "jp2"},
+                {"image/jpx", "jp2"},
                 {"image/jpeg", "jpg"},
-                {"image/jpg", "jpg"},  // common typo that is probably worth supporting even though it's invalid
-                {"image/jpx", "jp2" },
+                {"image/jpg", "jpg"}, // common typo that is probably worth supporting even though it's invalid
                 {"image/pict", "pic"},
                 {"image/png", "png"},
                 {"image/svg+xml", "svg"},
                 {"image/tiff", "tiff"},
-                {"image/tif", "tiff" }  // common typo that is probably worth supporting even though it's invalid
-            };
+                {"image/tif", "tiff"} // common typo that is probably worth supporting even though it's invalid
+            }, true);
         
         /// <summary>
         /// Get file extension for known MIME types.
@@ -48,8 +51,28 @@ namespace DLCS.Core
                 contentType = contentType.SplitSeparatedString(";").FirstOrDefault();
             }
 
-            return ContentTypeToExtension.TryGetValue(contentType, out var extension)
+            return ContentTypeExtensionMap.Forward.TryGetValue(contentType.ToLower(), out var extension)
                 ? extension
+                : null;
+        }
+        
+        /// <summary>
+        /// Get MIME types for file extension.
+        /// </summary>
+        /// <param name="extension">Extension to get content-type for.</param>
+        /// <returns>ContentType, if known.</returns>
+        public static string? GetContentTypeForExtension(string extension)
+        {
+            if (string.IsNullOrWhiteSpace(extension)) return null;
+
+            var extensionCandidate = extension.ToLower();
+            if (extensionCandidate.StartsWith("."))
+            {
+                extensionCandidate = extensionCandidate.Replace(".", string.Empty);
+            }
+
+            return ContentTypeExtensionMap.Reverse.TryGetValue(extensionCandidate, out var contentType)
+                ? contentType
                 : null;
         }
     }

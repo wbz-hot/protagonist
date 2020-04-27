@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
+using DLCS.Core.Collections;
 using DLCS.Model.Customer;
 using DLCS.Model.PathElements;
-using DLCS.Repository.Collections;
 using LazyCache;
 using Microsoft.Extensions.Logging;
 

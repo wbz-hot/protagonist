@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using DLCS.Repository.Collections;
+using DLCS.Core.Collections;
 using FluentAssertions;
 using Xunit;
 
-namespace DLCS.Repository.Tests.Collections
+namespace DLCS.Core.Tests.Collections
 {
-    public class MapTests
+    public class ReadOnlyMapTests
     {
         [Fact]
         public void Ctor_WithDictionary_SetsBothDirections()
@@ -23,7 +23,7 @@ namespace DLCS.Repository.Tests.Collections
         }
 
         [Fact]
-        public void Ctor_Throws_IfNonUniqueValues()
+        public void Ctor_Throws_IfNonUniqueValues_AndIgnoreDuplicateValuesFalse()
         {
             // Arrange
             var dictionary = new Dictionary<string, int> {["One"] = 1, ["AlsoOne"] = 1};
@@ -32,6 +32,19 @@ namespace DLCS.Repository.Tests.Collections
             Func<ReadOnlyMap<string, int>> call = () => new ReadOnlyMap<string, int>(dictionary);
             call.Should().Throw<ArgumentException>()
                 .WithMessage("An item with the same key has already been added. Key: 1");
+        }
+        
+        [Fact]
+        public void Ctor_HandlesNonUniqueValues_IfIgnoreDuplicateValuesTrue()
+        {
+            // Arrange
+            var dictionary = new Dictionary<string, int> {["One"] = 1, ["AlsoOne"] = 1};
+            
+            // Act
+            var map = new ReadOnlyMap<string, int>(dictionary, true);
+            
+            // Assert
+            map.Reverse[1].Should().Be("One");
         }
 
         [Fact]

@@ -2,8 +2,6 @@
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
@@ -12,11 +10,8 @@ using DLCS.Repository.Assets;
 using DLCS.Repository.Storage;
 using DLCS.Web.Requests;
 using Engine.Settings;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace Engine.Ingest.Image
 {

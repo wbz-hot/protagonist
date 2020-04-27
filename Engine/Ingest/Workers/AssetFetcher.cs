@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Core;
 using DLCS.Core.Guard;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
@@ -99,6 +100,8 @@ namespace Engine.Ingest.Workers
                     asset.Customer, asset.Space, asset.GetUniqueName(), received, sw.ElapsedMilliseconds,
                     knownFileSize ? "framework-copy" : "manual-copy");
 
+                TrySetContentTypeForBinary(originResponse, targetPath);
+
                 return new AssetFromOrigin(asset.Id, received, targetPath, originResponse.ContentType);
             }
             catch (Exception ex)
@@ -125,5 +128,22 @@ namespace Engine.Ingest.Workers
             assetStream.Close();
             return received;
         }
+
+        private void TrySetContentTypeForBinary(OriginResponse originResponse, string targetPath)
+        {
+            var contentType = originResponse.ContentType;
+            if (IsBinaryContent(contentType) || string.IsNullOrWhiteSpace(contentType))
+            {
+                var extension = targetPath.Substring(targetPath.LastIndexOf(".", StringComparison.Ordinal));
+
+                var guess = MIMEHelper.GetContentTypeForExtension(extension);
+                logger.LogInformation("Guessed content type as {contentType} for '{targetPath}'", guess, targetPath);
+                originResponse.WithContentType(guess);
+            }
+        }
+
+        private bool IsBinaryContent(string contentType) =>
+            contentType == "application/octet-stream" ||
+            contentType == "binary/octet-stream";
     }
 }

@@ -163,5 +163,36 @@ namespace Engine.Tests.Ingest.Workers
             response.AssetId.Should().Be(asset.Id);
             response.CustomerOriginStrategy.Should().Be(cos);
         }
+        
+        [Theory]
+        [InlineData("")]
+        [InlineData("application/octet-stream")]
+        [InlineData("binary/octet-stream")]
+        [Trait("Requires", "FileAccess")]
+        public async Task CopyAssetFromOrigin_SetsContentType_IfUnknownOrBinary(string contentType)
+        {
+            // Arrange
+            var c = Path.DirectorySeparatorChar;
+            var destination = $".{c}";
+            var asset = new Asset {Id = "/2/1/godzilla.jp2", Customer = 2, Space = 1};
+            var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
+            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
+            
+            var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
+            var originResponse = new OriginResponse(responseStream)
+                .WithContentType(contentType)
+                .WithContentLength(8);
+            A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
+                .Returns(originResponse);
+            
+            var expectedOutput = $"{destination}2{c}1{c}godzilla.jp2";
+            
+            // Act
+            var response = await sut.CopyAssetFromOrigin(asset, destination);
+            
+            // Assert
+            File.Delete(expectedOutput);
+            response.ContentType.Should().Be("image/jp2");
+        }
     }
 }
