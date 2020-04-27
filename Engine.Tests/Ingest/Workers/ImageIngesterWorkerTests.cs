@@ -60,7 +60,7 @@ namespace Engine.Tests.Ingest.Workers
         public async Task Ingest_ReturnsFailed_IfFetcherFailed()
         {
             // Arrange
-            A.CallTo(() => assetFetcher.CopyAssetFromOrigin(A<Asset>._, A<string>._, A<CancellationToken>._))
+            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<CancellationToken>._))
                 .ThrowsAsync(new ArgumentNullException());
             
             // Act
@@ -70,34 +70,6 @@ namespace Engine.Tests.Ingest.Workers
             result.Should().Be(IngestResult.Failed);
         }
 
-        [Fact]
-        public async Task Ingest_CallsImageProcessor_WithFileInCorrectLocation()
-        {
-            // Arrange
-            var target = $".{Path.PathSeparator}{nameof(Ingest_CallsImageProcessor_WithFileInCorrectLocation)}";
-
-            try
-            {
-                var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
-                File.WriteAllText(target, "{\"foo\":\"bar\"}");
-
-                A.CallTo(() => assetFetcher.CopyAssetFromOrigin(A<Asset>._, A<string>._, A<CancellationToken>._))
-                    .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
-
-                // Act
-                await sut.Ingest(new IngestAssetRequest(asset, new DateTime()));
-                
-                // Assert
-                imageProcessor.FileExists.Should().BeTrue();
-                imageProcessor.WasCalled.Should().BeTrue();
-            }
-            finally
-            {
-                // Cleanup
-                File.Delete(target);
-            }
-        }
-        
         [Theory]
         [InlineData(true)]
         [InlineData(false)]        
@@ -111,7 +83,7 @@ namespace Engine.Tests.Ingest.Workers
                 var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
-                A.CallTo(() => assetFetcher.CopyAssetFromOrigin(A<Asset>._, A<string>._, A<CancellationToken>._))
+                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<CancellationToken>._))
                     .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
                 imageProcessor.ReturnValue = imageProcessSuccess;
 
@@ -145,7 +117,7 @@ namespace Engine.Tests.Ingest.Workers
                 var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
-                A.CallTo(() => assetFetcher.CopyAssetFromOrigin(A<Asset>._, A<string>._, A<CancellationToken>._))
+                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<CancellationToken>._))
                     .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
 
                 A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess))
@@ -168,18 +140,18 @@ namespace Engine.Tests.Ingest.Workers
 
         public class FakeImageProcessor : IImageProcessor
         {
-            public bool FileExists { get; private set; }
-            
             public bool WasCalled { get; private set; }
 
             public bool ReturnValue { get; set; }
             
+            public Action<IngestionContext> Callback { get; set; }
+            
             public Task<bool> ProcessImage(IngestionContext context)
             {
                 WasCalled = true;
-                FileExists = File.Exists(context.AssetFromOrigin.LocationOnDisk);
-                if (FileExists) File.Delete(context.AssetFromOrigin.LocationOnDisk);
                 
+                Callback?.Invoke(context);
+
                 return Task.FromResult(ReturnValue);
             }
         }

@@ -30,12 +30,11 @@ namespace Engine.Ingest.Workers
              this.originStrategies = originStrategies.ToDictionary(k => k.Strategy, v => v);
         }
         
-        public async Task<AssetFromOrigin> CopyAssetFromOrigin(Asset asset, string destinationFolder,
+        public async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate,
             CancellationToken cancellationToken = default)
         {
-            destinationFolder.ThrowIfNullOrWhiteSpace(nameof(destinationFolder));
+            destinationTemplate.ThrowIfNullOrWhiteSpace(nameof(destinationTemplate));
             
-            destinationFolder += $"{asset.Customer}{Path.DirectorySeparatorChar}{asset.Space}";
             var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset, true);
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
@@ -55,18 +54,18 @@ namespace Engine.Ingest.Workers
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var assetFromOrigin = await CopyAssetToDisk(asset, destinationFolder, originResponse);
+            var assetFromOrigin = await CopyAssetToDisk(asset, destinationTemplate, originResponse);
             assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
             return assetFromOrigin;
         }
 
-        private async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationFolder, OriginResponse originResponse)
+        private async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate, OriginResponse originResponse)
         {
-            var targetPath = Path.Combine(destinationFolder, asset.GetUniqueName());
-            if (!Directory.Exists(destinationFolder))
-            {
-                Directory.CreateDirectory(destinationFolder);
-            }
+            TrySetContentTypeForBinary(originResponse, asset);
+            
+            var extension = GetFileExtension(originResponse);
+            var targetPath = $"{destinationTemplate}.{extension}";
+
             if (File.Exists(targetPath))
             {
                 logger.LogInformation("Target file '{file}' already exists, deleting", targetPath);
@@ -96,19 +95,32 @@ namespace Engine.Ingest.Workers
 
                 sw.Stop();
 
-                logger.LogInformation("{customer}/{space}/{image}: download done ({bytes} bytes, {elapsed}ms) using {copyType}",
-                    asset.Customer, asset.Space, asset.GetUniqueName(), received, sw.ElapsedMilliseconds,
+                logger.LogInformation(
+                    "{assetId} to '{targetPath}': download done ({bytes} bytes, {elapsed}ms) using {copyType}",
+                    asset.Id, targetPath, received, sw.ElapsedMilliseconds,
                     knownFileSize ? "framework-copy" : "manual-copy");
-
-                TrySetContentTypeForBinary(originResponse, targetPath);
 
                 return new AssetFromOrigin(asset.Id, received, targetPath, originResponse.ContentType);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error writing file to disk. destination: {destination}", destinationFolder);
+                logger.LogError(ex, "Error writing file to disk. destination: {destination}", destinationTemplate);
                 throw;
             }
+        }
+        
+        private string GetFileExtension(OriginResponse originResponse)
+        {
+            var extension = MIMEHelper.GetExtensionForContentType(originResponse.ContentType);
+
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = "file";
+                logger.LogWarning("Unable to get a file extension for {contentType}",
+                    originResponse.ContentType);
+            }
+
+            return extension;
         }
 
         private static async Task<long> CopyToFileStream(Stream assetStream, FileStream fileStream)
@@ -129,15 +141,17 @@ namespace Engine.Ingest.Workers
             return received;
         }
 
-        private void TrySetContentTypeForBinary(OriginResponse originResponse, string targetPath)
+        // TODO - this may need refined depending on whether it's 'I' or 'T' ingest
+        private void TrySetContentTypeForBinary(OriginResponse originResponse, Asset asset)
         {
             var contentType = originResponse.ContentType;
             if (IsBinaryContent(contentType) || string.IsNullOrWhiteSpace(contentType))
             {
-                var extension = targetPath.Substring(targetPath.LastIndexOf(".", StringComparison.Ordinal));
+                var uniqueName = asset.GetUniqueName();
+                var extension = uniqueName.Substring(uniqueName.LastIndexOf(".", StringComparison.Ordinal));
 
                 var guess = MIMEHelper.GetContentTypeForExtension(extension);
-                logger.LogInformation("Guessed content type as {contentType} for '{targetPath}'", guess, targetPath);
+                logger.LogInformation("Guessed content type as {contentType} for '{assetName}'", guess, uniqueName);
                 originResponse.WithContentType(guess);
             }
         }
