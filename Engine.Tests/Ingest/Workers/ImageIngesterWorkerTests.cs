@@ -32,7 +32,7 @@ namespace Engine.Tests.Ingest.Workers
 
         public ImageIngesterWorkerTests()
         {
-            var c = Path.PathSeparator;
+            var c = Path.DirectorySeparatorChar;
             var engineSettings = new EngineSettings
             {
                 ProcessingFolder = $".{c}here{c}",

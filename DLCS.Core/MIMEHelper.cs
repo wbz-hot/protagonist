@@ -51,7 +51,7 @@ namespace DLCS.Core
                 contentType = contentType.SplitSeparatedString(";").FirstOrDefault();
             }
 
-            return ContentTypeExtensionMap.Forward.TryGetValue(contentType.ToLower(), out var extension)
+            return ContentTypeExtensionMap.Forward.TryGetValue(contentType?.ToLower(), out var extension)
                 ? extension
                 : null;
         }

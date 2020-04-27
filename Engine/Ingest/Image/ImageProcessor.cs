@@ -9,6 +9,7 @@ using DLCS.Model.Storage;
 using DLCS.Repository.Assets;
 using DLCS.Repository.Storage;
 using DLCS.Web.Requests;
+using Engine.Ingest.Workers;
 using Engine.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,13 +19,13 @@ namespace Engine.Ingest.Image
     public class ImageProcessor : IImageProcessor
     {
         private readonly HttpClient httpClient;
-        private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
+        private readonly EngineSettings engineSettings;
         private readonly ILogger<ImageProcessor> logger;
         private readonly IBucketReader bucketReader;
         private readonly IThumbLayoutManager thumbLayoutManager;
 
         public ImageProcessor(
-            HttpClient httpClient, 
+            HttpClient httpClient,
             IBucketReader bucketReader,
             IThumbLayoutManager thumbLayoutManager,
             IOptionsMonitor<EngineSettings> engineOptionsMonitor,
@@ -33,7 +34,7 @@ namespace Engine.Ingest.Image
             this.httpClient = httpClient;
             this.bucketReader = bucketReader;
             this.thumbLayoutManager = thumbLayoutManager;
-            this.engineOptionsMonitor = engineOptionsMonitor;
+            this.engineSettings = engineOptionsMonitor.CurrentValue;
             this.logger = logger;
         }
 
@@ -55,13 +56,13 @@ namespace Engine.Ingest.Image
                 return false;
             }
         }
-        
+
         private async Task<ImageProcessorResponseModel> CallImageProcessor(IngestionContext context)
         {
             // call tizer/appetiser
-            var requestModel = CreateModel(context, engineOptionsMonitor.CurrentValue);
-            
-            using var request = new HttpRequestMessage(HttpMethod.Post, (Uri)null);
+            var requestModel = CreateModel(context);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, (Uri) null);
             request.SetJsonContent(requestModel);
 
             using var response = await httpClient.SendAsync(request);
@@ -71,8 +72,8 @@ namespace Engine.Ingest.Image
             var responseModel = await response.Content.ReadAsAsync<ImageProcessorResponseModel>();
             return responseModel;
         }
-        
-        private ImageProcessorRequestModel CreateModel(IngestionContext context, EngineSettings engineSettings)
+
+        private ImageProcessorRequestModel CreateModel(IngestionContext context)
         {
             var asset = context.Asset;
             var imageOptimisationPolicy = asset.FullImageOptimisationPolicy;
@@ -82,27 +83,35 @@ namespace Engine.Ingest.Image
                     "ImageOptimisationPolicy {policyId} has {techDetailsCount} technicalDetails but we can only provide 1",
                     imageOptimisationPolicy.Id, imageOptimisationPolicy.TechnicalDetails.Count);
             }
-
-            // this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
-            var root = engineSettings.GetRoot(true);
-
-            var destFolder =
-                TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.DestinationTemplate, root, asset);
+            
             var requestModel = new ImageProcessorRequestModel
             {
-                Destination = $"{destFolder}/{asset.GetUniqueName()}.jp2",
-                Operation = "ingest", // TODO - this may be derivatives-only
+                Destination = GetJP2File(asset, true),
+                Operation = GetOperation(context.AssetFromOrigin),
                 Optimisation = imageOptimisationPolicy.TechnicalDetails.FirstOrDefault(),
                 Origin = asset.Origin,
                 Source = context.AssetFromOrigin.RelativeLocationOnDisk,
                 ImageId = asset.GetUniqueName(),
                 JobId = Guid.NewGuid().ToString(),
                 ThumbDir = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.ThumbsTemplate,
-                    root, asset),
+                    engineSettings.GetRoot(true), asset),
                 ThumbSizes = asset.FullThumbnailPolicy.Sizes
             };
 
             return requestModel;
+        }
+
+        private string GetJP2File(Asset asset, bool forImageProcessor)
+        {
+            // Appetiser/Tizer want unix paths relative to mount share.
+            // This logic allows handling when running locally on win/unix and when deployed to unix
+            var destFolder = forImageProcessor
+                ? TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.DestinationTemplate,
+                    engineSettings.GetRoot(true), asset)
+                : TemplatedFolders.GenerateTemplate(engineSettings.ImageIngest.DestinationTemplate,
+                    engineSettings.GetRoot(), asset);
+
+            return $"{destFolder}{asset.GetUniqueName()}.jp2";
         }
 
         private async Task<(ImageLocation imageLocation, ImageStorage imageStorage)> ProcessResponse(
@@ -116,10 +125,7 @@ namespace Engine.Ingest.Image
 
             var imageStorage = GetImageStorage(context, responseModel);
 
-           return (imageLocation, imageStorage);
-            /* TODO
-               - Update Batch - IncrementCompleted and IncrementErrors. Probably at a level higher up than this.
-             */
+            return (imageLocation, imageStorage);
         }
 
         private void UpdateImageSize(Asset asset, ImageProcessorResponseModel responseModel)
@@ -130,17 +136,11 @@ namespace Engine.Ingest.Image
 
         private async Task<ImageLocation> ProcessOriginImage(IngestionContext context)
         {
-            var engineSettings = engineOptionsMonitor.CurrentValue;
-            
-            var jp2Object = new ObjectInBucket(
-                engineSettings.Thumbs.StorageBucket,
-                context.Asset.GetStorageKey());
-
             var asset = context.Asset;
             var imageLocation = new ImageLocation {Id = asset.Id};
 
             var originStrategy = context.AssetFromOrigin.CustomerOriginStrategy;
-            
+
             if (originStrategy.Optimised && originStrategy.Strategy == OriginStrategy.S3Ambient)
             {
                 // Optimised strategy - we don't want to store, just set imageLocation
@@ -160,10 +160,16 @@ namespace Engine.Ingest.Image
                     asset.Id, originStrategy.Id);
             }
 
+            var jp2BucketObject = new ObjectInBucket(
+                engineSettings.Thumbs.StorageBucket,
+                context.Asset.GetStorageKey());
+
+            var generatedJp2 = GetJP2File(context.Asset, false);
+            
             // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
-            if (!await bucketReader.WriteFileToBucket(jp2Object, context.AssetFromOrigin.LocationOnDisk))
+            if (!await bucketReader.WriteFileToBucket(jp2BucketObject, generatedJp2))
             {
-                throw new ApplicationException("Failed to write jp2 to storage bucket");
+                throw new ApplicationException($"Failed to write jp2 {generatedJp2} to storage bucket");
             }
 
             imageLocation.S3 = string.Format(engineSettings.S3Template, asset.Customer, asset.Space,
@@ -174,9 +180,9 @@ namespace Engine.Ingest.Image
         private async Task CreateNewThumbs(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             var rootObject = new ObjectInBucket(
-                engineOptionsMonitor.CurrentValue.Thumbs.ThumbsBucket,
+                engineSettings.Thumbs.ThumbsBucket,
                 $"{context.Asset.GetStorageKey()}/");
-            
+
             SetThumbsOnDiskLocation(context, responseModel);
 
             await thumbLayoutManager.CreateNewThumbs(context.Asset, responseModel.Thumbs, rootObject);
@@ -185,22 +191,21 @@ namespace Engine.Ingest.Image
         private void SetThumbsOnDiskLocation(IngestionContext context, ImageProcessorResponseModel responseModel)
         {
             // Update the location of all thumbs to be full path on disk.
-            var settings = engineOptionsMonitor.CurrentValue;
-            var partialTemplate = TemplatedFolders.GenerateTemplate(settings.ImageIngest.ThumbsTemplate,
-                settings.GetRoot(), context.Asset);
+            var partialTemplate = TemplatedFolders.GenerateTemplate(engineSettings.ImageIngest.ThumbsTemplate,
+                engineSettings.GetRoot(), context.Asset);
             foreach (var thumb in responseModel.Thumbs)
             {
                 var key = thumb.Path.Substring(thumb.Path.LastIndexOf('/') + 1);
                 thumb.Path = string.Concat(partialTemplate, key);
             }
         }
-        
+
         private ImageStorage GetImageStorage(IngestionContext context, ImageProcessorResponseModel responseModel)
-        { 
+        {
             var asset = context.Asset;
 
             var thumbSizes = responseModel.Thumbs.Sum(t => GetFileSize(t.Path));
-            
+
             return new ImageStorage
             {
                 Id = asset.Id,
@@ -225,5 +230,11 @@ namespace Engine.Ingest.Image
                 return 0;
             }
         }
+
+        // no-need to check content type as the extension is set based on contenttype
+        private string GetOperation(AssetFromOrigin assetFromOrigin)
+            => assetFromOrigin.LocationOnDisk.EndsWith(".jp2")
+                ? "derivatives-only"
+                : "ingest";
     }
 }

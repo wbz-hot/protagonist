@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using DLCS.Core.Guard;
 using DLCS.Model.Assets;
+using DLCS.Repository.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Ingest
@@ -40,6 +41,6 @@ namespace Engine.Ingest
         
         private string GetOrchestrationPath(Asset asset)
             // /iiif-img/1/2/the-image/info.json
-            => $"/iiif-image/{asset.Customer}/{asset.Space}/{asset.GetUniqueName()}/info.json";
+            => $"/iiif-image/{asset.GetStorageKey()}/info.json";
     }
 }

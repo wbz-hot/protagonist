@@ -13,7 +13,7 @@ namespace Engine.Ingest.Workers
         public string AssetId { get; }
         
         /// <summary>
-        /// The size of the asset.
+        /// The size of the asset in bytes.
         /// </summary>
         public long AssetSize { get; }
         

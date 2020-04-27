@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -37,6 +38,7 @@ namespace Engine.Tests.Ingest.Image
 
         public ImageProcessorTests()
         {
+            var c = Path.DirectorySeparatorChar;
             httpHandler = new ControllableHttpMessageHandler();
             bucketReader = new TestBucketReader("s3://storage-bucket");
             engineSettings = new EngineSettings
@@ -47,11 +49,11 @@ namespace Engine.Tests.Ingest.Image
                     ThumbsBucket = "s3://thumbs-bucket"
                 },
                 S3Template = "s3://eu-west-1/storage-bucket/{0}/{1}/{2}",
-                ScratchRoot = "/scratch/",
+                ScratchRoot = $"{c}scratch{c}",
                 ImageIngest = new ImageIngestSettings
                 {
-                    DestinationTemplate = "/{root}/godzilla/{customer}/{space}/{image}/output/",
-                    ThumbsTemplate = "/{root}/godzilla/{customer}/{space}/{image}/output/thumb/"
+                    DestinationTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}",
+                    ThumbsTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}thumb{c}"
                 }
             };
             thumbLayoutManager = A.Fake<IThumbLayoutManager>();
@@ -78,6 +80,48 @@ namespace Engine.Tests.Ingest.Image
             httpHandler.CallsMade.Should().ContainSingle(s => s == "http://image-processor/");
             result.Should().BeFalse();
             context.Asset.Should().NotBeNull();
+        }
+        
+        [Fact]
+        public async Task ProcessImage_SetsOperation_DerivatesOnly_IfJp2()
+        {
+            // Arrange
+            httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+            var context = GetIngestionContext();
+            context.AssetFromOrigin.LocationOnDisk = "/file/on/disk.jp2";
+            
+            ImageProcessorRequestModel requestModel = null;
+            httpHandler.RegisterCallback(async message =>
+            {
+                requestModel = await message.Content.ReadAsAsync<ImageProcessorRequestModel>();
+            });
+        
+            // Act
+            await sut.ProcessImage(context);
+            
+            // Assert
+            httpHandler.CallsMade.Should().ContainSingle(s => s == "http://image-processor/");
+            requestModel.Operation.Should().Be("derivatives-only");
+        }
+        
+        [Fact]
+        public async Task ProcessImage_SetsOperation_Ingest_IfNotJp2()
+        {
+            // Arrange
+            httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+            var context = GetIngestionContext();
+            ImageProcessorRequestModel requestModel = null;
+            httpHandler.RegisterCallback(async message =>
+            {
+                requestModel = await message.Content.ReadAsAsync<ImageProcessorRequestModel>();
+            });
+        
+            // Act
+            await sut.ProcessImage(context);
+            
+            // Assert
+            httpHandler.CallsMade.Should().ContainSingle(s => s == "http://image-processor/");
+            requestModel.Operation.Should().Be("ingest");
         }
 
         [Fact]
@@ -122,19 +166,22 @@ namespace Engine.Tests.Ingest.Image
             httpHandler.SetResponse(response);
             
             var context = GetIngestionContext();
+            context.Asset.Id = "/1/2/test";
             context.AssetFromOrigin.CustomerOriginStrategy = new CustomerOriginStrategy
             {
                 Optimised = optimised,
                 Strategy = strategy
             };
 
-            const string expected = "s3://eu-west-1/storage-bucket/1/2/something";
+            const string expected = "s3://eu-west-1/storage-bucket/1/2/test";
+            var c = Path.DirectorySeparatorChar;
+            var filePath = $"{c}scratch{c}1{c}2{c}test{c}output{c}test.jp2";
 
             // Act
             await sut.ProcessImage(context);
             
             // Assert
-            bucketReader.ShouldHaveKey("1/2/something").WithFilePath("./scratch/here.jpg");
+            bucketReader.ShouldHaveKey("1/2/test").WithFilePath(filePath);
             context.ImageLocation.S3.Should().Be(expected);
         }
         
@@ -177,7 +224,7 @@ namespace Engine.Tests.Ingest.Image
                 Thumbs = new[]
                 {
                     new ThumbOnDisk {Height = 100, Width = 50, Path = "/path/to/thumb/100.jpg"},
-                }
+                },
             };
 
             var response = httpHandler.GetResponseMessage(JsonConvert.SerializeObject(imageProcessorResponse),
