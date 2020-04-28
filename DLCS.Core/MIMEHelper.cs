@@ -10,6 +10,16 @@ namespace DLCS.Core
     /// <remarks>This has been copied over from previous solution.</remarks>
     public class MIMEHelper
     {
+        /// <summary>
+        /// MIME type for jp2 (image/jp2)
+        /// </summary>
+        public const string JP2 = "image/jp2";
+        
+        /// <summary>
+        /// Alternative MIME type for jp2 (image/jpx)
+        /// </summary>
+        public const string JPX = "image/jpx";
+        
         // Forward = contentType:extension
         // Reverse = extension:contentType
         private static readonly ReadOnlyMap<string, string> ContentTypeExtensionMap =
@@ -26,8 +36,8 @@ namespace DLCS.Core
                 {"image/cgm", "cgm"},
                 {"image/gif", "gif"},
                 {"image/ief", "ief"},
-                {"image/jp2", "jp2"},
-                {"image/jpx", "jp2"},
+                {JP2, "jp2"},
+                {JPX, "jp2"},
                 {"image/jpeg", "jpg"},
                 {"image/jpg", "jpg"}, // common typo that is probably worth supporting even though it's invalid
                 {"image/pict", "pic"},

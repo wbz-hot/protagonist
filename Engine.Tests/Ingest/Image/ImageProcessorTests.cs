@@ -82,13 +82,15 @@ namespace Engine.Tests.Ingest.Image
             context.Asset.Should().NotBeNull();
         }
         
-        [Fact]
-        public async Task ProcessImage_SetsOperation_DerivatesOnly_IfJp2()
+        [Theory]
+        [InlineData("image/jp2")]
+        [InlineData("image/jpx")]
+        public async Task ProcessImage_SetsOperation_DerivatesOnly_IfJp2(string contentType)
         {
             // Arrange
             httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.InternalServerError));
-            var context = GetIngestionContext();
-            context.AssetFromOrigin.LocationOnDisk = "/file/on/disk.jp2";
+            var context = GetIngestionContext(contentType);
+            context.AssetFromOrigin.LocationOnDisk = "/file/on/disk";
             
             ImageProcessorRequestModel requestModel = null;
             httpHandler.RegisterCallback(async message =>
@@ -186,6 +188,29 @@ namespace Engine.Tests.Ingest.Image
         }
         
         [Fact]
+        public async Task ProcessImage_UploadsFileToBucket_UsingLocationOnDisk_IfJp2()
+        {
+            // Arrange
+            var imageProcessorResponse = new ImageProcessorResponseModel {Thumbs = new ThumbOnDisk[0]};
+
+            var response = httpHandler.GetResponseMessage(JsonConvert.SerializeObject(imageProcessorResponse),
+                HttpStatusCode.OK);
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            httpHandler.SetResponse(response);
+
+            const string locationOnDisk = "/file/on/disk";
+            var context = GetIngestionContext("image/jp2");
+            context.Asset.Id = "/1/2/test";
+            context.AssetFromOrigin.LocationOnDisk = locationOnDisk;
+
+            // Act
+            await sut.ProcessImage(context);
+            
+            // Assert
+            bucketReader.ShouldHaveKey("1/2/test").WithFilePath(locationOnDisk);
+        }
+        
+        [Fact]
         public async Task ProcessImage_SetsImageLocation_WithoutUploading_IfNotS3OptimisedStrategy()
         {
             // Arrange
@@ -272,7 +297,7 @@ namespace Engine.Tests.Ingest.Image
             storage.Size.Should().Be(123);
         }
         
-        private static IngestionContext GetIngestionContext()
+        private static IngestionContext GetIngestionContext(string contentType = "image/jpg")
         {
             var asset = new Asset {Id = "/1/2/something", Customer = 1, Space = 2};
             asset
@@ -280,7 +305,7 @@ namespace Engine.Tests.Ingest.Image
                 .WithThumbnailPolicy(new ThumbnailPolicy());
 
             var context = new IngestionContext(asset,
-                new AssetFromOrigin("asset-id", 123, "./scratch/here.jpg", "image/jpg"));
+                new AssetFromOrigin("asset-id", 123, "./scratch/here.jpg", contentType));
             return context;
         }
     }

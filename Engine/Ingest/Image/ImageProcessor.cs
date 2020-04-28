@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using DLCS.Core;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Model.Storage;
@@ -40,12 +41,11 @@ namespace Engine.Ingest.Image
 
         public async Task<bool> ProcessImage(IngestionContext context)
         {
-            ImageLocation imageLocation = null;
-            ImageStorage imageStorage = null;
             try
             {
-                var responseModel = await CallImageProcessor(context);
-                (imageLocation, imageStorage) = await ProcessResponse(context, responseModel);
+                var derivativesOnly = DerivativesOnly(context.AssetFromOrigin);
+                var responseModel = await CallImageProcessor(context, derivativesOnly);
+                var (imageLocation, imageStorage) = await ProcessResponse(context, responseModel, derivativesOnly);
                 context.WithLocation(imageLocation).WithStorage(imageStorage);
                 return true;
             }
@@ -57,10 +57,11 @@ namespace Engine.Ingest.Image
             }
         }
 
-        private async Task<ImageProcessorResponseModel> CallImageProcessor(IngestionContext context)
+        private async Task<ImageProcessorResponseModel> CallImageProcessor(IngestionContext context,
+            bool derivativesOnly)
         {
             // call tizer/appetiser
-            var requestModel = CreateModel(context);
+            var requestModel = CreateModel(context, derivativesOnly);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, (Uri) null);
             request.SetJsonContent(requestModel);
@@ -73,7 +74,7 @@ namespace Engine.Ingest.Image
             return responseModel;
         }
 
-        private ImageProcessorRequestModel CreateModel(IngestionContext context)
+        private ImageProcessorRequestModel CreateModel(IngestionContext context, bool derivativesOnly)
         {
             var asset = context.Asset;
             var imageOptimisationPolicy = asset.FullImageOptimisationPolicy;
@@ -87,7 +88,7 @@ namespace Engine.Ingest.Image
             var requestModel = new ImageProcessorRequestModel
             {
                 Destination = GetJP2File(asset, true),
-                Operation = GetOperation(context.AssetFromOrigin),
+                Operation = derivativesOnly ? "derivatives-only" : "ingest",
                 Optimisation = imageOptimisationPolicy.TechnicalDetails.FirstOrDefault(),
                 Origin = asset.Origin,
                 Source = context.AssetFromOrigin.RelativeLocationOnDisk,
@@ -115,11 +116,11 @@ namespace Engine.Ingest.Image
         }
 
         private async Task<(ImageLocation imageLocation, ImageStorage imageStorage)> ProcessResponse(
-            IngestionContext context, ImageProcessorResponseModel responseModel)
+            IngestionContext context, ImageProcessorResponseModel responseModel, bool derivativesOnly)
         {
             UpdateImageSize(context.Asset, responseModel);
 
-            var imageLocation = await ProcessOriginImage(context);
+            var imageLocation = await ProcessOriginImage(context, derivativesOnly);
 
             await CreateNewThumbs(context, responseModel);
 
@@ -134,7 +135,7 @@ namespace Engine.Ingest.Image
             asset.Width = responseModel.Width;
         }
 
-        private async Task<ImageLocation> ProcessOriginImage(IngestionContext context)
+        private async Task<ImageLocation> ProcessOriginImage(IngestionContext context, bool derivativesOnly)
         {
             var asset = context.Asset;
             var imageLocation = new ImageLocation {Id = asset.Id};
@@ -164,12 +165,13 @@ namespace Engine.Ingest.Image
                 engineSettings.Thumbs.StorageBucket,
                 context.Asset.GetStorageKey());
 
-            var generatedJp2 = GetJP2File(context.Asset, false);
+            // if derivatives-only, no new JP2 will have been generated so use the 'origin' file
+            var jp2File = derivativesOnly ? context.AssetFromOrigin.LocationOnDisk : GetJP2File(context.Asset, false);
             
             // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
-            if (!await bucketReader.WriteFileToBucket(jp2BucketObject, generatedJp2))
+            if (!await bucketReader.WriteFileToBucket(jp2BucketObject, jp2File))
             {
-                throw new ApplicationException($"Failed to write jp2 {generatedJp2} to storage bucket");
+                throw new ApplicationException($"Failed to write jp2 {jp2File} to storage bucket");
             }
 
             imageLocation.S3 = string.Format(engineSettings.S3Template, asset.Customer, asset.Space,
@@ -231,10 +233,7 @@ namespace Engine.Ingest.Image
             }
         }
 
-        // no-need to check content type as the extension is set based on contenttype
-        private string GetOperation(AssetFromOrigin assetFromOrigin)
-            => assetFromOrigin.LocationOnDisk.EndsWith(".jp2")
-                ? "derivatives-only"
-                : "ingest";
+        private bool DerivativesOnly(AssetFromOrigin assetFromOrigin)
+            => assetFromOrigin.ContentType == MIMEHelper.JP2 || assetFromOrigin.ContentType == MIMEHelper.JPX;
     }
 }
