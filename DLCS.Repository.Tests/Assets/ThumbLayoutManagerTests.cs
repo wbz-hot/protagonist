@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
+using DLCS.Model.Policies;
 using DLCS.Model.Storage;
 using DLCS.Repository.Assets;
 using DLCS.Test.Helpers;
@@ -17,12 +18,12 @@ namespace DLCS.Repository.Tests.Assets
     public class ThumbLayoutManagerTests
     {
         private readonly IAssetRepository assetRepository;
-        private readonly IAssetPolicyRepository thumbPolicyRepository;
+        private readonly IPolicyRepository thumbPolicyRepository;
 
         public ThumbLayoutManagerTests()
         {
             assetRepository = A.Fake<IAssetRepository>();
-            thumbPolicyRepository = A.Fake<IAssetPolicyRepository>();
+            thumbPolicyRepository = A.Fake<IPolicyRepository>();
         }
 
         private ThumbLayoutManager GetSut(IBucketReader bucketReader)

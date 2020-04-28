@@ -43,7 +43,7 @@ namespace Thumbs
             services.AddTransient<IPathCustomerRepository, CustomerPathElementRepository>();
             services.AddSingleton<IThumbRepository, ThumbRepository>();
             services.AddSingleton<IThumbLayoutManager, ThumbLayoutManager>();
-            services.AddTransient<IAssetPolicyRepository, AssetPolicyRepository>();
+            services.AddTransient<IPolicyRepository, PolicyRepository>();
             services.AddTransient<IAssetRepository, AssetRepository>();
             services.AddAutoMapper(typeof(DatabaseConnectionManager));
 

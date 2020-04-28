@@ -47,7 +47,7 @@ namespace Engine.Ingest.Image
                 var responseModel = await CallImageProcessor(context, derivativesOnly);
                 var (imageLocation, imageStorage) = await ProcessResponse(context, responseModel, derivativesOnly);
                 context.WithLocation(imageLocation).WithStorage(imageStorage);
-                return true;
+                return true;    
             }
             catch (Exception e)
             {

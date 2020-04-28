@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Core;
 using DLCS.Model.Assets;
+using DLCS.Model.Policies;
 using Engine.Ingest.Completion;
 using Engine.Ingest.Image;
 using Engine.Ingest.Models;
@@ -18,14 +19,14 @@ namespace Engine.Ingest.Workers
         private readonly IAssetFetcher assetFetcher;
         private readonly EngineSettings engineSettings;
         private readonly IImageProcessor imageProcessor;
-        private readonly IAssetPolicyRepository assetPolicyRepository;
+        private readonly IPolicyRepository policyRepository;
         private readonly IIngestorCompletion imageCompletion;
         private readonly ILogger<ImageIngesterWorker> logger;
 
         public ImageIngesterWorker(
             IImageProcessor imageProcessor,
             IAssetFetcher assetFetcher,
-            IAssetPolicyRepository assetPolicyRepository,
+            IPolicyRepository policyRepository,
             IOptionsMonitor<EngineSettings> engineOptions,
             IIngestorCompletion imageCompletion,
             ILogger<ImageIngesterWorker> logger)
@@ -33,7 +34,7 @@ namespace Engine.Ingest.Workers
             this.assetFetcher = assetFetcher;
             engineSettings = engineOptions.CurrentValue;
             this.imageProcessor = imageProcessor;
-            this.assetPolicyRepository = assetPolicyRepository;
+            this.policyRepository = policyRepository;
             this.imageCompletion = imageCompletion;
             this.logger = logger;
         }
@@ -68,7 +69,7 @@ namespace Engine.Ingest.Workers
         private async Task<bool> DoIngest(IngestionContext ingestionContext, string sourceDir)
         {
             // set Thumbnail and ImageOptimisation policies
-            var setAssetPolicies = assetPolicyRepository.HydratePolicies(ingestionContext.Asset, AssetPolicies.All);
+            var setAssetPolicies = policyRepository.HydrateAssetPolicies(ingestionContext.Asset, AssetPolicies.All);
 
             // Put file in correct place for processing 
             SetRelativeLocationOnDisk(ingestionContext);

@@ -4,6 +4,7 @@ using DLCS.Core;
 using DLCS.Core.Enum;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Model.Policies;
 using DLCS.Repository.Entities;
 
 namespace DLCS.Repository.Mappings

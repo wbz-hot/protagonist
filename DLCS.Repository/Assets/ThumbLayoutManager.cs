@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DLCS.Core.Collections;
 using DLCS.Core.Threading;
 using DLCS.Model.Assets;
+using DLCS.Model.Policies;
 using DLCS.Model.Storage;
 using DLCS.Repository.Storage;
 using IIIF;
@@ -19,7 +20,7 @@ namespace DLCS.Repository.Assets
         private readonly IBucketReader bucketReader;
         private readonly ILogger<ThumbLayoutManager> logger;
         private readonly IAssetRepository assetRepository;
-        private readonly IAssetPolicyRepository assetPolicyRepository;
+        private readonly IPolicyRepository policyRepository;
         private readonly AsyncKeyedLock asyncLocker = new AsyncKeyedLock();
         private static Regex BoundedThumbRegex = new Regex("^[0-9]+.jpg$");
 
@@ -27,12 +28,12 @@ namespace DLCS.Repository.Assets
             IBucketReader bucketReader,
             ILogger<ThumbLayoutManager> logger,
             IAssetRepository assetRepository,
-            IAssetPolicyRepository assetPolicyRepository )
+            IPolicyRepository policyRepository )
         {
             this.bucketReader = bucketReader;
             this.logger = logger;
             this.assetRepository = assetRepository;
-            this.assetPolicyRepository = assetPolicyRepository;
+            this.policyRepository = policyRepository;
         }
 
         public async Task EnsureNewLayout(ObjectInBucket rootKey)
@@ -59,7 +60,7 @@ namespace DLCS.Repository.Assets
             if (asset == null)
                 return;
 
-            var policy = await assetPolicyRepository.GetThumbnailPolicy(asset.ThumbnailPolicy);
+            var policy = await policyRepository.GetThumbnailPolicy(asset.ThumbnailPolicy);
             
             var realSize = new Size(asset.Width, asset.Height);
             var boundingSquares = policy.Sizes.OrderByDescending(i => i).ToList();

@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
+using DLCS.Model.Policies;
 using DLCS.Test.Helpers.Settings;
 using Engine.Ingest;
 using Engine.Ingest.Completion;
@@ -26,7 +27,7 @@ namespace Engine.Tests.Ingest.Workers
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
         private readonly IIngestorCompletion ingestorCompletion;
         private readonly FakeImageProcessor imageProcessor;
-        private readonly IAssetPolicyRepository assetPolicyRepository;
+        private readonly IPolicyRepository policyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
         private readonly ImageIngesterWorker sut;
 
@@ -50,9 +51,9 @@ namespace Engine.Tests.Ingest.Workers
             assetFetcher = A.Fake<IAssetFetcher>();
             ingestorCompletion = A.Fake<IIngestorCompletion>();
             imageProcessor = new FakeImageProcessor();
-            assetPolicyRepository = A.Fake<IAssetPolicyRepository>();
+            policyRepository = A.Fake<IPolicyRepository>();
             
-            sut = new ImageIngesterWorker(imageProcessor, assetFetcher, assetPolicyRepository,optionsMonitor,
+            sut = new ImageIngesterWorker(imageProcessor, assetFetcher, policyRepository,optionsMonitor,
                 ingestorCompletion, new NullLogger<ImageIngesterWorker>());
         }
 

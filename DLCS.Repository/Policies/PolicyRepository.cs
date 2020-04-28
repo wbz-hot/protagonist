@@ -2,26 +2,24 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using Dapper;
-using DLCS.Model;
 using DLCS.Model.Assets;
+using DLCS.Model.Policies;
 using DLCS.Repository.Entities;
 using LazyCache;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace DLCS.Repository.Assets
+namespace DLCS.Repository.Policies
 {
-    public class AssetPolicyRepository : IAssetPolicyRepository
+    public class PolicyRepository : IPolicyRepository
     {
         private readonly IAppCache appCache;
-        private readonly ILogger<AssetPolicyRepository> logger;
+        private readonly ILogger<PolicyRepository> logger;
         private readonly DatabaseAccessor databaseAccessor;
         private static readonly int AvailablePolicies = Enum.GetValues(typeof(AssetPolicies)).Length - 1;
 
-        public AssetPolicyRepository(IAppCache appCache,
-            ILogger<AssetPolicyRepository> logger,
+        public PolicyRepository(IAppCache appCache,
+            ILogger<PolicyRepository> logger,
             DatabaseAccessor databaseAccessor)
         {
             this.appCache = appCache;
@@ -29,7 +27,7 @@ namespace DLCS.Repository.Assets
             this.databaseAccessor = databaseAccessor;
         }
 
-        public async Task<ThumbnailPolicy> GetThumbnailPolicy(string thumbnailPolicyId)
+        public async Task<ThumbnailPolicy?> GetThumbnailPolicy(string thumbnailPolicyId)
         {
             try
             {
@@ -38,13 +36,13 @@ namespace DLCS.Repository.Assets
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error getting thumbnailPolicy with id {thumbnailPolicyId}",
+                logger.LogError(e, "Error getting ThumbnailPolicy with id {thumbnailPolicyId}",
                     thumbnailPolicyId);
                 return null;
             }
         }
 
-        public async Task<ImageOptimisationPolicy> GetImageOptimisationPolicy(string imageOptimisationPolicyId)
+        public async Task<ImageOptimisationPolicy?> GetImageOptimisationPolicy(string imageOptimisationPolicyId)
         {
             try
             {
@@ -53,13 +51,28 @@ namespace DLCS.Repository.Assets
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error getting imageOptimisationPolicy with id {imageOptimisationPolicyId}",
+                logger.LogError(e, "Error getting ImageOptimisationPolicy with id {imageOptimisationPolicyId}",
                     imageOptimisationPolicyId);
                 return null;
             }
         }
 
-        public async Task HydratePolicies(Asset asset, AssetPolicies policiesToSet)
+        public async Task<StoragePolicy?> GetStoragePolicy(string storagePolicyId)
+        {
+            try
+            {
+                var thumbnailPolicies = await GetStoragePolicies();
+                return thumbnailPolicies.SingleOrDefault(p => p.Id == storagePolicyId);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error getting StoragePolicy with id {storagePolicyId}",
+                    storagePolicyId);
+                return null;
+            }
+        }
+
+        public async Task HydrateAssetPolicies(Asset asset, AssetPolicies policiesToSet)
         {
             var getPolicyRequests = new List<Task>(AvailablePolicies);
             if (policiesToSet.HasFlag(AssetPolicies.Thumbnail))
@@ -82,11 +95,25 @@ namespace DLCS.Repository.Assets
 
             await Task.WhenAll(getPolicyRequests);
         }
-
-        private async Task<List<ThumbnailPolicy>> GetThumbnailPolicies()
+        
+        private Task<List<StoragePolicy>> GetStoragePolicies()
         {
-            const string key = "AssetPolicyRepository_ThumbnailPolicies";
-            return await appCache.GetOrAddAsync(key, entry =>
+            const string key = "PolicyRepository_StoragePolicies";
+            return appCache.GetOrAddAsync(key, async entry =>
+            {
+                // TODO - config
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                logger.LogInformation("Refreshing StoragePolicies from database");
+                const string policiesQuery = "SELECT \"Id\", \"MaximumNumberOfStoredImages\", \"MaximumTotalSizeOfStoredImages\" FROM \"StoragePolicies\"";
+                await using var connection = await databaseAccessor.GetOpenDbConnection();
+                return (await connection.QueryAsync<StoragePolicy>(policiesQuery)).ToList();
+            });
+        }
+
+        private Task<List<ThumbnailPolicy>> GetThumbnailPolicies()
+        {
+            const string key = "PolicyRepository_ThumbnailPolicies";
+            return appCache.GetOrAddAsync(key, entry =>
             {
                 // TODO - config
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
@@ -96,10 +123,10 @@ namespace DLCS.Repository.Assets
             });
         }
 
-        private async Task<List<ImageOptimisationPolicy>> GetImageOptimisationPolicies()
+        private Task<List<ImageOptimisationPolicy>> GetImageOptimisationPolicies()
         {
-            const string key = "AssetPolicyRepository_ImageOptimisation";
-            return await appCache.GetOrAddAsync(key, entry =>
+            const string key = "PolicyRepository_ImageOptimisation";
+            return appCache.GetOrAddAsync(key, entry =>
             {
                 // TODO - config
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);

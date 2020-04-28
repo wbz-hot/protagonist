@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace DLCS.Model.Assets
+namespace DLCS.Model.Policies
 {
     [DebuggerDisplay("{Id}")]
     public class ImageOptimisationPolicy

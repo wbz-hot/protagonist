@@ -54,6 +54,7 @@ namespace DLCS.Repository.Assets
             return false;
         }
 
+        // TODO - move this to own repo?
         private async Task<bool> UpdateBatch(Asset asset, IDbTransaction transaction)
         {
             // Batch is non nullable, 0 == no batch

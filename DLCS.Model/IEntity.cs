@@ -6,11 +6,6 @@
     public interface IEntity
     {
         /// <summary>
-        /// Unique identifier for entity.
-        /// </summary>
-        public string Id { get; }
-        
-        /// <summary>
         /// Prepares the entity for database write operations.
         /// </summary>
         /// <remarks>

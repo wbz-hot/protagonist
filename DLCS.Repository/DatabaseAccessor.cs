@@ -41,7 +41,7 @@ namespace DLCS.Repository
         /// Maps model to entity type and execute provided SQL, using entity as params.
         /// </summary>
         public async Task<bool> MapAndExecute<TModel, TEntity>(TModel model, string sql,
-            IDbTransaction transaction = null)
+            IDbTransaction? transaction = null)
             where TEntity : class, IEntity
         {
             TEntity entity = null;
@@ -52,8 +52,7 @@ namespace DLCS.Repository
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error updating item of type {type}, with Id {id}.", typeof(TEntity).Name,
-                    entity?.Id ?? "<unknown>");
+                logger.LogError(ex, "Error updating item of type {type}.", typeof(TEntity).Name);
                 return false;
             }
         }
@@ -61,7 +60,7 @@ namespace DLCS.Repository
         /// <summary>
         /// Execute provided SQL using entity as params.
         /// </summary>
-        public async Task<bool> Execute<T>(T entity, string sql, IDbTransaction transaction = null)
+        public async Task<bool> Execute<T>(T entity, string sql, IDbTransaction? transaction = null)
             where T : IEntity
         {
             if (entity == null) return true;
@@ -83,7 +82,7 @@ namespace DLCS.Repository
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error inserting item of type {type}, with Id {id}.", typeof(T).Name, entity.Id);
+                logger.LogError(ex, "Error inserting item of type {type}.", typeof(T).Name);
                 return false;
             }
         }
@@ -92,8 +91,8 @@ namespace DLCS.Repository
         /// Use specified SQL to make SELECT request to db, mapping returned type.
         /// </summary>
         public async Task<TModel> SelectAndMap<TEntity, TModel>(string sql,
-            object param = null,
-            IDbTransaction transaction = null)
+            object? param = null,
+            IDbTransaction? transaction = null)
             where TEntity : class, IEntity
         {
             try
@@ -123,8 +122,8 @@ namespace DLCS.Repository
         /// Use specified SQL to make SELECT request to db, mapping returned type to list.
         /// </summary>
         public async Task<List<TModel>> SelectAndMapList<TEntity, TModel>(string sql,
-            object param = null,
-            IDbTransaction transaction = null)
+            object? param = null,
+            IDbTransaction? transaction = null)
             where TEntity : class, IEntity
         {
             try

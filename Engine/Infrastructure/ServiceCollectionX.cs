@@ -5,9 +5,11 @@ using Amazon.SQS;
 using AutoMapper;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
+using DLCS.Model.Policies;
 using DLCS.Model.Security;
 using DLCS.Repository;
 using DLCS.Repository.Assets;
+using DLCS.Repository.Policies;
 using DLCS.Repository.Security;
 using DLCS.Web.Handlers;
 using Engine.Ingest;
@@ -36,7 +38,7 @@ namespace Engine.Infrastructure
                 .AddAutoMapper(typeof(DatabaseConnectionManager))
                 .AddTransient<DatabaseAccessor>()
                 .AddTransient<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
-                .AddTransient<IAssetPolicyRepository, AssetPolicyRepository>()
+                .AddTransient<IPolicyRepository, PolicyRepository>()
                 .AddTransient<IAssetRepository, AssetRepository>()
                 .AddSingleton<ICredentialsRepository, CredentialsRepository>();
 

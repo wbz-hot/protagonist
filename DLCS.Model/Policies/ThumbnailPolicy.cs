@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DLCS.Model.Assets
+namespace DLCS.Model.Policies
 {
     public class ThumbnailPolicy
     { 

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using DLCS.Core.Collections;
 using DLCS.Core.Guard;
+using DLCS.Model.Policies;
 using IIIF;
 using IIIF.ImageApi;
 

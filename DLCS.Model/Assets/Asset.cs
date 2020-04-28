@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DLCS.Core.Guard;
 using DLCS.Model.Converters;
+using DLCS.Model.Policies;
 using Newtonsoft.Json;
 
 namespace DLCS.Model.Assets
