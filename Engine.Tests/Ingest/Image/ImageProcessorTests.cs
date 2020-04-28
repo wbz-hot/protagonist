@@ -203,6 +203,10 @@ namespace Engine.Tests.Ingest.Image
             var context = GetIngestionContext("image/jp2");
             context.Asset.Id = "/1/2/test";
             context.AssetFromOrigin.LocationOnDisk = locationOnDisk;
+            context.AssetFromOrigin.CustomerOriginStrategy = new CustomerOriginStrategy
+            {
+                Strategy = OriginStrategy.Default
+            };
 
             // Act
             await sut.ProcessImage(context);

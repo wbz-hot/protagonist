@@ -52,7 +52,7 @@ namespace Engine.Tests.Ingest.Completion
             context.WithLocation(imageLocation).WithStorage(imageStorage);
             
             // Act
-            await sut.CompleteIngestion(context, success);
+            await sut.CompleteIngestion(context, success, "");
             
             // Assert
             A.CallTo(() => assetRepository.UpdateIngestedAsset(asset, imageLocation, imageStorage)).MustHaveHappened();
@@ -89,7 +89,7 @@ namespace Engine.Tests.Ingest.Completion
                 .Returns(markAsCompleteSuccess);
 
             // Act
-            await sut.CompleteIngestion(context, ingestSuccess);
+            await sut.CompleteIngestion(context, ingestSuccess, "");
 
             // Assert
             httpHandler.CallsMade.Should().BeNullOrEmpty();
@@ -115,7 +115,7 @@ namespace Engine.Tests.Ingest.Completion
             httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.OK));
 
             // Act
-            await sut.CompleteIngestion(context, true);
+            await sut.CompleteIngestion(context, true, "");
 
             // Assert
             httpHandler.CallsMade.Should().Contain("http://orchestrator/iiif-image/2/1/foo-bar/info.json");

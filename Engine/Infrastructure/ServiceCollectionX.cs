@@ -41,6 +41,7 @@ namespace Engine.Infrastructure
                 .AddTransient<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
                 .AddTransient<IPolicyRepository, PolicyRepository>()
                 .AddTransient<IAssetRepository, AssetRepository>()
+                .AddTransient<ICustomerStorageRepository, CustomerStorageRepository>()
                 .AddSingleton<ICredentialsRepository, CredentialsRepository>();
 
         /// <summary>

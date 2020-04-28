@@ -17,24 +17,27 @@ namespace Engine.Ingest.Workers
     public class AssetFetcher : IAssetFetcher
     {
         private readonly ICustomerOriginRepository customerOriginRepository;
+        private readonly ICustomerStorageRepository customerStorageRepository;
         private readonly ILogger<AssetFetcher> logger;
         private readonly Dictionary<OriginStrategy, IOriginStrategy> originStrategies;
 
         public AssetFetcher(
             ICustomerOriginRepository customerOriginRepository,
             IEnumerable<IOriginStrategy> originStrategies,
+            ICustomerStorageRepository customerStorageRepository,
             ILogger<AssetFetcher> logger)
         {
              this.customerOriginRepository = customerOriginRepository;
+             this.customerStorageRepository = customerStorageRepository;
              this.logger = logger;
              this.originStrategies = originStrategies.ToDictionary(k => k.Strategy, v => v);
         }
-        
-        public async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate,
+
+        public async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate, bool verifySize,
             CancellationToken cancellationToken = default)
         {
             destinationTemplate.ThrowIfNullOrWhiteSpace(nameof(destinationTemplate));
-            
+
             var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset, true);
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
@@ -42,9 +45,10 @@ namespace Engine.Ingest.Workers
                 throw new InvalidOperationException(
                     $"No OriginStrategy found for '{customerOriginStrategy.Strategy}' strategy (id: {customerOriginStrategy.Id})");
             }
-            
-            await using var originResponse = await strategy.LoadAssetFromOrigin(asset, customerOriginStrategy, cancellationToken);
-            
+
+            await using var originResponse =
+                await strategy.LoadAssetFromOrigin(asset, customerOriginStrategy, cancellationToken);
+
             if (originResponse == null || originResponse.Stream == Stream.Null)
             {
                 // TODO correct type of exception?
@@ -56,6 +60,12 @@ namespace Engine.Ingest.Workers
             cancellationToken.ThrowIfCancellationRequested();
             var assetFromOrigin = await CopyAssetToDisk(asset, destinationTemplate, originResponse);
             assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
+
+            if (verifySize)
+            {
+                await VerifyFileSize(asset, assetFromOrigin);
+            }
+            
             return assetFromOrigin;
         }
 
@@ -159,5 +169,17 @@ namespace Engine.Ingest.Workers
         private bool IsBinaryContent(string contentType) =>
             contentType == "application/octet-stream" ||
             contentType == "binary/octet-stream";
+
+        private async Task VerifyFileSize(Asset asset, AssetFromOrigin assetFromOrigin)
+        {
+            // TODO - this might not need to happen, depending on whether the thing is whatever
+            var customerHasEnoughSize = await customerStorageRepository.VerifyStoragePolicyBySize(asset.Customer,
+                assetFromOrigin.AssetSize);
+
+            if (!customerHasEnoughSize)
+            {
+                assetFromOrigin.FileTooLarge();
+            }
+        }
     }
 }

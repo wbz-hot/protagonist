@@ -13,11 +13,11 @@
         /// <summary>
         /// The maximum number of individual source images that can be stored.
         /// </summary>
-        public int MaximumNumberOfStoredImages { get; set; }
+        public long MaximumNumberOfStoredImages { get; set; }
         
         /// <summary>
         /// The maximum total size (in bytes) of storage images, excluding thumbs.
         /// </summary>
-        public int MaximumTotalSizeOfStoredImages { get; set; }
+        public long MaximumTotalSizeOfStoredImages { get; set; }
     }
 }

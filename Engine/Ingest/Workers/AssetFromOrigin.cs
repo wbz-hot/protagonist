@@ -37,6 +37,11 @@ namespace Engine.Ingest.Workers
         /// The customer origin strategy used to process this asset.
         /// </summary>
         public CustomerOriginStrategy CustomerOriginStrategy { get; set; }
+        
+        /// <summary>
+        /// Whether the asset will exceed the storage policy allowance.
+        /// </summary>
+        public bool FileExceedsAllowance { get; private set; }
 
         public AssetFromOrigin(string assetId, long assetSize, string locationOnDisk, string contentType)
         {
@@ -45,5 +50,10 @@ namespace Engine.Ingest.Workers
             LocationOnDisk = locationOnDisk;
             ContentType = contentType;
         }
+
+        /// <summary>
+        /// Mark asset as being too large and exceeding storage allowance.
+        /// </summary>
+        public void FileTooLarge() => FileExceedsAllowance = true;
     }
 }

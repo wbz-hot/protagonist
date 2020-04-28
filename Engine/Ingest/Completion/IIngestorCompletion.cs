@@ -4,6 +4,6 @@ namespace Engine.Ingest.Completion
 {
     public interface IIngestorCompletion
     {
-        Task<bool> CompleteIngestion(IngestionContext context, bool ingestSuccessful);
+        Task<bool> CompleteIngestion(IngestionContext context, bool ingestSuccessful, string sourceTemplate);
     }
 }

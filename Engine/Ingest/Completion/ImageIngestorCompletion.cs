@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using Engine.Settings;
@@ -26,7 +27,8 @@ namespace Engine.Ingest.Completion
             this.engineSettings = engineOptions.CurrentValue;
         }
 
-        public async Task<bool> CompleteIngestion(IngestionContext context, bool ingestSuccessful)
+        public async Task<bool> CompleteIngestion(IngestionContext context, bool ingestSuccessful,
+            string sourceTemplate)
         {
             // TODO - can this be used for Timebased too?
             var success = await MarkAssetAsIngested(context);
@@ -35,6 +37,9 @@ namespace Engine.Ingest.Completion
             {
                 await TriggerOrchestration(context);
             }
+            
+            // Processing has occurred, clear down the root folder used for processing
+            CleanupWorkingAssets(sourceTemplate, context.AssetFromOrigin.LocationOnDisk);
 
             return success;
         }
@@ -69,6 +74,19 @@ namespace Engine.Ingest.Completion
         {
             var customerSpecific = engineSettings.GetCustomerSettings(customerId);
             return customerSpecific.OrchestrateImageAfterIngest ?? engineSettings.OrchestrateImageAfterIngest;
+        }
+        
+        private void CleanupWorkingAssets(string rootPath, string locationOnDisk)
+        {
+            try
+            {
+                Directory.Delete(rootPath, true);
+                File.Delete(locationOnDisk);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error cleaning up working assets. {rootPath}, {locationOnDisk}", rootPath, locationOnDisk);
+            }
         }
     }
 }

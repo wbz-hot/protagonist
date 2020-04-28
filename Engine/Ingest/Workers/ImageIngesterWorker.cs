@@ -2,7 +2,6 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using DLCS.Core;
 using DLCS.Model.Assets;
 using DLCS.Model.Policies;
 using Engine.Ingest.Completion;
@@ -45,17 +44,23 @@ namespace Engine.Ingest.Workers
             try
             {
                 var sourceTemplate = GetSourceTemplate(ingestAssetRequest.Asset);
-                
-                var fetchedAsset = await assetFetcher.CopyAssetToDisk(ingestAssetRequest.Asset,
-                    sourceTemplate,
+
+                var fetchedAsset = await assetFetcher.CopyAssetToDisk(
+                    ingestAssetRequest.Asset, 
+                    sourceTemplate, 
+                    !SkipStoragePolicyCheck(ingestAssetRequest.Asset.Customer),
                     cancellationToken);
 
-                // TODO - CheckStoragePolicy. Checks if there is enough space to store this 
-
                 var context = new IngestionContext(ingestAssetRequest.Asset, fetchedAsset);
-                var ingestSuccess = await DoIngest(context, sourceTemplate);
+                if (fetchedAsset.FileExceedsAllowance)
+                {
+                    ingestAssetRequest.Asset.Error = "StoragePolicy size limit exceeded";
+                    await imageCompletion.CompleteIngestion(context, false, sourceTemplate);
+                }
 
-                var completionSuccess = await imageCompletion.CompleteIngestion(context, ingestSuccess);
+                var ingestSuccess = await DoIngest(context);
+
+                var completionSuccess = await imageCompletion.CompleteIngestion(context, ingestSuccess, sourceTemplate);
 
                 return ingestSuccess && completionSuccess ? IngestResult.Success : IngestResult.Failed;
             }
@@ -66,7 +71,7 @@ namespace Engine.Ingest.Workers
             }
         }
 
-        private async Task<bool> DoIngest(IngestionContext ingestionContext, string sourceDir)
+        private async Task<bool> DoIngest(IngestionContext ingestionContext)
         {
             // set Thumbnail and ImageOptimisation policies
             var setAssetPolicies = policyRepository.HydrateAssetPolicies(ingestionContext.Asset, AssetPolicies.All);
@@ -78,9 +83,6 @@ namespace Engine.Ingest.Workers
 
             // Call tizer/appetiser to process images - create thumbs, update DB
             var processSuccess = await imageProcessor.ProcessImage(ingestionContext);
-
-            // Processing has occurred, clear down the root folder used for processing
-            CleanupWorkingAssets(sourceDir, ingestionContext.AssetFromOrigin.LocationOnDisk);
 
             return processSuccess;
         }
@@ -120,18 +122,11 @@ namespace Engine.Ingest.Workers
 
             return source;
         }
-
-        private void CleanupWorkingAssets(string rootPath, string locationOnDisk)
+        
+        private bool SkipStoragePolicyCheck(int customerId)
         {
-            try
-            {
-                Directory.Delete(rootPath, true);
-                File.Delete(locationOnDisk);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error cleaning up working assets. {rootPath}, {locationOnDisk}", rootPath, locationOnDisk);
-            }
+            var customerSpecific = engineSettings.GetCustomerSettings(customerId);
+            return customerSpecific.NoStoragePolicyCheck;
         }
     }
 }

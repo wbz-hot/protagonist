@@ -30,11 +30,12 @@ namespace Engine.Tests.Ingest.Workers
         private readonly IPolicyRepository policyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
         private readonly ImageIngesterWorker sut;
+        private EngineSettings engineSettings;
 
         public ImageIngesterWorkerTests()
         {
             var c = Path.DirectorySeparatorChar;
-            var engineSettings = new EngineSettings
+            engineSettings = new EngineSettings
             {
                 ProcessingFolder = $".{c}here{c}",
                 S3Template = "s3://eu-west-1/storage-bucket/{0}/{1}/{2}",
@@ -61,13 +62,58 @@ namespace Engine.Tests.Ingest.Workers
         public async Task Ingest_ReturnsFailed_IfFetcherFailed()
         {
             // Arrange
-            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<CancellationToken>._))
+            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
                 .ThrowsAsync(new ArgumentNullException());
             
             // Act
             var result = await sut.Ingest(new IngestAssetRequest(new Asset(), new DateTime()));
             
             // Assert
+            result.Should().Be(IngestResult.Failed);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Ingest_SetsVerifySizeFlag_DependingOnCustomerOverride(bool noStoragePolicyCheck)
+        {
+            // Arrange
+            const int customerId = 54;
+            var asset = new Asset {Id = "/2/1/shallow", Customer = customerId, Space = 1};
+            engineSettings.CustomerOverrides.Add(customerId.ToString(), new CustomerOverridesSettings
+            {
+                NoStoragePolicyCheck = noStoragePolicyCheck
+            });
+            var assetFromOrigin = new AssetFromOrigin(asset.Id, 13, "/target/location", "application/json");
+            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<bool>._, A<CancellationToken>._))
+                .Returns(assetFromOrigin);
+
+            // Act
+            await sut.Ingest(new IngestAssetRequest(asset, new DateTime()));
+
+            // Assert
+            A.CallTo(() =>
+                    assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, !noStoragePolicyCheck,
+                        A<CancellationToken>._))
+                .MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task Ingest_ReturnsFailed_IfFileSizeTooLarge()
+        {
+            // Arrange
+            var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
+            var assetFromOrigin = new AssetFromOrigin(asset.Id, 13, "/target/location", "application/json");
+            assetFromOrigin.FileTooLarge();
+            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
+                .Returns(assetFromOrigin);
+            
+            // Act
+            var result = await sut.Ingest(new IngestAssetRequest(asset, DateTime.Now));
+            
+            // Assert
+            A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, false, A<string>._))
+                .MustHaveHappened();
             result.Should().Be(IngestResult.Failed);
         }
 
@@ -84,7 +130,7 @@ namespace Engine.Tests.Ingest.Workers
                 var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
-                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<CancellationToken>._))
+                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
                     .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
                 imageProcessor.ReturnValue = imageProcessSuccess;
 
@@ -92,7 +138,7 @@ namespace Engine.Tests.Ingest.Workers
                 await sut.Ingest(new IngestAssetRequest(asset, new DateTime()));
                 
                 // Assert
-                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess))
+                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
                     .MustHaveHappened();
                 imageProcessor.WasCalled.Should().BeTrue();
             }
@@ -118,10 +164,10 @@ namespace Engine.Tests.Ingest.Workers
                 var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
-                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<CancellationToken>._))
+                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
                     .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
 
-                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess))
+                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
                     .Returns(completeResult);
 
                 imageProcessor.ReturnValue = imageProcessSuccess;
