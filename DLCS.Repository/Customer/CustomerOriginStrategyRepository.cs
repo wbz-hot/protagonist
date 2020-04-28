@@ -3,18 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using AutoMapper;
-using Dapper;
 using DLCS.Core.Guard;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
-using DLCS.Model.Security;
 using DLCS.Repository.Entities;
 using LazyCache;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace DLCS.Repository
+namespace DLCS.Repository.Customer
 {
     public class CustomerOriginStrategyRepository : ICustomerOriginRepository
     {

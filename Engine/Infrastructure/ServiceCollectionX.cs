@@ -9,6 +9,7 @@ using DLCS.Model.Policies;
 using DLCS.Model.Security;
 using DLCS.Repository;
 using DLCS.Repository.Assets;
+using DLCS.Repository.Customer;
 using DLCS.Repository.Policies;
 using DLCS.Repository.Security;
 using DLCS.Web.Handlers;

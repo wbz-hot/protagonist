@@ -4,10 +4,8 @@ using System.Threading.Tasks;
 using Dapper;
 using DLCS.Model.Customer;
 using DLCS.Model.PathElements;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
-namespace DLCS.Repository
+namespace DLCS.Repository.Customer
 {
     public class CustomerRepository : ICustomerRepository
     {
