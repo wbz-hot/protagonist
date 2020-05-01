@@ -37,7 +37,6 @@ namespace Engine.Tests.Ingest.Workers
             var c = Path.DirectorySeparatorChar;
             engineSettings = new EngineSettings
             {
-                ProcessingFolder = $".{c}here{c}",
                 S3Template = "s3://eu-west-1/storage-bucket/{0}/{1}/{2}",
                 ScratchRoot = $".{c}scratch{c}",
                 ImageIngest = new ImageIngestSettings

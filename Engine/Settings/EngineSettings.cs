@@ -6,8 +6,6 @@ namespace Engine.Settings
 {
     public class EngineSettings
     {
-        public string ProcessingFolder { get; set; }
-        
         /// <summary>
         /// Root folder for main container
         /// </summary>
