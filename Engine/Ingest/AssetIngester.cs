@@ -54,6 +54,8 @@ namespace Engine.Ingest
         public Task<IngestResult> Ingest(IngestAssetRequest request, CancellationToken cancellationToken)
         {
             var ingestor = resolver(request.Asset.Family);
+            
+            // TODO - get the CustomerOriginStrategy and add it to the context here?
 
             return ingestor.Ingest(request, cancellationToken);
         }

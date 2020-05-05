@@ -5,6 +5,9 @@ namespace DLCS.Repository.Storage.S3
 {
     public static class S3Extensions
     {
+        /// <summary>
+        /// Convert <see cref="ObjectInBucket"/> to <see cref="GetObjectRequest"/>
+        /// </summary>
         public static GetObjectRequest AsGetObjectRequest(this ObjectInBucket resource) =>
             new GetObjectRequest
             {
@@ -12,6 +15,9 @@ namespace DLCS.Repository.Storage.S3
                 Key = resource.Key
             };
 
+        /// <summary>
+        /// Convert <see cref="ObjectInBucket"/> to <see cref="ListObjectsRequest"/>
+        /// </summary>
         public static ListObjectsRequest AsListObjectsRequest(this ObjectInBucket resource) =>
             new ListObjectsRequest
             {
@@ -19,9 +25,17 @@ namespace DLCS.Repository.Storage.S3
                 Prefix = resource.Key
             };
 
+        /// <summary>
+        /// Get "{bucket}/{key}" from <see cref="GetObjectRequest"/>.
+        /// </summary>
+        /// <param name="getObjectRequest"></param>
+        /// <returns></returns>
         public static string AsBucketAndKey(this GetObjectRequest getObjectRequest) =>
             $"{getObjectRequest.BucketName}/{getObjectRequest.Key}";
 
+        /// <summary>
+        /// Convert <see cref="GetObjectResponse"/> to <see cref="ObjectFromBucket"/>
+        /// </summary>
         public static ObjectFromBucket AsObjectInBucket(this GetObjectResponse getObjectResponse,
             ObjectInBucket objectInBucket)
             => new ObjectFromBucket(
@@ -29,6 +43,16 @@ namespace DLCS.Repository.Storage.S3
                 getObjectResponse.ResponseStream,
                 getObjectResponse.Headers.AsObjectInBucketHeaders()
             );
+
+        /// <summary>
+        /// Convert <see cref="ObjectInBucket"/> to <see cref="GetObjectMetadataRequest"/>
+        /// </summary>
+        public static GetObjectMetadataRequest AsObjectMetadataRequest(this ObjectInBucket resource)
+            => new GetObjectMetadataRequest
+            {
+                BucketName = resource.Bucket,
+                Key = resource.Key,
+            };
 
         public static ObjectInBucketHeaders AsObjectInBucketHeaders(this HeadersCollection headersCollection)
             => new ObjectInBucketHeaders

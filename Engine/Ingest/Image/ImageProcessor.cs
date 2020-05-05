@@ -174,7 +174,7 @@ namespace Engine.Ingest.Image
                 throw new ApplicationException($"Failed to write jp2 {jp2File} to storage bucket");
             }
 
-            imageLocation.S3 = string.Format(engineSettings.S3Template, asset.Customer, asset.Space,
+            imageLocation.S3 = string.Format(engineSettings.ImageIngest.S3Template, asset.Customer, asset.Space,
                 asset.GetUniqueName());
             return imageLocation;
         }

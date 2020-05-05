@@ -1,5 +1,7 @@
 ﻿using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Core;
 
 namespace DLCS.Model.Storage
 {
@@ -40,5 +42,18 @@ namespace DLCS.Model.Storage
         /// </summary>
         /// <param name="toDelete">List of objects to delete</param>
         Task DeleteFromBucket(params ObjectInBucket[] toDelete);
+
+        /// <summary>
+        /// Copy large file from one bucket to another.
+        /// </summary>
+        /// <param name="source">Source item to copy.</param>
+        /// <param name="target">Where to copy item to.</param>
+        /// <param name="token">Cancellation token</param>
+        /// <returns><see>
+        ///         <cref>ResultStatus{long?}</cref>
+        ///     </see>
+        ///     representing success of call and file size</returns>
+        Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target,
+            CancellationToken token = default);
     }
 }

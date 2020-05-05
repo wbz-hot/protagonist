@@ -36,7 +36,7 @@ namespace Engine.Ingest.Models
         /// <summary>
         /// Serialized <see cref="Asset"/> as JSON.
         /// </summary>
-        public string AssetJson => Params.TryGetValue(AssetDictionaryKey, out var image) ? image : null;
+        public string? AssetJson => Params.TryGetValue(AssetDictionaryKey, out var image) ? image : null;
 
         [JsonConstructor]
         public IncomingIngestEvent(

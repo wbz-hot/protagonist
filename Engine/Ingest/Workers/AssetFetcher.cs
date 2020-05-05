@@ -33,6 +33,46 @@ namespace Engine.Ingest.Workers
              this.originStrategies = originStrategies.ToDictionary(k => k.Strategy, v => v);
         }
 
+        public async Task<AssetFromOrigin> CopyAssetToBucket(Asset asset, string destinationTemplate, bool verifySize,
+            bool fullBucketAccess, CancellationToken cancellationToken = default)
+        {
+            var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset, true);
+
+            if (fullBucketAccess && customerOriginStrategy.Strategy == OriginStrategy.S3Ambient)
+            {
+                // copy S3-S3
+                // use _something_ - IBucketReader?
+            }
+            
+            // TODO - have a different implementation of IAssetFetcher?
+            // TODO - this is all the same as the Image one.
+            if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
+            {
+                throw new InvalidOperationException(
+                    $"No OriginStrategy found for '{customerOriginStrategy.Strategy}' strategy (id: {customerOriginStrategy.Id})");
+            }
+            
+            // Copy to local disk
+            await using var originResponse =
+                await strategy.LoadAssetFromOrigin(asset, customerOriginStrategy, cancellationToken);
+            
+            if (originResponse == null || originResponse.Stream == Stream.Null)
+            {
+                // TODO correct type of exception?
+                logger.LogWarning("Unable to get asset {assetId} from origin using {strategy}", asset.Id, asset.Origin,
+                    strategy.Strategy);
+                throw new ApplicationException($"Unable to get asset '{asset.Id}' from origin '{asset.Origin}'");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var assetFromOrigin = await CopyAssetToDisk(asset, destinationTemplate, originResponse);
+            assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
+            
+            // copy to S3
+            
+            throw new NotImplementedException();
+        }
+
         public async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate, bool verifySize,
             CancellationToken cancellationToken = default)
         {

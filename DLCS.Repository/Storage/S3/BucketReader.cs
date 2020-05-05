@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -6,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using DLCS.Core;
 using DLCS.Core.Exceptions;
 using DLCS.Model.Storage;
 using Microsoft.Extensions.Configuration;
@@ -197,6 +200,117 @@ namespace DLCS.Repository.Storage.S3
                 logger.LogWarning(e,
                     "Unknown encountered on server. Message:'{Message}' when deleting objects from bucket", e.Message);
             }
+        }
+
+        /// <summary>
+        /// Copy a large file (>5GiB) between buckets.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="target"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        /// <remarks>See https://docs.aws.amazon.com/AmazonS3/latest/dev/CopyingObjctsUsingLLNetMPUapi.html </remarks>
+        public async Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target, CancellationToken token = default)
+        {
+            long objectSize = -1;
+            var partSize = 5 * (long) Math.Pow(2, 20); // 5 MB
+            var timer = Stopwatch.StartNew();
+            var success = false;
+
+            try
+            {
+                var initiateUploadTask = InitiateMultipartUpload(target);
+
+                var sourceMetadata = await GetObjectMetadata(source);
+                objectSize = sourceMetadata.ContentLength;
+
+                var numberOfParts = Convert.ToInt32(objectSize / partSize);
+                var copyResponses = new List<CopyPartResponse>(numberOfParts);
+
+                var uploadId = await initiateUploadTask;
+
+                long bytePosition = 0;
+                for (int i = 1; bytePosition < objectSize; i++)
+                {
+                    var copyRequest = new CopyPartRequest
+                    {
+                        DestinationBucket = target.Bucket,
+                        DestinationKey = target.Key,
+                        SourceBucket = source.Bucket,
+                        SourceKey = source.Key,
+                        UploadId = uploadId,
+                        FirstByte = bytePosition,
+                        LastByte = bytePosition + partSize - 1 >= objectSize
+                            ? objectSize - 1
+                            : bytePosition + partSize - 1,
+                        PartNumber = i
+                    };
+
+                    // TODO - do this in Task.WhenAll batches?
+                    copyResponses.Add(await s3Client.CopyPartAsync(copyRequest, token));
+                    bytePosition += partSize;
+
+                    if (token.IsCancellationRequested)
+                    {
+                        logger.LogInformation("Cancellation requested, aborting multipart upload for {target}", target);
+                        await s3Client.AbortMultipartUploadAsync(target.Bucket, target.Key, uploadId, token);
+                        return ResultStatus<long?>.Unsuccessful(objectSize);
+                    }
+                }
+
+                // Complete the request
+                var completeRequest = new CompleteMultipartUploadRequest
+                {
+                    Key = target.Key,
+                    BucketName = target.Bucket,
+                    UploadId = uploadId,
+                };
+                completeRequest.AddPartETags(copyResponses);
+                await s3Client.CompleteMultipartUploadAsync(completeRequest, token);
+                success = true;
+                return ResultStatus<long?>.Successful(objectSize);
+            }
+            catch (OverflowException e)
+            {
+                logger.LogError(e,
+                    "Error getting number of parts to copy. From '{source}' to '{destination}'. Size {size}", source,
+                    target, objectSize);
+            }
+            catch (AmazonS3Exception e)
+            {
+                logger.LogError(e,
+                    "S3 Error encountered copying bucket-bucket item. From '{source}' to '{destination}'",
+                    source, target);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e,
+                    "Error during multipart bucket-bucket copy. From '{source}' to '{destination}'", source, target);
+            }
+            finally
+            {
+                timer.Stop();
+                logger.LogInformation(
+                    success
+                        ? "Copied large file to '{target}' in {elapsed}ms."
+                        : "Failed to copy large file to '{target}'. Failed after {elapsed}ms.",
+                    target, timer.ElapsedMilliseconds);
+            }
+            
+            return ResultStatus<long?>.Unsuccessful(objectSize);
+        }
+
+        private async Task<string> InitiateMultipartUpload(ObjectInBucket target)
+        {
+            var request = new InitiateMultipartUploadRequest {BucketName = target.Bucket, Key = target.Key};
+            var response = await s3Client.InitiateMultipartUploadAsync(request);
+            return response.UploadId;
+        }
+
+        private Task<GetObjectMetadataResponse> GetObjectMetadata(ObjectInBucket resource)
+        {
+            var request = resource.AsObjectMetadataRequest();
+            return s3Client.GetObjectMetadataAsync(request);
         }
     }
 }

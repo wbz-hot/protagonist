@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Core;
 using DLCS.Model.Storage;
 using FluentAssertions.Execution;
 
@@ -138,6 +140,11 @@ namespace DLCS.Test.Helpers.Storage
             }
 
             return Task.CompletedTask;
+        }
+
+        public Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target, CancellationToken token = default)
+        {
+            throw new NotImplementedException();
         }
 
         public class BucketObject

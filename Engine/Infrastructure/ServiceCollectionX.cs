@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using Amazon.ElasticTranscoder;
 using Amazon.SQS;
 using AutoMapper;
 using DLCS.Model.Assets;
@@ -72,6 +73,7 @@ namespace Engine.Infrastructure
         {
             // TODO - if a/v and image ingestion deployed separately there will need to be some logic on registered deps
             services
+                .AddAWSService<IAmazonElasticTranscoder>()
                 .AddTransient<TimebasedIngesterWorker>()
                 .AddTransient<ImageIngesterWorker>()
                 .AddTransient<AssetIngester>()

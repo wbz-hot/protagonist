@@ -14,6 +14,8 @@ namespace Engine.Settings
         
         public string ThumbsTemplate { get; set; }
         
+        public string S3Template { get; set; }
+        
         public Uri ImageProcessorUrl { get; set; }
 
         public int ImageProcessorTimeoutMs { get; set; } = 300000;

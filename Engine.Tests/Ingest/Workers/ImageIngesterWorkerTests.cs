@@ -37,10 +37,10 @@ namespace Engine.Tests.Ingest.Workers
             var c = Path.DirectorySeparatorChar;
             engineSettings = new EngineSettings
             {
-                S3Template = "s3://eu-west-1/storage-bucket/{0}/{1}/{2}",
                 ScratchRoot = $".{c}scratch{c}",
                 ImageIngest = new ImageIngestSettings
                 {
+                    S3Template = "s3://eu-west-1/storage-bucket/{0}/{1}/{2}",
                     DestinationTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}",
                     SourceTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}",
                     ThumbsTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}thumb{c}",

@@ -19,6 +19,7 @@ namespace Engine.Ingest
         [HttpPost]
         public async Task<IActionResult> IngestImage([FromBody] IncomingIngestEvent message, CancellationToken cancellationToken)
         {
+            // TODO - throw if this is a 'T' request
             var result = await ingester.Ingest(message, cancellationToken);
 
             return ConvertToStatusCode(message, result);
