@@ -11,6 +11,7 @@ namespace Engine.Ingest
     {
         public Asset Asset { get; }
             
+        // TODO - should this be typed?
         public AssetFromOrigin AssetFromOrigin { get; }
         
         public ImageLocation ImageLocation { get; private set; }

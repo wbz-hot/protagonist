@@ -28,20 +28,19 @@ namespace Engine.Ingest.Workers
             this.logger = logger;
         }
         
-        public Task<AssetInBucket> CopyAsset(Asset asset, string destination, bool verifySize,
+        public Task<AssetInBucket> CopyAsset(Asset asset, string destinationTemplate, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
             // TODO - general error handling, logging, check success results from bucketReader
-            
-            // TODO - parse the destination for this and add _something_ to make it unique? (bucket:::key)
-            var target = new ObjectInBucket("", "");
+            var targetUri = string.Format(destinationTemplate, asset.Customer, asset.Space, asset.GetUniqueName());
+            var target = RegionalisedObjectInBucket.Parse(targetUri);
             
             if (ShouldCopyBucketToBucket(asset, customerOriginStrategy))
             {
-                return CopyBucketToBucket(asset, destination, target, cancellationToken);
+                return CopyBucketToBucket(asset, destinationTemplate, target, cancellationToken);
             }
 
-            return IndirectCopyBucketToBucket(asset, destination, verifySize, customerOriginStrategy, target, cancellationToken);
+            return IndirectCopyBucketToBucket(asset, destinationTemplate, verifySize, customerOriginStrategy, target, cancellationToken);
         }
 
         private bool ShouldCopyBucketToBucket(Asset asset, CustomerOriginStrategy customerOriginStrategy)
@@ -57,6 +56,7 @@ namespace Engine.Ingest.Workers
             ObjectInBucket target, CancellationToken cancellationToken)
         {
             var source = RegionalisedObjectInBucket.Parse(asset.GetIngestOrigin());
+            // TODO - throw if source null (couldn't be parsed)?
 
             // copy S3-S3
             var copyResult = await bucketReader.CopyLargeFileBetweenBuckets(source, target, cancellationToken);

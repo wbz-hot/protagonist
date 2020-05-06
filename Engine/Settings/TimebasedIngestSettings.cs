@@ -1,4 +1,6 @@
-﻿namespace Engine.Settings
+﻿using System.Collections.Generic;
+
+namespace Engine.Settings
 {
     /// <summary>
     /// Settings directly related to A/V ingestion.
@@ -6,8 +8,15 @@
     /// <remarks>These will be for ElasticTranscoder</remarks>
     public class TimebasedIngestSettings
     {
-        public string SourceBucket { get; set; }
+        public string S3InputTemplate { get; set; }
         
-        public string DestinationBucket { get; set; }
+        public string S3OutputTemplate { get; set; }
+
+        public string PipelineName { get; set; }
+        
+        /// <summary>
+        /// Mapping of 'friendly' to 'real' transcoder names
+        /// </summary>
+        public Dictionary<string, string> TranscoderMappings { get; set; } = new Dictionary<string, string>();
     }
 }

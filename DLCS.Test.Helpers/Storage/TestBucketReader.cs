@@ -142,7 +142,7 @@ namespace DLCS.Test.Helpers.Storage
             return Task.CompletedTask;
         }
 
-        public Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null)
+        public Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }

@@ -12,13 +12,13 @@ namespace Engine.Ingest.Workers
         /// Copy specified asset from Origin to destination folder.
         /// </summary>
         /// <param name="asset">Asset to be copied</param>
-        /// <param name="destination">Destination location.</param>
+        /// <param name="destinationTemplate">Destination location.</param>
         /// <param name="verifySize">Whether to verify that new asset-size is allowed.</param>
         /// <param name="customerOriginStrategy">Customer origin strategy to use for fetching asset.</param>
         /// <param name="cancellationToken"></param>
         /// <returns><see cref="AssetFromOrigin"/> object representing copied file.</returns>
         public Task<T> CopyAsset(Asset asset, 
-            string destination, 
+            string destinationTemplate, 
             bool verifySize,
             CustomerOriginStrategy customerOriginStrategy,
             CancellationToken cancellationToken = default);

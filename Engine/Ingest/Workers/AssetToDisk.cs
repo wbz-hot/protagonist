@@ -32,12 +32,12 @@ namespace Engine.Ingest.Workers
 
         public async Task<AssetOnDisk> CopyAsset(
             Asset asset, 
-            string destination, 
+            string destinationTemplate, 
             bool verifySize, 
             CustomerOriginStrategy customerOriginStrategy,
             CancellationToken cancellationToken = default)
         {
-            destination.ThrowIfNullOrWhiteSpace(nameof(destination));
+            destinationTemplate.ThrowIfNullOrWhiteSpace(nameof(destinationTemplate));
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
             {
@@ -57,7 +57,7 @@ namespace Engine.Ingest.Workers
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var assetFromOrigin = await CopyAssetToDisk(asset, destination, originResponse);
+            var assetFromOrigin = await CopyAssetToDisk(asset, destinationTemplate, originResponse);
             assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
 
             if (verifySize)

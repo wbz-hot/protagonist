@@ -33,11 +33,12 @@ namespace Engine.Ingest.Workers
             try
             {
                 // Check if the derivatives exist (based on customer overrides)
+                // upload those separately, but don't make a request to ElasticTranscoder
 
-                var sourceTemplate = GetBucketTarget(ingestAssetRequest.Asset);
+                var bucketTemplate = GetBucketTemplate(ingestAssetRequest.Asset);
                 var assetInBucket = await assetMover.CopyAsset(
                     ingestAssetRequest.Asset,
-                    sourceTemplate,
+                    bucketTemplate,
                     !SkipStoragePolicyCheck(ingestAssetRequest.Asset.Customer),
                     customerOriginStrategy,
                     cancellationToken);
@@ -51,19 +52,21 @@ namespace Engine.Ingest.Workers
                 }
                 /*
                  * create a new ElasticTranscoder job IF derivatives don't exist
+                 * Elastic transcoder 
                  */
+
+                return IngestResult.Success;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error ingesting image {assetId}", ingestAssetRequest.Asset.Id);
                 return IngestResult.Failed;
             }
-
-            throw new System.NotImplementedException();
         }
 
-        private string GetBucketTarget(Asset asset)
+        private string GetBucketTemplate(Asset asset)
         {
+            var template = engineSettings.TimebasedIngest.S3InputTemplate;
             throw new NotImplementedException();
         }
 
