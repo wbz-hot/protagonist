@@ -142,6 +142,11 @@ namespace DLCS.Test.Helpers.Storage
             return Task.CompletedTask;
         }
 
+        public Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target, CancellationToken token = default)
         {
             throw new NotImplementedException();

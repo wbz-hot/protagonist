@@ -22,12 +22,12 @@ namespace DLCS.Repository.Tests.Storage.S3
     public class BucketReaderTests
     {
         private readonly IAmazonS3 s3Client;
-        private readonly BucketReader sut;
+        private readonly S3BucketReader sut;
         
         public BucketReaderTests()
         {
             s3Client = A.Fake<IAmazonS3>();
-            sut = new BucketReader(s3Client, null, new NullLogger<BucketReader>());
+            sut = new S3BucketReader(s3Client, null, new NullLogger<S3BucketReader>());
         }
 
         [Fact]

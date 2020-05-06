@@ -36,7 +36,7 @@ namespace Engine
 
             services
                 .AddAWSService<IAmazonS3>()
-                .AddSingleton<IBucketReader, BucketReader>()
+                .AddSingleton<IBucketReader, S3BucketReader>()
                 .AddCors()
                 .AddLazyCache()
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())

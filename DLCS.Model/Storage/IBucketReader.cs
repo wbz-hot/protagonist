@@ -44,6 +44,14 @@ namespace DLCS.Model.Storage
         Task DeleteFromBucket(params ObjectInBucket[] toDelete);
 
         /// <summary>
+        /// Copy large file from disk to bucket.
+        /// </summary>
+        /// <param name="dest">Target object to write.</param>
+        /// <param name="filePath">File on disk to write to S3.</param>
+        /// <param name="contentType">Optional content type</param>
+        Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null);
+
+        /// <summary>
         /// Copy large file from one bucket to another.
         /// </summary>
         /// <param name="source">Source item to copy.</param>

@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Transfer;
 using DLCS.Core;
 using DLCS.Core.Exceptions;
 using DLCS.Model.Storage;
@@ -16,14 +17,14 @@ using Microsoft.Extensions.Logging;
 
 namespace DLCS.Repository.Storage.S3
 {
-    public class BucketReader : IBucketReader
+    public class S3BucketReader : IBucketReader
     {
         private readonly IAmazonS3 s3Client;
         private readonly IConfiguration configuration;
-        private readonly ILogger<BucketReader> logger;
+        private readonly ILogger<S3BucketReader> logger;
 
         // TODO - this implementation always assumes that bucket is in the same region
-        public BucketReader(IAmazonS3 s3Client, IConfiguration configuration, ILogger<BucketReader> logger)
+        public S3BucketReader(IAmazonS3 s3Client, IConfiguration configuration, ILogger<S3BucketReader> logger)
         {
             this.s3Client = s3Client;
             this.configuration = configuration;
@@ -200,6 +201,39 @@ namespace DLCS.Repository.Storage.S3
                 logger.LogWarning(e,
                     "Unknown encountered on server. Message:'{Message}' when deleting objects from bucket", e.Message);
             }
+        }
+
+        public async Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null)
+        {
+            try
+            {
+                // 1. Put object-specify only key name for the new object.
+                var uploadRequest = new TransferUtilityUploadRequest
+                {
+                    BucketName = dest.Bucket,
+                    Key = dest.Key,
+                    FilePath = filePath,
+                };
+
+                if (!string.IsNullOrEmpty(contentType))
+                {
+                    uploadRequest.ContentType = contentType;
+                }
+                
+                using var transferUtil = new TransferUtility(s3Client);
+                await transferUtil.UploadAsync(uploadRequest);
+                return true;
+            }
+            catch (AmazonS3Exception e)
+            {
+                logger.LogWarning(e, "S3 Error encountered writing large file to bucket. Key: '{key}'", dest);
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Unknown error encountered writing large file to bucket. Key: '{key}'", dest);
+            }
+
+            return false;
         }
 
         /// <summary>
