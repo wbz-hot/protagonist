@@ -91,7 +91,7 @@ namespace Engine.Ingest.Image
                 Operation = derivativesOnly ? "derivatives-only" : "ingest",
                 Optimisation = imageOptimisationPolicy.TechnicalDetails.FirstOrDefault(),
                 Origin = asset.Origin,
-                Source = context.AssetFromOrigin.RelativeLocationOnDisk,
+                Source = GetRelativeLocationOnDisk(context),
                 ImageId = asset.GetUniqueName(),
                 JobId = Guid.NewGuid().ToString(),
                 ThumbDir = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.ThumbsTemplate,
@@ -100,6 +100,20 @@ namespace Engine.Ingest.Image
             };
 
             return requestModel;
+        }
+        
+        private string GetRelativeLocationOnDisk(IngestionContext context)
+        {
+            var assetOnDisk = context.AssetFromOrigin.Location;
+            var extension = assetOnDisk.Substring(assetOnDisk.LastIndexOf(".", StringComparison.Ordinal) + 1);
+
+            // this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
+            var unixRoot = engineSettings.GetRoot(true);
+            var unixPath = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.SourceTemplate,
+                unixRoot, context.Asset);
+
+            unixPath += $".{extension}";
+            return unixPath;
         }
 
         private string GetJP2File(Asset asset, bool forImageProcessor)
@@ -166,7 +180,7 @@ namespace Engine.Ingest.Image
                 context.Asset.GetStorageKey());
 
             // if derivatives-only, no new JP2 will have been generated so use the 'origin' file
-            var jp2File = derivativesOnly ? context.AssetFromOrigin.LocationOnDisk : GetJP2File(context.Asset, false);
+            var jp2File = derivativesOnly ? context.AssetFromOrigin.Location : GetJP2File(context.Asset, false);
             
             // Not optimised - upload JP2 to S3 and set ImageLocation to new bucket location
             if (!await bucketReader.WriteFileToBucket(jp2BucketObject, jp2File))

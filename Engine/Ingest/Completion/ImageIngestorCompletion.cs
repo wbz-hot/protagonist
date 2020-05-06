@@ -39,7 +39,7 @@ namespace Engine.Ingest.Completion
             }
             
             // Processing has occurred, clear down the root folder used for processing
-            CleanupWorkingAssets(sourceTemplate, context.AssetFromOrigin.LocationOnDisk);
+            CleanupWorkingAssets(sourceTemplate, context.AssetFromOrigin.Location);
 
             return success;
         }

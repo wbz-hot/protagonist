@@ -15,9 +15,9 @@ namespace DLCS.Model.Storage
         /// <summary>
         /// The object key within Bucket that this object is for.
         /// </summary>
-        public string Key { get; }
+        public string? Key { get; }
 
-        public ObjectInBucket(string bucket, string key = null)
+        public ObjectInBucket(string bucket, string? key = null)
         {
             Bucket = bucket.ThrowIfNullOrWhiteSpace(nameof(bucket));
             Key = key;

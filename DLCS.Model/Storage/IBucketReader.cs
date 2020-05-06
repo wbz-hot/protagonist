@@ -49,7 +49,9 @@ namespace DLCS.Model.Storage
         /// <param name="dest">Target object to write.</param>
         /// <param name="filePath">File on disk to write to S3.</param>
         /// <param name="contentType">Optional content type</param>
-        Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null);
+        /// <param name="token">Cancellation token</param>
+        Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null,
+            CancellationToken token = default);
 
         /// <summary>
         /// Copy large file from one bucket to another.

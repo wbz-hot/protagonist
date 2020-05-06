@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Model.Customer;
 using Engine.Ingest.Models;
 
 namespace Engine.Ingest.Workers
@@ -13,6 +14,7 @@ namespace Engine.Ingest.Workers
         /// Ingest provided asset
         /// </summary>
         Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
+            CustomerOriginStrategy customerOriginStrategy,
             CancellationToken cancellationToken = default);
     }
 

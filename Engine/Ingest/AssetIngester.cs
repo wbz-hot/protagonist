@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
+using DLCS.Model.Customer;
+using DLCS.Model.Policies;
 using Engine.Ingest.Models;
+using Engine.Ingest.Strategy;
 using Engine.Ingest.Workers;
 using Microsoft.Extensions.Logging;
 
@@ -21,11 +25,19 @@ namespace Engine.Ingest
     {
         private readonly IngestorResolver resolver;
         private readonly ILogger<AssetIngester> logger;
+        private readonly ICustomerOriginRepository customerOriginRepository;
+        private readonly IPolicyRepository policyRepository;
 
-        public AssetIngester(IngestorResolver resolver, ILogger<AssetIngester> logger)
+        public AssetIngester(
+            IngestorResolver resolver, 
+            ILogger<AssetIngester> logger,
+            ICustomerOriginRepository customerOriginRepository,
+            IPolicyRepository policyRepository)
         {
             this.resolver = resolver;
             this.logger = logger;
+            this.customerOriginRepository = customerOriginRepository;
+            this.policyRepository = policyRepository;
         }
         
         /// <summary>
@@ -51,13 +63,19 @@ namespace Engine.Ingest
         /// Run ingest based on <see cref="IngestAssetRequest"/>.
         /// </summary>
         /// <returns>Result of ingest operations</returns>
-        public Task<IngestResult> Ingest(IngestAssetRequest request, CancellationToken cancellationToken)
+        public async Task<IngestResult> Ingest(IngestAssetRequest request, CancellationToken cancellationToken)
         {
-            var ingestor = resolver(request.Asset.Family);
+            // TODO - the true param here may be false if reingesting??
+            var getCustomerOriginStrategy = customerOriginRepository.GetCustomerOriginStrategy(request.Asset, true);
             
-            // TODO - get the CustomerOriginStrategy and add it to the context here?
+            // set Thumbnail and ImageOptimisation policies
+            var setAssetPolicies = policyRepository.HydrateAssetPolicies(request.Asset, AssetPolicies.All);
+            
+            var ingestor = resolver(request.Asset.Family);
 
-            return ingestor.Ingest(request, cancellationToken);
+            await Task.WhenAll(getCustomerOriginStrategy, setAssetPolicies);
+
+            return await ingestor.Ingest(request, getCustomerOriginStrategy.Result, cancellationToken);
         }
     }
 }

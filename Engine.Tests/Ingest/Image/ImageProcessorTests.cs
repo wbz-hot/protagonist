@@ -91,7 +91,7 @@ namespace Engine.Tests.Ingest.Image
             // Arrange
             httpHandler.SetResponse(new HttpResponseMessage(HttpStatusCode.InternalServerError));
             var context = GetIngestionContext(contentType);
-            context.AssetFromOrigin.LocationOnDisk = "/file/on/disk";
+            context.AssetFromOrigin.Location = "/file/on/disk";
             
             ImageProcessorRequestModel requestModel = null;
             httpHandler.RegisterCallback(async message =>
@@ -202,7 +202,7 @@ namespace Engine.Tests.Ingest.Image
             const string locationOnDisk = "/file/on/disk";
             var context = GetIngestionContext("image/jp2");
             context.Asset.Id = "/1/2/test";
-            context.AssetFromOrigin.LocationOnDisk = locationOnDisk;
+            context.AssetFromOrigin.Location = locationOnDisk;
             context.AssetFromOrigin.CustomerOriginStrategy = new CustomerOriginStrategy
             {
                 Strategy = OriginStrategy.Default
@@ -310,7 +310,7 @@ namespace Engine.Tests.Ingest.Image
                 .WithThumbnailPolicy(new ThumbnailPolicy());
 
             var context = new IngestionContext(asset,
-                new AssetFromOrigin("asset-id", 123, "./scratch/here.jpg", contentType));
+                new AssetOnDisk("asset-id", 123, "./scratch/here.jpg", contentType));
             return context;
         }
     }

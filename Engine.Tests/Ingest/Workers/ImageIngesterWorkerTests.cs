@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
+using DLCS.Model.Customer;
 using DLCS.Model.Policies;
 using DLCS.Test.Helpers.Settings;
 using Engine.Ingest;
@@ -23,11 +24,10 @@ namespace Engine.Tests.Ingest.Workers
     [Trait("Requires", "FileAccess")]
     public class ImageIngesterWorkerTests
     {
-        private readonly IAssetFetcher assetFetcher;
+        private readonly IAssetMover<AssetOnDisk> assetMover;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
         private readonly IIngestorCompletion ingestorCompletion;
         private readonly FakeImageProcessor imageProcessor;
-        private readonly IPolicyRepository policyRepository;
         private readonly ILogger<ImageIngesterWorker> logger;
         private readonly ImageIngesterWorker sut;
         private EngineSettings engineSettings;
@@ -48,12 +48,11 @@ namespace Engine.Tests.Ingest.Workers
             };
             var optionsMonitor = OptionsHelpers.GetOptionsMonitor(engineSettings);
 
-            assetFetcher = A.Fake<IAssetFetcher>();
+            assetMover = A.Fake<IAssetMover<AssetOnDisk>>();
             ingestorCompletion = A.Fake<IIngestorCompletion>();
             imageProcessor = new FakeImageProcessor();
-            policyRepository = A.Fake<IPolicyRepository>();
             
-            sut = new ImageIngesterWorker(imageProcessor, assetFetcher, policyRepository,optionsMonitor,
+            sut = new ImageIngesterWorker(imageProcessor, assetMover, optionsMonitor,
                 ingestorCompletion, new NullLogger<ImageIngesterWorker>());
         }
 
@@ -61,11 +60,11 @@ namespace Engine.Tests.Ingest.Workers
         public async Task Ingest_ReturnsFailed_IfFetcherFailed()
         {
             // Arrange
-            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
+            A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
                 .ThrowsAsync(new ArgumentNullException());
             
             // Act
-            var result = await sut.Ingest(new IngestAssetRequest(new Asset(), new DateTime()));
+            var result = await sut.Ingest(new IngestAssetRequest(new Asset(), new DateTime()), new CustomerOriginStrategy());
             
             // Assert
             result.Should().Be(IngestResult.Failed);
@@ -83,16 +82,16 @@ namespace Engine.Tests.Ingest.Workers
             {
                 NoStoragePolicyCheck = noStoragePolicyCheck
             });
-            var assetFromOrigin = new AssetFromOrigin(asset.Id, 13, "/target/location", "application/json");
-            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, A<bool>._, A<CancellationToken>._))
+            var assetFromOrigin = new AssetOnDisk(asset.Id, 13, "/target/location", "application/json");
+            A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, A<bool>._, A<CustomerOriginStrategy>._, A<CancellationToken>._))
                 .Returns(assetFromOrigin);
 
             // Act
-            await sut.Ingest(new IngestAssetRequest(asset, new DateTime()));
+            await sut.Ingest(new IngestAssetRequest(asset, new DateTime()), new CustomerOriginStrategy());
 
             // Assert
             A.CallTo(() =>
-                    assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, !noStoragePolicyCheck,
+                    assetMover.CopyAsset(A<Asset>._, A<string>._, !noStoragePolicyCheck, A<CustomerOriginStrategy>._,
                         A<CancellationToken>._))
                 .MustHaveHappened();
         }
@@ -102,13 +101,13 @@ namespace Engine.Tests.Ingest.Workers
         {
             // Arrange
             var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
-            var assetFromOrigin = new AssetFromOrigin(asset.Id, 13, "/target/location", "application/json");
+            var assetFromOrigin = new AssetOnDisk(asset.Id, 13, "/target/location", "application/json");
             assetFromOrigin.FileTooLarge();
-            A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
+            A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
                 .Returns(assetFromOrigin);
             
             // Act
-            var result = await sut.Ingest(new IngestAssetRequest(asset, DateTime.Now));
+            var result = await sut.Ingest(new IngestAssetRequest(asset, DateTime.Now), new CustomerOriginStrategy());
             
             // Assert
             A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, false, A<string>._))
@@ -129,12 +128,12 @@ namespace Engine.Tests.Ingest.Workers
                 var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
-                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
-                    .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
+                A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
+                    .Returns(new AssetOnDisk(asset.Id, 13, target, "application/json"));
                 imageProcessor.ReturnValue = imageProcessSuccess;
 
                 // Act
-                await sut.Ingest(new IngestAssetRequest(asset, new DateTime()));
+                await sut.Ingest(new IngestAssetRequest(asset, new DateTime()), new CustomerOriginStrategy());
                 
                 // Assert
                 A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
@@ -163,8 +162,8 @@ namespace Engine.Tests.Ingest.Workers
                 var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
-                A.CallTo(() => assetFetcher.CopyAssetToDisk(A<Asset>._, A<string>._, true, A<CancellationToken>._))
-                    .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
+                A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
+                    .Returns(new AssetOnDisk(asset.Id, 13, target, "application/json"));
 
                 A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
                     .Returns(completeResult);
@@ -172,7 +171,7 @@ namespace Engine.Tests.Ingest.Workers
                 imageProcessor.ReturnValue = imageProcessSuccess;
 
                 // Act
-                var result = await sut.Ingest(new IngestAssetRequest(asset, new DateTime()));
+                var result = await sut.Ingest(new IngestAssetRequest(asset, new DateTime()), new CustomerOriginStrategy());
 
                 // Assert
                 result.Should().Be(expected);

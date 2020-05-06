@@ -48,7 +48,7 @@ namespace Engine.Tests.Ingest.Completion
             var asset = new Asset {Id = "2/1/foo-bar", Customer = 2, Space = 1};
             var imageLocation = new ImageLocation {Id = asset.Id};
             var imageStorage = new ImageStorage {Id = asset.Id};
-            var context = new IngestionContext(asset, new AssetFromOrigin("213", 0, null, null));
+            var context = new IngestionContext(asset, new AssetOnDisk("213", 0, null, null));
             context.WithLocation(imageLocation).WithStorage(imageStorage);
             
             // Act
@@ -80,7 +80,7 @@ namespace Engine.Tests.Ingest.Completion
             var asset = new Asset {Id = "2/1/foo-bar", Customer = 2, Space = 1};
             var imageLocation = new ImageLocation {Id = asset.Id};
             var imageStorage = new ImageStorage {Id = asset.Id};
-            var context = new IngestionContext(asset, new AssetFromOrigin("213", 0, null, null));
+            var context = new IngestionContext(asset, new AssetOnDisk("213", 0, null, null));
             context.WithLocation(imageLocation).WithStorage(imageStorage);
             engineSettings.OrchestrateImageAfterIngest = theDefault;
             engineSettings.CustomerOverrides.Add(asset.Customer.ToString(),
@@ -105,7 +105,7 @@ namespace Engine.Tests.Ingest.Completion
             var asset = new Asset {Id = "2/1/foo-bar", Customer = 2, Space = 1};
             var imageLocation = new ImageLocation {Id = asset.Id};
             var imageStorage = new ImageStorage {Id = asset.Id};
-            var context = new IngestionContext(asset, new AssetFromOrigin("213", 0, null, null));
+            var context = new IngestionContext(asset, new AssetOnDisk("213", 0, null, null));
             context.WithLocation(imageLocation).WithStorage(imageStorage);
             engineSettings.OrchestrateImageAfterIngest = theDefault;
             engineSettings.CustomerOverrides.Add(asset.Customer.ToString(),

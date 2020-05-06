@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Model.Assets;
+using DLCS.Model.Customer;
 using Engine.Ingest.Models;
 using Engine.Settings;
 using Microsoft.Extensions.Logging;
@@ -10,40 +12,46 @@ namespace Engine.Ingest.Workers
 {
     public class TimebasedIngesterWorker : IAssetIngesterWorker
     {
-        private readonly IAssetFetcher assetFetcher;
+        private readonly IAssetMover<AssetInBucket> assetMover;
         private readonly EngineSettings engineSettings;
         private readonly ILogger<TimebasedIngesterWorker> logger;
 
         public TimebasedIngesterWorker(
-            IAssetFetcher assetFetcher,
+            IAssetMover<AssetInBucket> assetMover,
             IOptionsMonitor<EngineSettings> engineOptions,
             ILogger<TimebasedIngesterWorker> logger)
         {
-            this.assetFetcher = assetFetcher;
+            this.assetMover = assetMover;
             engineSettings = engineOptions.CurrentValue;
             this.logger = logger;
         }
 
-        public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest, CancellationToken cancellationToken)
+        public async Task<IngestResult> Ingest(IngestAssetRequest ingestAssetRequest,
+            CustomerOriginStrategy customerOriginStrategy,
+            CancellationToken cancellationToken = default)
         {
-            /*
-             * fire fetch-from-origin if we aren't a full-bucket-access audio/video item (and source is s3)
-             * then copy from local to s3
-             *
-             * if full-bucket-access then do an s3-s3 copy
-             *
-             * then create a new ElasticTranscoder job
-             */
-
             try
             {
-                var customerOverride = GetCustomerOverrideSettings(ingestAssetRequest.Asset.Customer);
+                // Check if the derivatives exist (based on customer overrides)
 
-                // need to know customerOriginStrategy here?
-                if (customerOverride.FullBucketAccess)
+                var sourceTemplate = GetBucketTarget(ingestAssetRequest.Asset);
+                var assetInBucket = await assetMover.CopyAsset(
+                    ingestAssetRequest.Asset,
+                    sourceTemplate,
+                    !SkipStoragePolicyCheck(ingestAssetRequest.Asset.Customer),
+                    customerOriginStrategy,
+                    cancellationToken);
+                
+                var context = new IngestionContext(ingestAssetRequest.Asset, assetInBucket);
+                if (assetInBucket.FileExceedsAllowance)
                 {
-                    
+                    ingestAssetRequest.Asset.Error = "StoragePolicy size limit exceeded";
+                    // await imageCompletion.CompleteIngestion(context, false, sourceTemplate);
+                    return IngestResult.Failed;
                 }
+                /*
+                 * create a new ElasticTranscoder job IF derivatives don't exist
+                 */
             }
             catch (Exception ex)
             {
@@ -54,7 +62,15 @@ namespace Engine.Ingest.Workers
             throw new System.NotImplementedException();
         }
 
-        private CustomerOverridesSettings GetCustomerOverrideSettings(int customerId)
-            => engineSettings.GetCustomerSettings(customerId);
+        private string GetBucketTarget(Asset asset)
+        {
+            throw new NotImplementedException();
+        }
+
+        private bool SkipStoragePolicyCheck(int customerId)
+        {
+            var customerSpecific = engineSettings.GetCustomerSettings(customerId);
+            return customerSpecific.NoStoragePolicyCheck;
+        }
     }
 }

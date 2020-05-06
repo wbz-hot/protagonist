@@ -84,7 +84,8 @@ namespace Engine.Infrastructure
                     AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
                     _ => throw new KeyNotFoundException()
                 })
-                .AddTransient<IAssetFetcher, AssetFetcher>()
+                .AddTransient<IAssetMover<AssetOnDisk>, AssetToDisk>()
+                .AddTransient<IAssetMover<AssetInBucket>, AssetToS3>()
                 .AddTransient<IOriginStrategy, S3AmbientOriginStrategy>()
                 .AddSingleton<IOriginStrategy, DefaultOriginStrategy>()
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()

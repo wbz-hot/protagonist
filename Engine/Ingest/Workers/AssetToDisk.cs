@@ -14,71 +14,30 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Ingest.Workers
 {
-    public class AssetFetcher : IAssetFetcher
+    public class AssetToDisk : IAssetMover<AssetOnDisk>
     {
-        private readonly ICustomerOriginRepository customerOriginRepository;
         private readonly ICustomerStorageRepository customerStorageRepository;
-        private readonly ILogger<AssetFetcher> logger;
+        private readonly ILogger<AssetToDisk> logger;
         private readonly Dictionary<OriginStrategy, IOriginStrategy> originStrategies;
 
-        public AssetFetcher(
-            ICustomerOriginRepository customerOriginRepository,
+        public AssetToDisk(
             IEnumerable<IOriginStrategy> originStrategies,
             ICustomerStorageRepository customerStorageRepository,
-            ILogger<AssetFetcher> logger)
+            ILogger<AssetToDisk> logger)
         {
-             this.customerOriginRepository = customerOriginRepository;
              this.customerStorageRepository = customerStorageRepository;
              this.logger = logger;
              this.originStrategies = originStrategies.ToDictionary(k => k.Strategy, v => v);
         }
 
-        public async Task<AssetFromOrigin> CopyAssetToBucket(Asset asset, string destinationTemplate, bool verifySize,
-            bool fullBucketAccess, CancellationToken cancellationToken = default)
-        {
-            var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset, true);
-
-            if (fullBucketAccess && customerOriginStrategy.Strategy == OriginStrategy.S3Ambient)
-            {
-                // copy S3-S3
-                // use _something_ - IBucketReader?
-            }
-            
-            // TODO - have a different implementation of IAssetFetcher?
-            // TODO - this is all the same as the Image one.
-            if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
-            {
-                throw new InvalidOperationException(
-                    $"No OriginStrategy found for '{customerOriginStrategy.Strategy}' strategy (id: {customerOriginStrategy.Id})");
-            }
-            
-            // Copy to local disk
-            await using var originResponse =
-                await strategy.LoadAssetFromOrigin(asset, customerOriginStrategy, cancellationToken);
-            
-            if (originResponse == null || originResponse.Stream == Stream.Null)
-            {
-                // TODO correct type of exception?
-                logger.LogWarning("Unable to get asset {assetId} from origin using {strategy}", asset.Id, asset.Origin,
-                    strategy.Strategy);
-                throw new ApplicationException($"Unable to get asset '{asset.Id}' from origin '{asset.Origin}'");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var assetFromOrigin = await CopyAssetToDisk(asset, destinationTemplate, originResponse);
-            assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
-            
-            // copy to S3
-            
-            throw new NotImplementedException();
-        }
-
-        public async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate, bool verifySize,
+        public async Task<AssetOnDisk> CopyAsset(
+            Asset asset, 
+            string destination, 
+            bool verifySize, 
+            CustomerOriginStrategy customerOriginStrategy,
             CancellationToken cancellationToken = default)
         {
-            destinationTemplate.ThrowIfNullOrWhiteSpace(nameof(destinationTemplate));
-
-            var customerOriginStrategy = await customerOriginRepository.GetCustomerOriginStrategy(asset, true);
+            destination.ThrowIfNullOrWhiteSpace(nameof(destination));
 
             if (!originStrategies.TryGetValue(customerOriginStrategy.Strategy, out var strategy))
             {
@@ -98,7 +57,7 @@ namespace Engine.Ingest.Workers
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var assetFromOrigin = await CopyAssetToDisk(asset, destinationTemplate, originResponse);
+            var assetFromOrigin = await CopyAssetToDisk(asset, destination, originResponse);
             assetFromOrigin.CustomerOriginStrategy = customerOriginStrategy;
 
             if (verifySize)
@@ -109,7 +68,7 @@ namespace Engine.Ingest.Workers
             return assetFromOrigin;
         }
 
-        private async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate, OriginResponse originResponse)
+        private async Task<AssetOnDisk> CopyAssetToDisk(Asset asset, string destinationTemplate, OriginResponse originResponse)
         {
             TrySetContentTypeForBinary(originResponse, asset);
             
@@ -150,7 +109,7 @@ namespace Engine.Ingest.Workers
                     asset.Id, targetPath, received, sw.ElapsedMilliseconds,
                     knownFileSize ? "framework-copy" : "manual-copy");
 
-                return new AssetFromOrigin(asset.Id, received, targetPath, originResponse.ContentType);
+                return new AssetOnDisk(asset.Id, received, targetPath, originResponse.ContentType);
             }
             catch (Exception ex)
             {
@@ -212,7 +171,6 @@ namespace Engine.Ingest.Workers
 
         private async Task VerifyFileSize(Asset asset, AssetFromOrigin assetFromOrigin)
         {
-            // TODO - this might not need to happen, depending on whether the thing is whatever
             var customerHasEnoughSize = await customerStorageRepository.VerifyStoragePolicyBySize(asset.Customer,
                 assetFromOrigin.AssetSize);
 

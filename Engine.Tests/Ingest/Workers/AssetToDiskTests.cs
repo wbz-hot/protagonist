@@ -15,16 +15,14 @@ using Xunit;
 
 namespace Engine.Tests.Ingest.Workers
 {
-    public class AssetFetcherTests
+    public class AssetToDiskTests
     {
-        private readonly AssetFetcher sut;
-        private readonly ICustomerOriginRepository customerOriginRepository;
+        private readonly AssetToDisk sut;
         private readonly IOriginStrategy customerOriginStrategy;
         private readonly ICustomerStorageRepository customerStorageRepository;
 
-        public AssetFetcherTests()
+        public AssetToDiskTests()
         {
-            customerOriginRepository = A.Fake<ICustomerOriginRepository>();
             customerStorageRepository = A.Fake<ICustomerStorageRepository>();
             
             // For unit-test only s3ambient will be mocked
@@ -32,8 +30,8 @@ namespace Engine.Tests.Ingest.Workers
             A.CallTo(() => customerOriginStrategy.Strategy).Returns(OriginStrategy.S3Ambient);
             var originStrategies = new[] {customerOriginStrategy};
 
-            sut = new AssetFetcher(customerOriginRepository, originStrategies, customerStorageRepository,
-                new NullLogger<AssetFetcher>());
+            sut = new AssetToDisk(originStrategies, customerStorageRepository,
+                new NullLogger<AssetToDisk>());
         }
 
         [Theory]
@@ -43,7 +41,7 @@ namespace Engine.Tests.Ingest.Workers
         public void CopyAssetFromOrigin_Throws_IfDestinationFolderNullOrEmpty(string destinationFolder)
         {
             // Act
-            Func<Task> action = () => sut.CopyAssetToDisk(new Asset(), destinationFolder, true);
+            Func<Task> action = () => sut.CopyAsset(new Asset(), destinationFolder, true, new CustomerOriginStrategy());
             
             // Assert
             action.Should()
@@ -51,36 +49,17 @@ namespace Engine.Tests.Ingest.Workers
                 .WithMessage("Value cannot be null. (Parameter 'destinationTemplate')");
         }
 
-        [Theory]
-        [InlineData(OriginStrategy.Default)]
-        [InlineData(OriginStrategy.BasicHttp)]
-        [InlineData(OriginStrategy.SFTP)]
-        public void CopyAssetFromOrigin_Throws_CustomerOriginStrategyImplementationNotFound(OriginStrategy strategy)
-        {
-            // Arrange
-            var asset = new Asset();
-            var cos = new CustomerOriginStrategy {Strategy = strategy};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
-            
-            // Act
-            Func<Task> action = () => sut.CopyAssetToDisk(asset, "./here", true);
-            
-            // Assert
-            action.Should().Throw<InvalidOperationException>();
-        }
-        
         [Fact]
         public void CopyAssetFromOrigin_Throws_IfOriginReturnsNull()
         {
             // Arrange
             var asset = new Asset {Id = "/2/1/godzilla"};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns<OriginResponse>(null);
             
             // Act
-            Func<Task> action = () => sut.CopyAssetToDisk(asset, "./here", true);
+            Func<Task> action = () => sut.CopyAsset(asset, "./here", true, cos);
             
             // Assert
             action.Should().Throw<ApplicationException>();
@@ -92,12 +71,11 @@ namespace Engine.Tests.Ingest.Workers
             // Arrange
             var asset = new Asset {Id = "/2/1/godzilla"};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(new OriginResponse(Stream.Null));
             
             // Act
-            Func<Task> action = () => sut.CopyAssetToDisk(asset, "./here", true);
+            Func<Task> action = () => sut.CopyAsset(asset, "./here", true, cos);
             
             // Assert
             action.Should().Throw<ApplicationException>();
@@ -111,7 +89,6 @@ namespace Engine.Tests.Ingest.Workers
             var destination = Path.Join(".", "2", "1", "godzilla");
             var asset = new Asset {Id = "/2/1/godzilla", Customer = 2, Space = 1};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
             var originResponse = new OriginResponse(responseStream).WithContentType("application/json");
@@ -121,12 +98,12 @@ namespace Engine.Tests.Ingest.Workers
             var expectedOutput = Path.Join(".", "2", "1", "godzilla.file");
             
             // Act
-            var response = await sut.CopyAssetToDisk(asset, destination, false);
+            var response = await sut.CopyAsset(asset, destination, false, cos);
             
             // Assert
             File.Exists(expectedOutput).Should().BeTrue();
             File.Delete(expectedOutput);
-            response.LocationOnDisk.Should().Be(expectedOutput);
+            response.Location.Should().Be(expectedOutput);
             response.ContentType.Should().Be("application/json");
             response.AssetSize.Should().BeGreaterThan(0);
             response.AssetId.Should().Be(asset.Id);
@@ -141,7 +118,6 @@ namespace Engine.Tests.Ingest.Workers
             var destination = Path.Join(".", "2", "1", "godzilla1");
             var asset = new Asset {Id = "/2/1/godzilla1", Customer = 2, Space = 1};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
             var originResponse = new OriginResponse(responseStream)
@@ -153,12 +129,12 @@ namespace Engine.Tests.Ingest.Workers
             var expectedOutput = Path.Join(".", "2", "1", "godzilla1.file");
             
             // Act
-            var response = await sut.CopyAssetToDisk(asset, destination, false);
+            var response = await sut.CopyAsset(asset, destination, false, cos);
             
             // Assert
             File.Exists(expectedOutput).Should().BeTrue();
             File.Delete(expectedOutput);
-            response.LocationOnDisk.Should().Be(expectedOutput);
+            response.Location.Should().Be(expectedOutput);
             response.ContentType.Should().Be("application/json");
             response.AssetSize.Should().Be(8);
             response.AssetId.Should().Be(asset.Id);
@@ -176,7 +152,6 @@ namespace Engine.Tests.Ingest.Workers
             var destination = Path.Join(".", "2", "1", "godzilla.jp2");
             var asset = new Asset {Id = "/2/1/godzilla.jp2", Customer = 2, Space = 1};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
             var originResponse = new OriginResponse(responseStream)
@@ -188,7 +163,7 @@ namespace Engine.Tests.Ingest.Workers
             var expectedOutput = Path.Join(".", "2", "1", $"godzilla.jp2.{extension}");
             
             // Act
-            var response = await sut.CopyAssetToDisk(asset, destination, false);
+            var response = await sut.CopyAsset(asset, destination, false, cos);
             
             // Assert
             File.Exists(expectedOutput).Should().BeTrue();
@@ -207,7 +182,6 @@ namespace Engine.Tests.Ingest.Workers
             var destination = Path.Join(".", "2", "1", "godzilla.jp2");
             var asset = new Asset {Id = "/2/1/godzilla.jp2", Customer = 2, Space = 1};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
             var originResponse = new OriginResponse(responseStream)
@@ -219,7 +193,7 @@ namespace Engine.Tests.Ingest.Workers
             var expectedOutput = Path.Join(".", "2", "1", "godzilla.jp2");
             
             // Act
-            var response = await sut.CopyAssetToDisk(asset, destination, false);
+            var response = await sut.CopyAsset(asset, destination, false, cos);
             
             // Assert
             File.Delete(expectedOutput);
@@ -236,7 +210,6 @@ namespace Engine.Tests.Ingest.Workers
             var destination = Path.Join(".", "2", "1", "godzilla");
             var asset = new Asset {Id = "/2/1/godzilla", Customer = 2, Space = 1};
             var cos = new CustomerOriginStrategy {Strategy = OriginStrategy.S3Ambient};
-            A.CallTo(() => customerOriginRepository.GetCustomerOriginStrategy(asset, true)).Returns(cos);
             
             var responseStream = "{\"foo\":\"bar\"}".ToMemoryStream();
             var originResponse = new OriginResponse(responseStream).WithContentType("application/json");
@@ -249,7 +222,7 @@ namespace Engine.Tests.Ingest.Workers
                 .Returns(isValid);
             
             // Act
-            var response = await sut.CopyAssetToDisk(asset, destination, true);
+            var response = await sut.CopyAsset(asset, destination, true, cos);
             
             // Assert
             File.Exists(expectedOutput).Should().BeTrue();

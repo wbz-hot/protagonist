@@ -203,7 +203,8 @@ namespace DLCS.Repository.Storage.S3
             }
         }
 
-        public async Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null)
+        public async Task<bool> WriteLargeFileToBucket(ObjectInBucket dest, string filePath, string? contentType = null,
+            CancellationToken token = default)
         {
             try
             {
@@ -221,7 +222,7 @@ namespace DLCS.Repository.Storage.S3
                 }
                 
                 using var transferUtil = new TransferUtility(s3Client);
-                await transferUtil.UploadAsync(uploadRequest);
+                await transferUtil.UploadAsync(uploadRequest, token);
                 return true;
             }
             catch (AmazonS3Exception e)
