@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using Engine.Ingest.Models;
+using Engine.Ingest.Timebased;
 using Engine.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,15 +14,18 @@ namespace Engine.Ingest.Workers
     public class TimebasedIngesterWorker : IAssetIngesterWorker
     {
         private readonly IAssetMover<AssetInBucket> assetMover;
+        private readonly IMediaTranscoder mediaTranscoder;
         private readonly EngineSettings engineSettings;
         private readonly ILogger<TimebasedIngesterWorker> logger;
 
         public TimebasedIngesterWorker(
             IAssetMover<AssetInBucket> assetMover,
             IOptionsMonitor<EngineSettings> engineOptions,
+            IMediaTranscoder mediaTranscoder,
             ILogger<TimebasedIngesterWorker> logger)
         {
             this.assetMover = assetMover;
+            this.mediaTranscoder = mediaTranscoder;
             engineSettings = engineOptions.CurrentValue;
             this.logger = logger;
         }
@@ -32,13 +36,9 @@ namespace Engine.Ingest.Workers
         {
             try
             {
-                // Check if the derivatives exist (based on customer overrides)
-                // upload those separately, but don't make a request to ElasticTranscoder
-
-                var bucketTemplate = GetBucketTemplate(ingestAssetRequest.Asset);
                 var assetInBucket = await assetMover.CopyAsset(
                     ingestAssetRequest.Asset,
-                    bucketTemplate,
+                    engineSettings.TimebasedIngest.S3InputTemplate,
                     !SkipStoragePolicyCheck(ingestAssetRequest.Asset.Customer),
                     customerOriginStrategy,
                     cancellationToken);
@@ -50,24 +50,15 @@ namespace Engine.Ingest.Workers
                     // await imageCompletion.CompleteIngestion(context, false, sourceTemplate);
                     return IngestResult.Failed;
                 }
-                /*
-                 * create a new ElasticTranscoder job IF derivatives don't exist
-                 * Elastic transcoder 
-                 */
 
-                return IngestResult.Success;
+                var success = await mediaTranscoder.InitiateTranscodeOperation(context, cancellationToken);
+                return success ? IngestResult.QueuedForProcessing : IngestResult.Failed;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error ingesting image {assetId}", ingestAssetRequest.Asset.Id);
                 return IngestResult.Failed;
             }
-        }
-
-        private string GetBucketTemplate(Asset asset)
-        {
-            var template = engineSettings.TimebasedIngest.S3InputTemplate;
-            throw new NotImplementedException();
         }
 
         private bool SkipStoragePolicyCheck(int customerId)

@@ -6,16 +6,6 @@ namespace Engine.Settings
 {
     public class EngineSettings
     {
-        /// <summary>
-        /// Root folder for main container
-        /// </summary>
-        public string ScratchRoot { get; set; }
-        
-        /// <summary>
-        /// Root folder for use by Image-Processor sidecar
-        /// </summary>
-        public string ImageProcessorRoot { get; set; }
-        
         public ImageIngestSettings ImageIngest { get; set; }
         
         public TimebasedIngestSettings TimebasedIngest { get; set; }
@@ -41,19 +31,6 @@ namespace Engine.Settings
         public Uri OrchestratorBaseUrl { get; set; }
         
         public int OrchestratorTimeoutMs { get; set; } = 5000;
-
-        /// <summary>
-        /// Get the root folder, if forImageProcessor will ensure that it is compatible with needs of image-processor
-        /// sidecar.
-        /// </summary>
-        public string GetRoot(bool forImageProcessor = false)
-        {
-            if (!forImageProcessor) return ScratchRoot;
-
-            return string.IsNullOrEmpty(ImageProcessorRoot)
-                ? ScratchRoot
-                : ImageProcessorRoot;
-        }
 
         /// <summary>
         /// Get CustomerSpecificSettings, if found. 

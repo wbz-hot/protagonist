@@ -49,9 +49,9 @@ namespace Engine.Tests.Ingest.Image
                     StorageBucket = "s3://storage-bucket",
                     ThumbsBucket = "s3://thumbs-bucket"
                 },
-                ScratchRoot = $"{c}scratch{c}",
                 ImageIngest = new ImageIngestSettings
                 {
+                    ScratchRoot = $"{c}scratch{c}",
                     S3Template = "s3://eu-west-1/storage-bucket/{0}/{1}/{2}",
                     DestinationTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}",
                     ThumbsTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}thumb{c}"

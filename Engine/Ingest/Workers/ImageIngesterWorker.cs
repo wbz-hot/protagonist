@@ -73,8 +73,8 @@ namespace Engine.Ingest.Workers
 
         private string GetSourceTemplate(Asset asset)
         {
-            var root = engineSettings.GetRoot();
             var imageIngest = engineSettings.ImageIngest;
+            var root = imageIngest.GetRoot();
             
             // source is the main folder for storing
             var source = TemplatedFolders.GenerateTemplate(imageIngest.SourceTemplate, root, asset);

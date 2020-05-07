@@ -1,8 +1,10 @@
-﻿using System.Threading;
+﻿using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Model.Storage;
+using DLCS.Repository.Storage;
 using Engine.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -32,7 +34,7 @@ namespace Engine.Ingest.Workers
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
             // TODO - general error handling, logging, check success results from bucketReader
-            var targetUri = string.Format(destinationTemplate, asset.Customer, asset.Space, asset.GetUniqueName());
+            var targetUri = $"{destinationTemplate}{asset.GetStorageKey()}";
             var target = RegionalisedObjectInBucket.Parse(targetUri);
             
             if (ShouldCopyBucketToBucket(asset, customerOriginStrategy))
@@ -40,7 +42,8 @@ namespace Engine.Ingest.Workers
                 return CopyBucketToBucket(asset, destinationTemplate, target, cancellationToken);
             }
 
-            return IndirectCopyBucketToBucket(asset, destinationTemplate, verifySize, customerOriginStrategy, target, cancellationToken);
+            return IndirectCopyBucketToBucket(asset, destinationTemplate, verifySize, customerOriginStrategy, target,
+                cancellationToken);
         }
 
         private bool ShouldCopyBucketToBucket(Asset asset, CustomerOriginStrategy customerOriginStrategy)
@@ -68,14 +71,24 @@ namespace Engine.Ingest.Workers
         private async Task<AssetInBucket> IndirectCopyBucketToBucket(Asset asset, string destination, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, ObjectInBucket target, CancellationToken cancellationToken)
         {
-            var diskDestination = "";
+            var diskDestination = GetDestination(asset);
+
             var assetOnDisk = await assetMover.CopyAsset(asset, diskDestination, verifySize, customerOriginStrategy,
                 cancellationToken);
 
             var success = await bucketReader.WriteLargeFileToBucket(target, diskDestination, assetOnDisk.ContentType,
                 cancellationToken);
 
+            // TODO - handle failures - log timings
             return new AssetInBucket(asset.Id, assetOnDisk.AssetSize, destination, assetOnDisk.ContentType);
+        }
+
+        private string GetDestination(Asset asset)
+        {
+            var diskDestination = TemplatedFolders.GenerateTemplate(engineSettings.TimebasedIngest.SourceTemplate,
+                engineSettings.TimebasedIngest.ProcessingFolder, asset);
+            Directory.CreateDirectory(diskDestination);
+            return diskDestination;
         }
     }
 }

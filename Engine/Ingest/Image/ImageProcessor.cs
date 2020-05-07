@@ -95,7 +95,7 @@ namespace Engine.Ingest.Image
                 ImageId = asset.GetUniqueName(),
                 JobId = Guid.NewGuid().ToString(),
                 ThumbDir = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.ThumbsTemplate,
-                    engineSettings.GetRoot(true), asset),
+                    engineSettings.ImageIngest.GetRoot(true), asset),
                 ThumbSizes = asset.FullThumbnailPolicy.Sizes
             };
 
@@ -108,7 +108,7 @@ namespace Engine.Ingest.Image
             var extension = assetOnDisk.Substring(assetOnDisk.LastIndexOf(".", StringComparison.Ordinal) + 1);
 
             // this is to get it working nice locally as appetiser/tizer root needs to be unix + relative to it
-            var unixRoot = engineSettings.GetRoot(true);
+            var unixRoot = engineSettings.ImageIngest.GetRoot(true);
             var unixPath = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.SourceTemplate,
                 unixRoot, context.Asset);
 
@@ -122,9 +122,9 @@ namespace Engine.Ingest.Image
             // This logic allows handling when running locally on win/unix and when deployed to unix
             var destFolder = forImageProcessor
                 ? TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.DestinationTemplate,
-                    engineSettings.GetRoot(true), asset)
+                    engineSettings.ImageIngest.GetRoot(true), asset)
                 : TemplatedFolders.GenerateTemplate(engineSettings.ImageIngest.DestinationTemplate,
-                    engineSettings.GetRoot(), asset);
+                    engineSettings.ImageIngest.GetRoot(), asset);
 
             return $"{destFolder}{asset.GetUniqueName()}.jp2";
         }
@@ -208,7 +208,7 @@ namespace Engine.Ingest.Image
         {
             // Update the location of all thumbs to be full path on disk.
             var partialTemplate = TemplatedFolders.GenerateTemplate(engineSettings.ImageIngest.ThumbsTemplate,
-                engineSettings.GetRoot(), context.Asset);
+                engineSettings.ImageIngest.GetRoot(), context.Asset);
             foreach (var thumb in responseModel.Thumbs)
             {
                 var key = thumb.Path.Substring(thumb.Path.LastIndexOf('/') + 1);

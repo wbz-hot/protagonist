@@ -6,23 +6,28 @@ using System.Threading.Tasks;
 using Amazon.ElasticTranscoder;
 using Amazon.ElasticTranscoder.Model;
 using Engine.Settings;
+using LazyCache;
 using Microsoft.Extensions.Options;
+using TimeSpan = System.TimeSpan;
 
 namespace Engine.Ingest.Timebased
 {
-    public class MediaTranscoder
+    public class ElasticTranscoder : IMediaTranscoder
     {
         private readonly IAmazonElasticTranscoder elasticTranscoder;
+        private readonly IAppCache cache;
         private readonly IOptionsMonitor<TimebasedIngestSettings> timebasedSettings;
 
-        public MediaTranscoder(IAmazonElasticTranscoder elasticTranscoder,
+        public ElasticTranscoder(IAmazonElasticTranscoder elasticTranscoder,
+            IAppCache cache,
             IOptionsMonitor<TimebasedIngestSettings> timebasedSettings)
         {
             this.elasticTranscoder = elasticTranscoder;
+            this.cache = cache;
             this.timebasedSettings = timebasedSettings;
         }
         
-        public async Task InitiateTranscodeOperation(IngestionContext context, CancellationToken token = default)
+        public async Task<bool> InitiateTranscodeOperation(IngestionContext context, CancellationToken token = default)
         {
             var settings = timebasedSettings.CurrentValue;
             var getPipelineId = GetPipelineId(settings, token);
@@ -74,39 +79,67 @@ namespace Engine.Ingest.Timebased
             };
 
             var response = await elasticTranscoder.CreateJobAsync(request, token);
-            
+
+            var statusCode = (int) response.HttpStatusCode;
+            return statusCode >= 200 && statusCode < 300;
+
             // TODO - return what here? success + size?
-            
-            throw new NotImplementedException();
+            // context.WithLocation(imageLocation).WithStorage(imageStorage); <- would this come after ingestion?
         }
 
-        private async Task<string?> GetPipelineId(TimebasedIngestSettings settings, CancellationToken token)
+        private Task<string?> GetPipelineId(TimebasedIngestSettings settings, CancellationToken token)
         {
-            // TODO - cache this. Handle paging.
-            var pipelines = await elasticTranscoder.ListPipelinesAsync(token);
-            var pipeline = pipelines.Pipelines.FirstOrDefault(p => p.Name == settings.PipelineName);
-            return pipeline?.Id;
-        }
+            const string pipelinesKey = "MediaTranscode:PipelineId";
 
-        private async Task<Dictionary<string, string>> GetPresetIdLookup(CancellationToken token)
-        {
-            var presets = new Dictionary<string, string>();
-            var response = new ListPresetsResponse();
-
-            // TODO cache this.
-            do
+            return cache.GetOrAddAsync(pipelinesKey, async entry =>
             {
-                var request = new ListPresetsRequest {PageToken = response.NextPageToken};
-                response = await elasticTranscoder.ListPresetsAsync(request, token);
+                // TODO - get ttl from cache
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                var response = new ListPipelinesResponse();
 
-                foreach (var preset in response.Presets)
+                do
                 {
-                    presets.Add(preset.Name, preset.Id);
-                }
+                    var request = new ListPipelinesRequest {PageToken = response.NextPageToken};
+                    response = await elasticTranscoder.ListPipelinesAsync(request, token);
 
-            } while (response.NextPageToken != null);
-            
-            return presets;
+                    var pipeline = response.Pipelines.FirstOrDefault(p => p.Name == settings.PipelineName);
+                    if (pipeline != null)
+                    {
+                        return pipeline.Id;
+                    }
+
+                } while (response.NextPageToken != null);
+
+                return null; // TODO - handle not found
+            });
+        }
+
+        private Task<Dictionary<string, string>> GetPresetIdLookup(CancellationToken token)
+        {
+            const string presetLookupKey = "MediaTranscode:Presets";
+
+            return cache.GetOrAddAsync(presetLookupKey, async entry =>
+            {
+                // TODO - get ttl from cache
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+
+                var presets = new Dictionary<string, string>();
+                var response = new ListPresetsResponse();
+                
+                do
+                {
+                    var request = new ListPresetsRequest {PageToken = response.NextPageToken};
+                    response = await elasticTranscoder.ListPresetsAsync(request, token);
+
+                    foreach (var preset in response.Presets)
+                    {
+                        presets.Add(preset.Name, preset.Id);
+                    }
+
+                } while (response.NextPageToken != null);
+
+                return presets;
+            });
         }
     }
 }

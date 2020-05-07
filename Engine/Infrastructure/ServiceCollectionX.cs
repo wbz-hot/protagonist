@@ -18,6 +18,7 @@ using Engine.Ingest;
 using Engine.Ingest.Completion;
 using Engine.Ingest.Image;
 using Engine.Ingest.Strategy;
+using Engine.Ingest.Timebased;
 using Engine.Ingest.Workers;
 using Engine.Messaging;
 using Engine.Settings;
@@ -91,7 +92,8 @@ namespace Engine.Infrastructure
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddSingleton<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>()
-                .AddSingleton<IIngestorCompletion, ImageIngestorCompletion>();
+                .AddSingleton<IIngestorCompletion, ImageIngestorCompletion>()
+                .AddSingleton<IMediaTranscoder, ElasticTranscoder>();
 
             // image-processor gets httpClient for calling appetiser/tizer
             services

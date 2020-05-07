@@ -19,5 +19,28 @@ namespace Engine.Settings
         public Uri ImageProcessorUrl { get; set; }
 
         public int ImageProcessorTimeoutMs { get; set; } = 300000;
+        
+        /// <summary>
+        /// Root folder for main container
+        /// </summary>
+        public string ScratchRoot { get; set; }
+        
+        /// <summary>
+        /// Root folder for use by Image-Processor sidecar
+        /// </summary>
+        public string ImageProcessorRoot { get; set; }
+        
+        /// <summary>
+        /// Get the root folder, if forImageProcessor will ensure that it is compatible with needs of image-processor
+        /// sidecar.
+        /// </summary>
+        public string GetRoot(bool forImageProcessor = false)
+        {
+            if (!forImageProcessor) return ScratchRoot;
+
+            return string.IsNullOrEmpty(ImageProcessorRoot)
+                ? ScratchRoot
+                : ImageProcessorRoot;
+        }
     }
 }

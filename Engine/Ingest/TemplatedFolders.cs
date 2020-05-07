@@ -8,10 +8,10 @@ namespace Engine.Ingest
     public class TemplatedFolders
     {
         private static readonly Regex ImageNameRegex = new Regex(@"(..)(..)(..)(..)(.*)", RegexOptions.Compiled);
-        public const string Root = "{root}";
-        public const string Customer = "{customer}";
-        public const string Space = "{space}";
-        public const string Image = "{image}";
+        private const string Root = "{root}";
+        private const string Customer = "{customer}";
+        private const string Space = "{space}";
+        private const string Image = "{image}";
 
         /// <summary>
         /// Generate a folder template using provided details.

@@ -12,7 +12,20 @@ namespace Engine.Settings
         
         public string S3OutputTemplate { get; set; }
 
+        /// <summary>
+        /// The name of the pipeline to use for ingesting files.
+        /// </summary>
         public string PipelineName { get; set; }
+        
+        /// <summary>
+        /// The root processing folder where temporary files are placed.
+        /// </summary>
+        public string ProcessingFolder { get; set; }
+        
+        /// <summary>
+        /// Template for location to download any assets to disk.
+        /// </summary>
+        public string SourceTemplate { get; set; }
         
         /// <summary>
         /// Mapping of 'friendly' to 'real' transcoder names
