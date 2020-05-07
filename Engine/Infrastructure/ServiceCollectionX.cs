@@ -55,7 +55,7 @@ namespace Engine.Infrastructure
                 .AddAWSService<IAmazonSQS>()
                 .AddSingleton<IngestHandler>()
                 .AddSingleton<SqsListenerManager>()
-                .AddTransient<QueueHandlerResolver>(provider => queue =>
+                .AddSingleton<QueueHandlerResolver>(provider => queue =>
                     {
                         // TODO - add logic for ElasticTranscoder handling
                         return provider.GetService<IngestHandler>();
@@ -73,23 +73,23 @@ namespace Engine.Infrastructure
         {
             // TODO - if a/v and image ingestion deployed separately there will need to be some logic on registered deps
             services
-                .AddAWSService<IAmazonElasticTranscoder>()
-                .AddTransient<TimebasedIngesterWorker>()
-                .AddTransient<ImageIngesterWorker>()
-                .AddTransient<AssetIngester>()
-                .AddTransient<IngestorResolver>(provider => family => family switch
+                .AddScoped<IAmazonElasticTranscoder>()
+                .AddScoped<TimebasedIngesterWorker>()
+                .AddScoped<ImageIngesterWorker>()
+                .AddScoped<AssetIngester>()
+                .AddSingleton<IngestorResolver>(provider => family => family switch
                 {
                     AssetFamily.Image => provider.GetService<ImageIngesterWorker>(),
                     AssetFamily.Timebased => provider.GetService<TimebasedIngesterWorker>(),
                     AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
                     _ => throw new KeyNotFoundException()
                 })
-                .AddTransient<IAssetMover<AssetOnDisk>, AssetToDisk>()
-                .AddTransient<IAssetMover<AssetInBucket>, AssetToS3>()
-                .AddTransient<IOriginStrategy, S3AmbientOriginStrategy>()
+                .AddScoped<IAssetMover<AssetOnDisk>, AssetToDisk>()
+                .AddScoped<IAssetMover<AssetInBucket>, AssetToS3>()
+                .AddScoped<IOriginStrategy, S3AmbientOriginStrategy>()
                 .AddSingleton<IOriginStrategy, DefaultOriginStrategy>()
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
-                .AddTransient<IOriginStrategy, SftpOriginStrategy>()
+                .AddSingleton<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>()
                 .AddSingleton<IIngestorCompletion, ImageIngestorCompletion>();
 
