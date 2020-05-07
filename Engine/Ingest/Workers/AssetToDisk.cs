@@ -73,7 +73,7 @@ namespace Engine.Ingest.Workers
             TrySetContentTypeForBinary(originResponse, asset);
             
             var extension = GetFileExtension(originResponse);
-            var targetPath = $"{destinationTemplate}.{extension}";
+            var targetPath = $"{Path.Join(destinationTemplate, asset.GetUniqueName())}.{extension}";
 
             if (File.Exists(targetPath))
             {

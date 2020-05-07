@@ -54,6 +54,7 @@ namespace Engine.Tests.Ingest.Image
                     ScratchRoot = $"{c}scratch{c}",
                     S3Template = "s3://eu-west-1/storage-bucket/{0}/{1}/{2}",
                     DestinationTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}",
+                    SourceTemplate =  $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}",
                     ThumbsTemplate = $"{{root}}{{customer}}{c}{{space}}{c}{{image}}{c}output{c}thumb{c}"
                 }
             };

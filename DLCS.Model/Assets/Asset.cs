@@ -57,7 +57,7 @@ namespace DLCS.Model.Assets
         public string MediaType { get; set; }
         public long Duration { get; set; }
         
-        public ThumbnailPolicy FullThumbnailPolicy { get; private set; }
+        public ThumbnailPolicy? FullThumbnailPolicy { get; private set; }
         
         public ImageOptimisationPolicy FullImageOptimisationPolicy { get; private set; }
         
@@ -83,9 +83,11 @@ namespace DLCS.Model.Assets
             return uniqueName;
         } 
 
-        public Asset WithThumbnailPolicy(ThumbnailPolicy thumbnailPolicy)
+        public Asset WithThumbnailPolicy(ThumbnailPolicy? thumbnailPolicy)
         {
-            FullThumbnailPolicy = thumbnailPolicy.ThrowIfNull(nameof(thumbnailPolicy));
+            FullThumbnailPolicy = Family == AssetFamily.Image
+                ? thumbnailPolicy.ThrowIfNull(nameof(thumbnailPolicy))
+                : thumbnailPolicy;
             return this;
         }
         

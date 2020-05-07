@@ -112,7 +112,7 @@ namespace Engine.Ingest.Image
             var unixPath = TemplatedFolders.GenerateTemplateForUnix(engineSettings.ImageIngest.SourceTemplate,
                 unixRoot, context.Asset);
 
-            unixPath += $".{extension}";
+            unixPath += $"/{context.Asset.GetUniqueName()}.{extension}";
             return unixPath;
         }
 

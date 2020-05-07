@@ -16,20 +16,20 @@ namespace Engine.Ingest.Timebased
     {
         private readonly IAmazonElasticTranscoder elasticTranscoder;
         private readonly IAppCache cache;
-        private readonly IOptionsMonitor<TimebasedIngestSettings> timebasedSettings;
+        private readonly IOptionsMonitor<EngineSettings> engineSettings;
 
         public ElasticTranscoder(IAmazonElasticTranscoder elasticTranscoder,
             IAppCache cache,
-            IOptionsMonitor<TimebasedIngestSettings> timebasedSettings)
+            IOptionsMonitor<EngineSettings> engineSettings)
         {
             this.elasticTranscoder = elasticTranscoder;
             this.cache = cache;
-            this.timebasedSettings = timebasedSettings;
+            this.engineSettings = engineSettings;
         }
         
         public async Task<bool> InitiateTranscodeOperation(IngestionContext context, CancellationToken token = default)
         {
-            var settings = timebasedSettings.CurrentValue;
+            var settings = engineSettings.CurrentValue.TimebasedIngest;
             var getPipelineId = GetPipelineId(settings, token);
 
             var presets = await GetPresetIdLookup(token);

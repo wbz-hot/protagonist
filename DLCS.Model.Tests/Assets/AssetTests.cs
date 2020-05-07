@@ -74,5 +74,33 @@ namespace DLCS.Model.Tests.Assets
             // Assert
             actual.Should().Be(expected);
         }
+
+        [Fact]
+        public void WithThumbnailPolicy_ThrowsIfPolicyNull_AndAssetFamilyIsImage()
+        {
+            // Arrange
+            var asset = new Asset {Family = AssetFamily.Image};
+            
+            // Act
+            Action action = () => asset.WithThumbnailPolicy(null);
+            
+            // Assert
+            action.Should().Throw<ArgumentNullException>();
+        }
+        
+        [Theory]
+        [InlineData(AssetFamily.File)]
+        [InlineData(AssetFamily.Timebased)]
+        public void WithThumbnailPolicy_AllowsNull_IfAssetFamilyIsNotImage(AssetFamily assetFamily)
+        {
+            // Arrange
+            var asset = new Asset {Family = assetFamily};
+            
+            // Act
+            asset.WithThumbnailPolicy(null);
+            
+            // Assert
+            asset.FullThumbnailPolicy.Should().BeNull();
+        } 
     }
 }

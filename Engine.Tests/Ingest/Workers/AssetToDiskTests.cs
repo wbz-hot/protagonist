@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
@@ -95,8 +94,9 @@ namespace Engine.Tests.Ingest.Workers
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(originResponse);
             
-            var expectedOutput = Path.Join(".", "2", "1", "godzilla.file");
-            
+            Directory.CreateDirectory(Path.Join(".", "2", "1", "godzilla"));
+            var expectedOutput = Path.Join(".", "2", "1", "godzilla", "godzilla.file");
+
             // Act
             var response = await sut.CopyAsset(asset, destination, false, cos);
             
@@ -126,8 +126,9 @@ namespace Engine.Tests.Ingest.Workers
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(originResponse);
             
-            var expectedOutput = Path.Join(".", "2", "1", "godzilla1.file");
-            
+            Directory.CreateDirectory(Path.Join(".", "2", "1", "godzilla1"));
+            var expectedOutput = Path.Join(".", "2", "1", "godzilla1", "godzilla1.file");
+
             // Act
             var response = await sut.CopyAsset(asset, destination, false, cos);
             
@@ -160,7 +161,8 @@ namespace Engine.Tests.Ingest.Workers
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(originResponse);
             
-            var expectedOutput = Path.Join(".", "2", "1", $"godzilla.jp2.{extension}");
+            Directory.CreateDirectory(Path.Join(".", "2", "1", "godzilla.jp2"));
+            var expectedOutput = Path.Join(".", "2", "1", "godzilla.jp2", $"godzilla.jp2.{extension}");
             
             // Act
             var response = await sut.CopyAsset(asset, destination, false, cos);
@@ -189,8 +191,9 @@ namespace Engine.Tests.Ingest.Workers
                 .WithContentLength(8);
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(originResponse);
-            
-            var expectedOutput = Path.Join(".", "2", "1", "godzilla.jp2");
+
+            Directory.CreateDirectory(Path.Join(".", "2", "1", "godzilla.jp2"));
+            var expectedOutput = Path.Join(".", "2", "1", "godzilla.jp2", "godzilla.jp2.jp2");
             
             // Act
             var response = await sut.CopyAsset(asset, destination, false, cos);
@@ -216,7 +219,8 @@ namespace Engine.Tests.Ingest.Workers
             A.CallTo(() => customerOriginStrategy.LoadAssetFromOrigin(asset, cos, A<CancellationToken>._))
                 .Returns(originResponse);
             
-            var expectedOutput = Path.Join(".", "2", "1", "godzilla.file");
+            Directory.CreateDirectory(Path.Join(".", "2", "1", "godzilla"));
+            var expectedOutput = Path.Join(".", "2", "1", "godzilla", "godzilla.file");
 
             A.CallTo(() => customerStorageRepository.VerifyStoragePolicyBySize(2, A<long>._))
                 .Returns(isValid);

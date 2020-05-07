@@ -39,7 +39,7 @@ namespace Engine.Ingest.Completion
             }
             
             // Processing has occurred, clear down the root folder used for processing
-            CleanupWorkingAssets(sourceTemplate, context.AssetFromOrigin.Location);
+            CleanupWorkingAssets(sourceTemplate);
 
             return success;
         }
@@ -76,16 +76,15 @@ namespace Engine.Ingest.Completion
             return customerSpecific.OrchestrateImageAfterIngest ?? engineSettings.OrchestrateImageAfterIngest;
         }
         
-        private void CleanupWorkingAssets(string rootPath, string locationOnDisk)
+        private void CleanupWorkingAssets(string rootPath)
         {
             try
             {
                 Directory.Delete(rootPath, true);
-                File.Delete(locationOnDisk);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error cleaning up working assets. {rootPath}, {locationOnDisk}", rootPath, locationOnDisk);
+                logger.LogError(ex, "Error cleaning up working assets. {rootPath}", rootPath);
             }
         }
     }

@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Model.Policies;
 using Engine.Ingest.Models;
-using Engine.Ingest.Strategy;
 using Engine.Ingest.Workers;
 using Microsoft.Extensions.Logging;
 

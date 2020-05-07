@@ -76,7 +76,7 @@ namespace Engine.Ingest.Workers
             var assetOnDisk = await assetMover.CopyAsset(asset, diskDestination, verifySize, customerOriginStrategy,
                 cancellationToken);
 
-            var success = await bucketReader.WriteLargeFileToBucket(target, diskDestination, assetOnDisk.ContentType,
+            var success = await bucketReader.WriteLargeFileToBucket(target, assetOnDisk.Location, assetOnDisk.ContentType,
                 cancellationToken);
 
             // TODO - handle failures - log timings
