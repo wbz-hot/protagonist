@@ -7,6 +7,7 @@ using Amazon.ElasticTranscoder;
 using Amazon.ElasticTranscoder.Model;
 using Engine.Settings;
 using LazyCache;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TimeSpan = System.TimeSpan;
 
@@ -17,14 +18,17 @@ namespace Engine.Ingest.Timebased
         private readonly IAmazonElasticTranscoder elasticTranscoder;
         private readonly IAppCache cache;
         private readonly IOptionsMonitor<EngineSettings> engineSettings;
+        private readonly ILogger<ElasticTranscoder> logger;
 
         public ElasticTranscoder(IAmazonElasticTranscoder elasticTranscoder,
             IAppCache cache,
-            IOptionsMonitor<EngineSettings> engineSettings)
+            IOptionsMonitor<EngineSettings> engineSettings,
+            ILogger<ElasticTranscoder> logger)
         {
             this.elasticTranscoder = elasticTranscoder;
             this.cache = cache;
             this.engineSettings = engineSettings;
+            this.logger = logger;
         }
         
         public async Task<bool> InitiateTranscodeOperation(IngestionContext context, CancellationToken token = default)
@@ -34,28 +38,15 @@ namespace Engine.Ingest.Timebased
 
             var presets = await GetPresetIdLookup(token);
             
-            var technicalDetails = context.Asset.FullImageOptimisationPolicy.TechnicalDetails;
-            var outputs = new List<CreateJobOutput>(technicalDetails.Count);
-            foreach (var technicalDetail in technicalDetails)
-            {
-                var output = "TODO - get path where this format will be output to";
-                var presetName = settings.TranscoderMappings.TryGetValue(technicalDetail, out var mappedName)
-                    ? mappedName
-                    : technicalDetail;
-                
-                // TODO - handle not found
-                var presetId = presets[presetName];
-
-                outputs.Add(new CreateJobOutput
-                {
-                    PresetId = presetId,
-                    Key = output,
-                });
-            }
+            var outputs = GetJobOutputs(context, settings, presets);
 
             // TODO - throw if pipelineId not found
 
             // need pipeline id
+            var key = context.AssetFromOrigin.Location.Replace(settings.S3InputTemplate, string.Empty);
+            
+            logger.LogDebug("");
+            
             var pipelineId = await getPipelineId;
             var request = new CreateJobRequest
             {
@@ -66,7 +57,7 @@ namespace Engine.Ingest.Timebased
                     FrameRate = "auto",
                     Interlaced = "auto",
                     Resolution = "auto",
-                    Key = context.AssetFromOrigin.Location // is the full key what we want here?
+                    Key = key
                 },
                 PipelineId = pipelineId,
                 UserMetadata = new Dictionary<string, string>
@@ -140,6 +131,38 @@ namespace Engine.Ingest.Timebased
 
                 return presets;
             });
+        }
+        
+        private static List<CreateJobOutput> GetJobOutputs(IngestionContext context, TimebasedIngestSettings settings, Dictionary<string, string> presets)
+        {
+            var technicalDetails = context.Asset.FullImageOptimisationPolicy.TechnicalDetails;
+            var outputs = new List<CreateJobOutput>(technicalDetails.Count);
+            foreach (var technicalDetail in technicalDetails)
+            {
+                // TODO - this? Or Asset.MediaType
+                var mediaType = context.AssetFromOrigin.ContentType;
+                var (destinationPath, presetName) = TranscoderTemplates.ProcessPreset(mediaType, context.Asset, technicalDetail);
+                
+                // TODO - handle empty path/presetname
+                
+                var mappedPresetName = settings.TranscoderMappings.TryGetValue(presetName, out var mappedName)
+                    ? mappedName
+                    : presetName;
+
+                // TODO - handle not found
+                if (!presets.TryGetValue(mappedPresetName, out var presetId))
+                {
+                    continue;
+                }
+
+                outputs.Add(new CreateJobOutput
+                {
+                    PresetId = presetId,
+                    Key = destinationPath,
+                });
+            }
+
+            return outputs;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
@@ -34,15 +35,16 @@ namespace Engine.Ingest.Workers
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
             // TODO - general error handling, logging, check success results from bucketReader
+            // TODO - need to add something to make this unique here?
             var targetUri = $"{destinationTemplate}{asset.GetStorageKey()}";
             var target = RegionalisedObjectInBucket.Parse(targetUri);
             
             if (ShouldCopyBucketToBucket(asset, customerOriginStrategy))
             {
-                return CopyBucketToBucket(asset, destinationTemplate, target, cancellationToken);
+                return CopyBucketToBucket(asset, targetUri, target, cancellationToken);
             }
 
-            return IndirectCopyBucketToBucket(asset, destinationTemplate, verifySize, customerOriginStrategy, target,
+            return IndirectCopyBucketToBucket(asset, targetUri, verifySize, customerOriginStrategy, target,
                 cancellationToken);
         }
 
@@ -65,7 +67,7 @@ namespace Engine.Ingest.Workers
             var copyResult = await bucketReader.CopyLargeFileBetweenBuckets(source, target, cancellationToken);
 
             // TODO - contentType
-            return new AssetInBucket(asset.Id, copyResult.Value ?? 0, destination, "");
+            return new AssetInBucket(asset.Id, copyResult.Value ?? 0, destination, asset.MediaType);
         }
         
         private async Task<AssetInBucket> IndirectCopyBucketToBucket(Asset asset, string destination, bool verifySize,

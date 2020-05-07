@@ -4,7 +4,7 @@ using DLCS.Model.Assets;
 
 namespace Engine.Ingest
 {
-    // This logic has been copied over from Deliverator implementation.
+    /// <remarks>This logic has been copied over from Deliverator implementation.</remarks> 
     public class TemplatedFolders
     {
         private static readonly Regex ImageNameRegex = new Regex(@"(..)(..)(..)(..)(.*)", RegexOptions.Compiled);

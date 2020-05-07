@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using Engine.Ingest.Models;
 using Engine.Ingest.Timebased;
