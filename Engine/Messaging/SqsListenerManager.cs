@@ -4,8 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.SQS;
 using Amazon.SQS.Model;
-using Engine.Ingest;
 using Engine.Messaging.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Messaging
@@ -16,23 +16,24 @@ namespace Engine.Messaging
     public class SqsListenerManager
     {
         private readonly IAmazonSQS client;
-        private readonly QueueHandlerResolver handlerResolver;
+        private readonly IServiceScopeFactory serviceScopeFactory;
         private readonly ConcurrentBag<SqsListener> listeners;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<SqsListenerManager> logger;
         private readonly object syncRoot = new object();
 
-        public SqsListenerManager(IAmazonSQS client, QueueHandlerResolver handlerResolver, ILoggerFactory loggerFactory)
+        public SqsListenerManager(IAmazonSQS client,
+            IServiceScopeFactory serviceScopeFactory, ILoggerFactory loggerFactory)
         {
             this.client = client;
-            this.handlerResolver = handlerResolver;
+            this.serviceScopeFactory = serviceScopeFactory;
             this.loggerFactory = loggerFactory;
             logger = loggerFactory.CreateLogger<SqsListenerManager>();
             listeners = new ConcurrentBag<SqsListener>();
             cancellationTokenSource = new CancellationTokenSource();
         }
-        
+
         /// <summary>
         /// Configure listener for specified queue. This configures only, doesn't start listening.
         /// </summary>
@@ -49,7 +50,7 @@ namespace Engine.Messaging
                 throw new InvalidOperationException($"Cannot listen to queue {queueName} as it does not exist");
             }
 
-            var listener = new SqsListener(client, queue, handlerResolver, loggerFactory);
+            var listener = new SqsListener(client, queue, serviceScopeFactory, loggerFactory);
             listeners.Add(listener);
         }
 

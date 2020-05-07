@@ -5,6 +5,7 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using Engine.Ingest;
 using Engine.Messaging.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Engine.Messaging
@@ -16,15 +17,16 @@ namespace Engine.Messaging
     {
         private readonly IAmazonSQS client;
         private readonly SubscribedToQueue queue;
-        private readonly QueueHandlerResolver handlerResolver;
+        private readonly IServiceScopeFactory serviceScopeFactory;
         private readonly ILogger<SqsListener> logger;
 
         // if that differs IngestHandler will need to be something smarter
-        public SqsListener(IAmazonSQS client, SubscribedToQueue queue, QueueHandlerResolver handlerResolver, ILoggerFactory loggerFactory)
+        public SqsListener(IAmazonSQS client, SubscribedToQueue queue,
+            IServiceScopeFactory serviceScopeFactory, ILoggerFactory loggerFactory)
         {
             this.client = client;
             this.queue = queue;
-            this.handlerResolver = handlerResolver;
+            this.serviceScopeFactory = serviceScopeFactory;
             logger = loggerFactory.CreateLogger<SqsListener>();
         }
 
@@ -115,7 +117,12 @@ namespace Engine.Messaging
             try
             {
                 var queueMessage = new QueueMessage {Attributes = message.Attributes, Body = message.Body};
+                
+                // create a new scope to avoid issues with Scoped dependencies
+                using var listenerScope = serviceScopeFactory.CreateScope();
+                var handlerResolver = listenerScope.ServiceProvider.GetService<QueueHandlerResolver>();
                 var handler = handlerResolver(queue);
+                
                 var processed = await handler.Handle(queueMessage, cancellationToken);
                 return processed;
             }

@@ -42,7 +42,7 @@ namespace Engine
                 .AddDefaultAWSOptions(configuration.GetAWSOptions())
                 .AddSQSSubscribers()
                 .AddAssetIngestion(engineSettings)
-                .AddSingleton<IThumbLayoutManager, ThumbLayoutManager>()
+                .AddScoped<IThumbLayoutManager, ThumbLayoutManager>()
                 .AddDataAccess();
 
             services

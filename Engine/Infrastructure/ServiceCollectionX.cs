@@ -40,10 +40,10 @@ namespace Engine.Infrastructure
             => services
                 .AddAutoMapper(typeof(DatabaseConnectionManager))
                 .AddTransient<DatabaseAccessor>()
-                .AddTransient<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
-                .AddTransient<IPolicyRepository, PolicyRepository>()
-                .AddTransient<IAssetRepository, AssetRepository>()
-                .AddTransient<ICustomerStorageRepository, CustomerStorageRepository>()
+                .AddScoped<ICustomerOriginRepository, CustomerOriginStrategyRepository>()
+                .AddScoped<IPolicyRepository, PolicyRepository>()
+                .AddScoped<IAssetRepository, AssetRepository>()
+                .AddScoped<ICustomerStorageRepository, CustomerStorageRepository>()
                 .AddSingleton<ICredentialsRepository, CredentialsRepository>();
 
         /// <summary>
@@ -54,9 +54,9 @@ namespace Engine.Infrastructure
         public static IServiceCollection AddSQSSubscribers(this IServiceCollection services)
             => services
                 .AddAWSService<IAmazonSQS>()
-                .AddSingleton<IngestHandler>()
+                .AddTransient<IngestHandler>()
                 .AddSingleton<SqsListenerManager>()
-                .AddSingleton<QueueHandlerResolver>(provider => queue =>
+                .AddScoped<QueueHandlerResolver>(provider => queue =>
                     {
                         // TODO - add logic for ElasticTranscoder handling
                         return provider.GetService<IngestHandler>();
@@ -74,11 +74,11 @@ namespace Engine.Infrastructure
         {
             // TODO - if a/v and image ingestion deployed separately there will need to be some logic on registered deps
             services
-                .AddScoped<IAmazonElasticTranscoder>()
-                .AddScoped<TimebasedIngesterWorker>()
-                .AddScoped<ImageIngesterWorker>()
-                .AddScoped<AssetIngester>()
-                .AddSingleton<IngestorResolver>(provider => family => family switch
+                .AddAWSService<IAmazonElasticTranscoder>()
+                .AddTransient<TimebasedIngesterWorker>()
+                .AddTransient<ImageIngesterWorker>()
+                .AddTransient<AssetIngester>()
+                .AddTransient<IngestorResolver>(provider => family => family switch
                 {
                     AssetFamily.Image => provider.GetService<ImageIngesterWorker>(),
                     AssetFamily.Timebased => provider.GetService<TimebasedIngesterWorker>(),
@@ -92,7 +92,7 @@ namespace Engine.Infrastructure
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddSingleton<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>()
-                .AddSingleton<IIngestorCompletion, ImageIngestorCompletion>()
+                .AddTransient<IIngestorCompletion, ImageIngestorCompletion>()
                 .AddSingleton<IMediaTranscoder, ElasticTranscoder>();
 
             // image-processor gets httpClient for calling appetiser/tizer

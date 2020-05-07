@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using Amazon.SQS;
@@ -8,6 +8,7 @@ using Engine.Messaging.Models;
 using FakeItEasy;
 using FizzWare.NBuilder;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -27,7 +28,17 @@ namespace Engine.Tests.Messaging
             subscribedQueue = new SubscribedToQueue("test-queue");
             subscribedQueue.SetUri("https://queues.com/test-queue");
 
-            sut = new SqsListener(sqsClient, subscribedQueue, queue => messageHandler, new NullLoggerFactory());
+            var scopeFactory = A.Fake<IServiceScopeFactory>();
+            var scope = A.Fake<IServiceScope>();
+            var serviceProvider = A.Fake<IServiceProvider>();
+            A.CallTo(() => scopeFactory.CreateScope()).Returns(scope);
+            A.CallTo(() => scope.ServiceProvider).Returns(serviceProvider);
+            
+            QueueHandlerResolver handlerResolver = queue => messageHandler;
+            A.CallTo(() => serviceProvider.GetService(typeof(QueueHandlerResolver)))
+                .Returns(handlerResolver);
+
+            sut = new SqsListener(sqsClient, subscribedQueue, scopeFactory, new NullLoggerFactory());
         }
 
         [Fact]
