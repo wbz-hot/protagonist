@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,7 +22,6 @@ using Engine.Settings;
 using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -311,7 +309,7 @@ namespace Engine.Tests.Ingest.Image
                 .WithThumbnailPolicy(new ThumbnailPolicy());
 
             var context = new IngestionContext(asset,
-                new AssetOnDisk("asset-id", 123, "./scratch/here.jpg", contentType));
+                new AssetFromOrigin("asset-id", 123, "./scratch/here.jpg", contentType));
             return context;
         }
     }

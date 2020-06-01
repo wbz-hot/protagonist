@@ -5,17 +5,17 @@ namespace Engine.Ingest.Workers
     /// <summary>
     /// An asset that has been copied from Origin.
     /// </summary>
-    public abstract class AssetFromOrigin
+    public class AssetFromOrigin
     {
         /// <summary>
         /// The DLCS asset id.
         /// </summary>
-        public string AssetId { get; protected set; }
+        public string AssetId { get; }
 
         /// <summary>
         /// The size of the asset in bytes.
         /// </summary>
-        public long AssetSize { get; protected set; }
+        public long AssetSize { get; }
 
         /// <summary>
         /// The type of the asset.
@@ -45,28 +45,6 @@ namespace Engine.Ingest.Workers
             AssetSize = assetSize;
             Location = location;
             ContentType = contentType;
-        }
-    }
-
-    /// <summary>
-    /// Represents an asset that has been copied from Origin to Bucket.
-    /// </summary>
-    public class AssetInBucket : AssetFromOrigin
-    {
-        public AssetInBucket(string assetId, long assetSize, string location, string contentType) 
-            : base(assetId, assetSize, location, contentType)
-        {
-        }
-    }
-    
-    /// <summary>
-    /// Represents an asset that has been copied from Origin to local disk.
-    /// </summary>
-    public class AssetOnDisk : AssetFromOrigin
-    {
-        public AssetOnDisk(string assetId, long assetSize, string location, string contentType) 
-            : base(assetId, assetSize, location, contentType)
-        {
         }
     }
 }

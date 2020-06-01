@@ -63,12 +63,14 @@ namespace Engine.Ingest
         /// <returns>Result of ingest operations</returns>
         public async Task<IngestResult> Ingest(IngestAssetRequest request, CancellationToken cancellationToken)
         {
-            // TODO - the true param here may be false if reingesting??
+            // TODO - 2nd param may be false if reingesting??
+            // get any matching CustomerOriginStrategy 
             var getCustomerOriginStrategy = customerOriginRepository.GetCustomerOriginStrategy(request.Asset, true);
             
             // set Thumbnail and ImageOptimisation policies
             var setAssetPolicies = policyRepository.HydrateAssetPolicies(request.Asset, AssetPolicies.All);
             
+            // get the relevant resolver (Image or Timebased)
             var ingestor = resolver(request.Asset.Family);
 
             await Task.WhenAll(getCustomerOriginStrategy, setAssetPolicies);

@@ -12,18 +12,18 @@ namespace Engine.Ingest.Workers
 {
     public class TimebasedIngesterWorker : IAssetIngesterWorker
     {
-        private readonly IAssetMover<AssetInBucket> assetMover;
+        private readonly IAssetMover assetMover;
         private readonly IMediaTranscoder mediaTranscoder;
         private readonly EngineSettings engineSettings;
         private readonly ILogger<TimebasedIngesterWorker> logger;
 
         public TimebasedIngesterWorker(
-            IAssetMover<AssetInBucket> assetMover,
+            AssetMoverResolver assetMoverResolver,
             IOptionsMonitor<EngineSettings> engineOptions,
             IMediaTranscoder mediaTranscoder,
             ILogger<TimebasedIngesterWorker> logger)
         {
-            this.assetMover = assetMover;
+            assetMover = assetMoverResolver(AssetMoveType.ObjectStore);
             this.mediaTranscoder = mediaTranscoder;
             engineSettings = engineOptions.CurrentValue;
             this.logger = logger;

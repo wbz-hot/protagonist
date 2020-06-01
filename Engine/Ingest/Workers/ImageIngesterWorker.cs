@@ -13,9 +13,12 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Ingest.Workers
 {
+    /// <summary>
+    /// <see cref="IAssetIngesterWorker"/> for ingesting Image assets (Family = I).
+    /// </summary>
     public class ImageIngesterWorker : IAssetIngesterWorker
     {
-        private readonly IAssetMover<AssetOnDisk> assetMover;
+        private readonly IAssetMover assetMover;
         private readonly EngineSettings engineSettings;
         private readonly IImageProcessor imageProcessor;
         private readonly IIngestorCompletion imageCompletion;
@@ -23,12 +26,12 @@ namespace Engine.Ingest.Workers
 
         public ImageIngesterWorker(
             IImageProcessor imageProcessor,
-            IAssetMover<AssetOnDisk> assetMover,
+            AssetMoverResolver assetMoverResolver,
             IOptionsMonitor<EngineSettings> engineOptions,
             IIngestorCompletion imageCompletion,
             ILogger<ImageIngesterWorker> logger)
         {
-            this.assetMover = assetMover;
+            assetMover = assetMoverResolver(AssetMoveType.Disk);
             engineSettings = engineOptions.CurrentValue;
             this.imageProcessor = imageProcessor;
             this.imageCompletion = imageCompletion;

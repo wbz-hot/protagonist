@@ -24,7 +24,7 @@ namespace Engine.Tests.Ingest.Workers
     [Trait("Requires", "FileAccess")]
     public class ImageIngesterWorkerTests
     {
-        private readonly IAssetMover<AssetOnDisk> assetMover;
+        private readonly IAssetMover assetMover;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
         private readonly IIngestorCompletion ingestorCompletion;
         private readonly FakeImageProcessor imageProcessor;
@@ -48,11 +48,11 @@ namespace Engine.Tests.Ingest.Workers
             };
             var optionsMonitor = OptionsHelpers.GetOptionsMonitor(engineSettings);
 
-            assetMover = A.Fake<IAssetMover<AssetOnDisk>>();
+            assetMover = A.Fake<IAssetMover>();
             ingestorCompletion = A.Fake<IIngestorCompletion>();
             imageProcessor = new FakeImageProcessor();
             
-            sut = new ImageIngesterWorker(imageProcessor, assetMover, optionsMonitor,
+            sut = new ImageIngesterWorker(imageProcessor, type => assetMover, optionsMonitor,
                 ingestorCompletion, new NullLogger<ImageIngesterWorker>());
         }
 
@@ -82,7 +82,7 @@ namespace Engine.Tests.Ingest.Workers
             {
                 NoStoragePolicyCheck = noStoragePolicyCheck
             });
-            var assetFromOrigin = new AssetOnDisk(asset.Id, 13, "/target/location", "application/json");
+            var assetFromOrigin = new AssetFromOrigin(asset.Id, 13, "/target/location", "application/json");
             A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, A<bool>._, A<CustomerOriginStrategy>._, A<CancellationToken>._))
                 .Returns(assetFromOrigin);
 
@@ -101,7 +101,7 @@ namespace Engine.Tests.Ingest.Workers
         {
             // Arrange
             var asset = new Asset {Id = "/2/1/remurdered", Customer = 2, Space = 1};
-            var assetFromOrigin = new AssetOnDisk(asset.Id, 13, "/target/location", "application/json");
+            var assetFromOrigin = new AssetFromOrigin(asset.Id, 13, "/target/location", "application/json");
             assetFromOrigin.FileTooLarge();
             A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
                 .Returns(assetFromOrigin);
@@ -129,7 +129,7 @@ namespace Engine.Tests.Ingest.Workers
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
                 A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
-                    .Returns(new AssetOnDisk(asset.Id, 13, target, "application/json"));
+                    .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
                 imageProcessor.ReturnValue = imageProcessSuccess;
 
                 // Act
@@ -163,7 +163,7 @@ namespace Engine.Tests.Ingest.Workers
                 File.WriteAllText(target, "{\"foo\":\"bar\"}");
 
                 A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
-                    .Returns(new AssetOnDisk(asset.Id, 13, target, "application/json"));
+                    .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
 
                 A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
                     .Returns(completeResult);

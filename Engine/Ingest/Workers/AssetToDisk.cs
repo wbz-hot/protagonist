@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Ingest.Workers
 {
-    public class AssetToDisk : IAssetMover<AssetOnDisk>
+    public class AssetToDisk : IAssetMover
     {
         private readonly ICustomerStorageRepository customerStorageRepository;
         private readonly ILogger<AssetToDisk> logger;
@@ -30,7 +30,7 @@ namespace Engine.Ingest.Workers
              this.originStrategies = originStrategies.ToDictionary(k => k.Strategy, v => v);
         }
 
-        public async Task<AssetOnDisk> CopyAsset(
+        public async Task<AssetFromOrigin> CopyAsset(
             Asset asset, 
             string destinationTemplate, 
             bool verifySize, 
@@ -68,7 +68,7 @@ namespace Engine.Ingest.Workers
             return assetFromOrigin;
         }
 
-        private async Task<AssetOnDisk> CopyAssetToDisk(Asset asset, string destinationTemplate, OriginResponse originResponse)
+        private async Task<AssetFromOrigin> CopyAssetToDisk(Asset asset, string destinationTemplate, OriginResponse originResponse)
         {
             TrySetContentTypeForBinary(originResponse, asset);
             
@@ -109,7 +109,7 @@ namespace Engine.Ingest.Workers
                     asset.Id, targetPath, received, sw.ElapsedMilliseconds,
                     knownFileSize ? "framework-copy" : "manual-copy");
 
-                return new AssetOnDisk(asset.Id, received, targetPath, originResponse.ContentType);
+                return new AssetFromOrigin(asset.Id, received, targetPath, originResponse.ContentType);
             }
             catch (Exception ex)
             {

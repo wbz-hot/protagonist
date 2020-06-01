@@ -54,8 +54,7 @@ namespace DLCS.Repository.Customer
             
             return matching;
         }
-
-        // TODO Grab them all and store in-memory dictionary?
+        
         private async Task<IEnumerable<CustomerOriginStrategy>> GetStrategiesForCustomer(int customer)
         {
             var key = $"CustomerOriginRepository_CustomerOrigin:{customer}";
@@ -74,7 +73,7 @@ namespace DLCS.Repository.Customer
             });
         }
 
-        // NOTE(DG): This CustomerOriginStrategy is for assets uploaded directly in the portal
+        // NOTE(DG): This CustomerOriginStrategy is for assets uploaded directly via the portal
         private CustomerOriginStrategy GetPortalOriginStrategy(int customer) 
             => new CustomerOriginStrategy
             {

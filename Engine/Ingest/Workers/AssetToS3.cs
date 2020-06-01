@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
@@ -12,26 +11,26 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Ingest.Workers
 {
-    public class AssetToS3 : IAssetMover<AssetInBucket>
+    public class AssetToS3 : IAssetMover
     {
-        private readonly IAssetMover<AssetOnDisk> assetMover;
+        private readonly IAssetMover diskMover;
         private readonly IBucketReader bucketReader;
         private readonly EngineSettings engineSettings;
         private readonly ILogger<AssetToS3> logger;
 
         public AssetToS3(
-            IAssetMover<AssetOnDisk> assetMover,
+            AssetMoverResolver assetMoverResolver,
             IOptionsMonitor<EngineSettings> engineSettings,
             IBucketReader bucketReader,
             ILogger<AssetToS3> logger)
         {
-            this.assetMover = assetMover;
+            this.diskMover = assetMoverResolver(AssetMoveType.Disk);
             this.bucketReader = bucketReader;
             this.engineSettings = engineSettings.CurrentValue;
             this.logger = logger;
         }
         
-        public Task<AssetInBucket> CopyAsset(Asset asset, string destinationTemplate, bool verifySize,
+        public Task<AssetFromOrigin> CopyAsset(Asset asset, string destinationTemplate, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
             // TODO - general error handling, logging, check success results from bucketReader
@@ -50,6 +49,7 @@ namespace Engine.Ingest.Workers
 
         private bool ShouldCopyBucketToBucket(Asset asset, CustomerOriginStrategy customerOriginStrategy)
         {
+            // TODO - FullBucketAccess for entire customer isn't granular enough
             var customerOverride = GetCustomerOverrideSettings(asset.Customer);
             return customerOverride.FullBucketAccess && customerOriginStrategy.Strategy == OriginStrategy.S3Ambient;
         }
@@ -57,7 +57,7 @@ namespace Engine.Ingest.Workers
         private CustomerOverridesSettings GetCustomerOverrideSettings(int customerId)
             => engineSettings.GetCustomerSettings(customerId);
         
-        private async Task<AssetInBucket> CopyBucketToBucket(Asset asset, string destination,
+        private async Task<AssetFromOrigin> CopyBucketToBucket(Asset asset, string destination,
             ObjectInBucket target, CancellationToken cancellationToken)
         {
             var source = RegionalisedObjectInBucket.Parse(asset.GetIngestOrigin());
@@ -67,22 +67,22 @@ namespace Engine.Ingest.Workers
             var copyResult = await bucketReader.CopyLargeFileBetweenBuckets(source, target, cancellationToken);
 
             // TODO - contentType
-            return new AssetInBucket(asset.Id, copyResult.Value ?? 0, destination, asset.MediaType);
+            return new AssetFromOrigin(asset.Id, copyResult.Value ?? 0, destination, asset.MediaType);
         }
         
-        private async Task<AssetInBucket> IndirectCopyBucketToBucket(Asset asset, string destination, bool verifySize,
+        private async Task<AssetFromOrigin> IndirectCopyBucketToBucket(Asset asset, string destination, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, ObjectInBucket target, CancellationToken cancellationToken)
         {
             var diskDestination = GetDestination(asset);
 
-            var assetOnDisk = await assetMover.CopyAsset(asset, diskDestination, verifySize, customerOriginStrategy,
+            var assetOnDisk = await diskMover.CopyAsset(asset, diskDestination, verifySize, customerOriginStrategy,
                 cancellationToken);
 
             var success = await bucketReader.WriteLargeFileToBucket(target, assetOnDisk.Location, assetOnDisk.ContentType,
                 cancellationToken);
 
             // TODO - handle failures - log timings
-            return new AssetInBucket(asset.Id, assetOnDisk.AssetSize, destination, assetOnDisk.ContentType);
+            return new AssetFromOrigin(asset.Id, assetOnDisk.AssetSize, destination, assetOnDisk.ContentType);
         }
 
         private string GetDestination(Asset asset)

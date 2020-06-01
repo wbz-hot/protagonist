@@ -85,8 +85,12 @@ namespace Engine.Infrastructure
                     AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
                     _ => throw new KeyNotFoundException()
                 })
-                .AddScoped<IAssetMover<AssetOnDisk>, AssetToDisk>()
-                .AddScoped<IAssetMover<AssetInBucket>, AssetToS3>()
+                .AddTransient<AssetMoverResolver>(provider => t => t switch
+                {
+                    AssetMoveType.Disk => provider.GetService<AssetToDisk>(),
+                    AssetMoveType.ObjectStore => provider.GetService<AssetToS3>(),
+                    _ => throw new NotImplementedException()
+                })
                 .AddScoped<IOriginStrategy, S3AmbientOriginStrategy>()
                 .AddSingleton<IOriginStrategy, DefaultOriginStrategy>()
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()

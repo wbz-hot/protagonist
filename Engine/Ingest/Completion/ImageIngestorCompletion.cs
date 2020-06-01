@@ -24,7 +24,7 @@ namespace Engine.Ingest.Completion
             this.orchestratorClient = orchestratorClient;
             this.assetRepository = assetRepository;
             this.logger = logger;
-            this.engineSettings = engineOptions.CurrentValue;
+            engineSettings = engineOptions.CurrentValue;
         }
 
         public async Task<bool> CompleteIngestion(IngestionContext context, bool ingestSuccessful,
