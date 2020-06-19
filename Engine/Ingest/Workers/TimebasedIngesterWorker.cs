@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Customer;
@@ -35,12 +36,16 @@ namespace Engine.Ingest.Workers
         {
             try
             {
+                var stopwatch = Stopwatch.StartNew();
                 var assetInBucket = await assetMover.CopyAsset(
                     ingestAssetRequest.Asset,
                     engineSettings.TimebasedIngest.S3InputTemplate,
                     !SkipStoragePolicyCheck(ingestAssetRequest.Asset.Customer),
                     customerOriginStrategy,
                     cancellationToken);
+                stopwatch.Stop();
+                logger.LogInformation("Copied timebased asset in {elapsed}ms", stopwatch.ElapsedMilliseconds,
+                    ingestAssetRequest.Asset.Id);
                 
                 var context = new IngestionContext(ingestAssetRequest.Asset, assetInBucket);
                 if (assetInBucket.FileExceedsAllowance)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,12 +47,16 @@ namespace Engine.Ingest.Workers
             {
                 var sourceTemplate = GetSourceTemplate(ingestAssetRequest.Asset);
 
+                var stopwatch = Stopwatch.StartNew(); 
                 var assetOnDisk = await assetMover.CopyAsset(
                     ingestAssetRequest.Asset, 
                     sourceTemplate, 
                     !SkipStoragePolicyCheck(ingestAssetRequest.Asset.Customer),
                     customerOriginStrategy,
                     cancellationToken);
+                stopwatch.Stop();
+                logger.LogInformation("Copied image asset in {elapsed}ms", stopwatch.ElapsedMilliseconds,
+                    ingestAssetRequest.Asset.Id);
 
                 var context = new IngestionContext(ingestAssetRequest.Asset, assetOnDisk);
                 if (assetOnDisk.FileExceedsAllowance)

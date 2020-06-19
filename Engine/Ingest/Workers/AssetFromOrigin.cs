@@ -39,6 +39,10 @@ namespace Engine.Ingest.Workers
         /// </summary>
         public void FileTooLarge() => FileExceedsAllowance = true;
 
+        public AssetFromOrigin()
+        {
+        }
+
         public AssetFromOrigin(string assetId, long assetSize, string location, string contentType)
         {
             AssetId = assetId;

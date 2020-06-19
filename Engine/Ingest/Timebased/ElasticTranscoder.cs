@@ -37,37 +37,17 @@ namespace Engine.Ingest.Timebased
             var getPipelineId = GetPipelineId(settings, token);
 
             var presets = await GetPresetIdLookup(token);
-            
             var outputs = GetJobOutputs(context, settings, presets);
-
-            // TODO - throw if pipelineId not found
-
-            // need pipeline id
-            var key = context.AssetFromOrigin.Location.Replace(settings.S3InputTemplate, string.Empty);
-            
-            logger.LogDebug("");
             
             var pipelineId = await getPipelineId;
-            var request = new CreateJobRequest
+
+            if (string.IsNullOrEmpty(pipelineId))
             {
-                Input = new JobInput
-                {
-                    AspectRatio = "auto",
-                    Container = "auto",
-                    FrameRate = "auto",
-                    Interlaced = "auto",
-                    Resolution = "auto",
-                    Key = key
-                },
-                PipelineId = pipelineId,
-                UserMetadata = new Dictionary<string, string>
-                {
-                    ["dlcsId"] = context.Asset.Id,
-                    ["startTime"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
-                    ["jobId"] = Guid.NewGuid().ToString(), // do we want to pass this in for logging purposes?
-                },
-                Outputs = outputs
-            };
+                logger.LogWarning("Pipeline Id not found to ingest {asset}", context.Asset.Id);
+                return false;
+            }
+            
+            var request = CreateJobRequest(context, context.AssetFromOrigin.Location, pipelineId, outputs);
 
             var response = await elasticTranscoder.CreateJobAsync(request, token);
 
@@ -77,7 +57,7 @@ namespace Engine.Ingest.Timebased
             // TODO - return what here? success + size?
             // context.WithLocation(imageLocation).WithStorage(imageStorage); <- would this come after ingestion?
         }
-
+        
         private Task<string?> GetPipelineId(TimebasedIngestSettings settings, CancellationToken token)
         {
             const string pipelinesKey = "MediaTranscode:PipelineId";
@@ -132,19 +112,21 @@ namespace Engine.Ingest.Timebased
                 return presets;
             });
         }
-        
-        private static List<CreateJobOutput> GetJobOutputs(IngestionContext context, TimebasedIngestSettings settings, Dictionary<string, string> presets)
+
+        private List<CreateJobOutput> GetJobOutputs(IngestionContext context, TimebasedIngestSettings settings,
+            Dictionary<string, string> presets)
         {
-            var technicalDetails = context.Asset.FullImageOptimisationPolicy.TechnicalDetails;
+            var asset = context.Asset;
+            var technicalDetails = asset.FullImageOptimisationPolicy.TechnicalDetails;
             var outputs = new List<CreateJobOutput>(technicalDetails.Count);
             foreach (var technicalDetail in technicalDetails)
             {
                 // TODO - this? Or Asset.MediaType
                 var mediaType = context.AssetFromOrigin.ContentType;
-                var (destinationPath, presetName) = TranscoderTemplates.ProcessPreset(mediaType, context.Asset, technicalDetail);
-                
+                var (destinationPath, presetName) =
+                    TranscoderTemplates.ProcessPreset(mediaType, asset, technicalDetail);
+
                 // TODO - handle empty path/presetname
-                
                 var mappedPresetName = settings.TranscoderMappings.TryGetValue(presetName, out var mappedName)
                     ? mappedName
                     : presetName;
@@ -152,6 +134,7 @@ namespace Engine.Ingest.Timebased
                 // TODO - handle not found
                 if (!presets.TryGetValue(mappedPresetName, out var presetId))
                 {
+                    logger.LogWarning("Mapping for preset '{presetname}' not found!", presetName);
                     continue;
                 }
 
@@ -160,9 +143,37 @@ namespace Engine.Ingest.Timebased
                     PresetId = presetId,
                     Key = destinationPath,
                 });
+
+                logger.LogDebug("Asset {assetId} will be output to '{destination}' for '{technicalDetail}'", asset.Id,
+                    destinationPath, technicalDetail);
             }
 
             return outputs;
+        }
+        
+        private static CreateJobRequest CreateJobRequest(IngestionContext context, string key, string pipelineId, List<CreateJobOutput> outputs)
+        {
+            var request = new CreateJobRequest
+            {
+                Input = new JobInput
+                {
+                    AspectRatio = "auto",
+                    Container = "auto",
+                    FrameRate = "auto",
+                    Interlaced = "auto",
+                    Resolution = "auto",
+                    Key = key
+                },
+                PipelineId = pipelineId,
+                UserMetadata = new Dictionary<string, string>
+                {
+                    ["dlcsId"] = context.Asset.Id,
+                    ["startTime"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+                    ["jobId"] = Guid.NewGuid().ToString(), // do we want to pass this in for logging purposes?
+                },
+                Outputs = outputs
+            };
+            return request;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Assets;
@@ -24,7 +25,7 @@ namespace Engine.Ingest.Workers
             IBucketReader bucketReader,
             ILogger<AssetToS3> logger)
         {
-            this.diskMover = assetMoverResolver(AssetMoveType.Disk);
+            diskMover = assetMoverResolver(AssetMoveType.Disk);
             this.bucketReader = bucketReader;
             this.engineSettings = engineSettings.CurrentValue;
             this.logger = logger;
@@ -33,17 +34,17 @@ namespace Engine.Ingest.Workers
         public Task<AssetFromOrigin> CopyAsset(Asset asset, string destinationTemplate, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
-            // TODO - general error handling, logging, check success results from bucketReader
             // TODO - need to add something to make this unique here?
-            var targetUri = $"{destinationTemplate}{asset.GetStorageKey()}";
+            var storageKey = asset.GetStorageKey();
+            var targetUri = $"{destinationTemplate}{storageKey}";
             var target = RegionalisedObjectInBucket.Parse(targetUri);
             
             if (ShouldCopyBucketToBucket(asset, customerOriginStrategy))
             {
-                return CopyBucketToBucket(asset, targetUri, target, cancellationToken);
+                return CopyBucketToBucket(asset, storageKey, verifySize, target, cancellationToken);
             }
 
-            return IndirectCopyBucketToBucket(asset, targetUri, verifySize, customerOriginStrategy, target,
+            return IndirectCopyBucketToBucket(asset, storageKey, verifySize, customerOriginStrategy, target,
                 cancellationToken);
         }
 
@@ -57,32 +58,55 @@ namespace Engine.Ingest.Workers
         private CustomerOverridesSettings GetCustomerOverrideSettings(int customerId)
             => engineSettings.GetCustomerSettings(customerId);
         
-        private async Task<AssetFromOrigin> CopyBucketToBucket(Asset asset, string destination,
+        private async Task<AssetFromOrigin> CopyBucketToBucket(Asset asset, string location, bool verifySize,
             ObjectInBucket target, CancellationToken cancellationToken)
         {
             var source = RegionalisedObjectInBucket.Parse(asset.GetIngestOrigin());
-            // TODO - throw if source null (couldn't be parsed)?
+            logger.LogDebug("Copying asset '{id}' directly from bucket to bucket. {source} - {dest}", asset.Id,
+                source.GetS3QualifiedUri(), target);
 
             // copy S3-S3
-            var copyResult = await bucketReader.CopyLargeFileBetweenBuckets(source, target, cancellationToken);
+            // TODO - verify content size using overload
+            var copyResult = await bucketReader.CopyLargeFileBetweenBuckets(source, target,
+                token: cancellationToken);
 
-            // TODO - contentType
-            return new AssetFromOrigin(asset.Id, copyResult.Value ?? 0, destination, asset.MediaType);
+            if (!copyResult.Success)
+            {
+                throw new ApplicationException(
+                    $"Failed to copy timebased asset {asset.Id} directly from '{asset.GetIngestOrigin()}' to {location}");
+            }
+            
+            return new AssetFromOrigin(asset.Id, copyResult.Value ?? 0, location, asset.MediaType);
         }
         
-        private async Task<AssetFromOrigin> IndirectCopyBucketToBucket(Asset asset, string destination, bool verifySize,
+        private async Task<AssetFromOrigin> IndirectCopyBucketToBucket(Asset asset, string location, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, ObjectInBucket target, CancellationToken cancellationToken)
         {
+            logger.LogDebug("Copying asset '{id}' indirectly from bucket to bucket. {source} - {dest}", asset.Id,
+                asset.GetIngestOrigin(), target);
             var diskDestination = GetDestination(asset);
 
             var assetOnDisk = await diskMover.CopyAsset(asset, diskDestination, verifySize, customerOriginStrategy,
                 cancellationToken);
 
+            if (assetOnDisk.FileExceedsAllowance)
+            {
+                var assetFromOrigin =
+                    new AssetFromOrigin(asset.Id, assetOnDisk.AssetSize, location, assetOnDisk.ContentType);
+                assetFromOrigin.FileTooLarge();
+                return assetFromOrigin;
+            }
+
             var success = await bucketReader.WriteLargeFileToBucket(target, assetOnDisk.Location, assetOnDisk.ContentType,
                 cancellationToken);
 
-            // TODO - handle failures - log timings
-            return new AssetFromOrigin(asset.Id, assetOnDisk.AssetSize, destination, assetOnDisk.ContentType);
+            if (!success)
+            {
+                throw new ApplicationException(
+                    $"Failed to copy timebased asset {asset.Id} indirectly from '{asset.GetIngestOrigin()}' to {location}");
+            }
+            
+            return new AssetFromOrigin(asset.Id, assetOnDisk.AssetSize, location, assetOnDisk.ContentType);
         }
 
         private string GetDestination(Asset asset)

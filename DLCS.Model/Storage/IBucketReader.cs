@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Core;
@@ -58,12 +59,13 @@ namespace DLCS.Model.Storage
         /// </summary>
         /// <param name="source">Source item to copy.</param>
         /// <param name="target">Where to copy item to.</param>
+        /// <param name="verifySize">Function to verify objectSize prior to copying. Not copied if false returned.</param>
         /// <param name="token">Cancellation token</param>
         /// <returns><see>
         ///         <cref>ResultStatus{long?}</cref>
         ///     </see>
         ///     representing success of call and file size</returns>
         Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target,
-            CancellationToken token = default);
+            Func<long, Task<bool>> verifySize = null, CancellationToken token = default);
     }
 }

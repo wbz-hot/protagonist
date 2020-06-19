@@ -240,12 +240,14 @@ namespace DLCS.Repository.Storage.S3
         /// <summary>
         /// Copy a large file (>5GiB) between buckets.
         /// </summary>
-        /// <param name="source"></param>
-        /// <param name="target"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
+        /// <param name="source">Bucket where object is currently stored.</param>
+        /// <param name="target">Target bucket where object is to be stored.</param>
+        /// <param name="verifySize"></param>
+        /// <param name="token">Cancellation token</param>
+        /// <returns>ResultStatus signifying success or failure alongside ContentSize</returns>
         /// <remarks>See https://docs.aws.amazon.com/AmazonS3/latest/dev/CopyingObjctsUsingLLNetMPUapi.html </remarks>
-        public async Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target, CancellationToken token = default)
+        public async Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target,
+            Func<long, Task<bool>> verifySize = null, CancellationToken token = default)
         {
             long objectSize = -1;
             var partSize = 5 * (long) Math.Pow(2, 20); // 5 MB
@@ -258,6 +260,15 @@ namespace DLCS.Repository.Storage.S3
 
                 var sourceMetadata = await GetObjectMetadata(source);
                 objectSize = sourceMetadata.ContentLength;
+
+                if (verifySize != null)
+                {
+                    if (!await verifySize.Invoke(objectSize))
+                    {
+                        logger.LogInformation("Aborting multipart upload for {target} as size verification failed", target);
+                        return ResultStatus<long?>.Unsuccessful(objectSize);
+                    }
+                }
 
                 var numberOfParts = Convert.ToInt32(objectSize / partSize);
                 var copyResponses = new List<CopyPartResponse>(numberOfParts);
@@ -331,7 +342,7 @@ namespace DLCS.Repository.Storage.S3
                         : "Failed to copy large file to '{target}'. Failed after {elapsed}ms.",
                     target, timer.ElapsedMilliseconds);
             }
-            
+
             return ResultStatus<long?>.Unsuccessful(objectSize);
         }
 
