@@ -85,6 +85,8 @@ namespace Engine.Infrastructure
                     AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
                     _ => throw new KeyNotFoundException()
                 })
+                .AddScoped<AssetToDisk>()
+                .AddScoped<AssetToS3>()
                 .AddTransient<AssetMoverResolver>(provider => t => t switch
                 {
                     AssetMoveType.Disk => provider.GetService<AssetToDisk>(),
