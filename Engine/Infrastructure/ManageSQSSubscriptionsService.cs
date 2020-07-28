@@ -57,7 +57,7 @@ namespace Engine.Infrastructure
         private void OnStopping()
         {
             // in ECS this will be received 20s before kill command
-            // TODO - have an isstopping on this?
+            // TODO - have an isstopping on listener?
             sqsListener.StopListening();
             logger.LogInformation("Stopping listening to queues");
         }

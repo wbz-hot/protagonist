@@ -33,7 +33,8 @@ namespace Thumbs
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddHealthChecks()
+            services
+                .AddHealthChecks()
                 .AddNpgSql(Configuration.GetPostgresSqlConnection());
             services.AddCors();
             services.AddLazyCache();

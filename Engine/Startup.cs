@@ -31,8 +31,10 @@ namespace Engine
 
             var engineSection = configuration.GetSection("Engine");
             var engineSettings = engineSection.Get<EngineSettings>();
-            services.Configure<QueueSettings>(configuration.GetSection("Queues"));
             services.Configure<EngineSettings>(engineSection);
+            
+            services.Configure<QueueSettings>(configuration.GetSection("Queues"));
+            
 
             services
                 .AddAWSService<IAmazonS3>()
@@ -47,7 +49,7 @@ namespace Engine
 
             services
                 .AddControllers()
-                .SetCompatibilityVersion(CompatibilityVersion.Latest)
+                .SetCompatibilityVersion(CompatibilityVersion.Latest)ht
                 .AddNewtonsoftJson();
         }
 
