@@ -51,6 +51,7 @@ namespace Engine.Messaging
                 throw new InvalidOperationException($"Cannot listen to queue {queueName} as it does not exist");
             }
 
+            logger.LogInformation("Listener configured for '{queueName}' at '{queueUrl}'", queueName, queue.Url);
             var listener = new SqsListener(client, queue, serviceScopeFactory, loggerFactory);
             listeners.Add(listener);
         }

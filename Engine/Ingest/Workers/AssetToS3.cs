@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using DLCS.Core.Guard;
 using DLCS.Model.Assets;
 using DLCS.Model.Customer;
 using DLCS.Model.Storage;
@@ -47,17 +48,23 @@ namespace Engine.Ingest.Workers
         public Task<AssetFromOrigin> CopyAsset(Asset asset, string destinationTemplate, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
+            var target = GetBucketTarget(asset, destinationTemplate);
+
+            if (ShouldCopyBucketToBucket(asset, customerOriginStrategy))
+            {
+                return CopyBucketToBucket(asset, target.Key!, verifySize, target, cancellationToken);
+            }
+
+            return IndirectCopyBucketToBucket(asset, target.Key!, verifySize, customerOriginStrategy, target,
+                cancellationToken);
+        }
+
+        private static RegionalisedObjectInBucket GetBucketTarget(Asset asset, string destinationTemplate)
+        {
             var storageKey = asset.GetStorageKey();
             var targetUri = $"{destinationTemplate}{storageKey}";
             var target = RegionalisedObjectInBucket.Parse(targetUri);
-            
-            if (ShouldCopyBucketToBucket(asset, customerOriginStrategy))
-            {
-                return CopyBucketToBucket(asset, storageKey, verifySize, target, cancellationToken);
-            }
-
-            return IndirectCopyBucketToBucket(asset, storageKey, verifySize, customerOriginStrategy, target,
-                cancellationToken);
+            return target.ThrowIfNull(nameof(target));
         }
 
         private bool ShouldCopyBucketToBucket(Asset asset, CustomerOriginStrategy customerOriginStrategy)
