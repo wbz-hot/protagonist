@@ -50,24 +50,25 @@ namespace Engine.Infrastructure
         /// Add SQS queue handlers to service collection.
         /// </summary>
         /// <param name="services">Current <see cref="IServiceCollection"/> object.</param>
+        /// <param name="queueSettings"></param>
         /// <returns>Modified <see cref="IServiceCollection"/> object.</returns>
         public static IServiceCollection AddSQSSubscribers(this IServiceCollection services)
             => services
                 .AddAWSService<IAmazonSQS>()
                 .AddTransient<IngestHandler>()
                 .AddSingleton<SqsListenerManager>()
-                .AddScoped<QueueHandlerResolver>(provider => queue =>
-                    {
-                        // TODO - add logic for ElasticTranscoder handling
-                        return provider.GetService<IngestHandler>();
-                    })
+                .AddScoped<QueueHandlerResolver>(provider => queue => queue.MessageType switch
+                {
+                    MessageType.Ingest => provider.GetService<IngestHandler>(),
+                    MessageType.TranscodeComplete => provider.GetService<TranscodeCompleteHandler>(),
+                    _ => throw new KeyNotFoundException("Attempt to resolve queue handler for unknown value")
+                })
                 .AddHostedService<ManageSQSSubscriptionsService>();
 
         /// <summary>
         /// Adds all <see cref="IAssetIngesterWorker"/> and related dependencies. 
         /// </summary>
         /// <param name="services">Current <see cref="IServiceCollection"/> object.</param>
-        /// <param name="engineSettings"></param>
         /// <returns>Modified <see cref="IServiceCollection"/> object.</returns>
         public static IServiceCollection AddAssetIngestion(this IServiceCollection services,
             EngineSettings engineSettings)
@@ -83,7 +84,7 @@ namespace Engine.Infrastructure
                     AssetFamily.Image => provider.GetService<ImageIngesterWorker>(),
                     AssetFamily.Timebased => provider.GetService<TimebasedIngesterWorker>(),
                     AssetFamily.File => throw new NotImplementedException("File shouldn't be here"),
-                    _ => throw new KeyNotFoundException()
+                    _ => throw new KeyNotFoundException("Attempt to resolve ingestor handler for unknown family")
                 })
                 .AddScoped<AssetToDisk>()
                 .AddScoped<AssetToS3>()
@@ -98,6 +99,7 @@ namespace Engine.Infrastructure
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddSingleton<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>()
+                .AddTransient<IIngestorCompletion, TimebasedIngestorCompletion>()
                 .AddTransient<IIngestorCompletion, ImageIngestorCompletion>()
                 .AddSingleton<IMediaTranscoder, ElasticTranscoder>();
 

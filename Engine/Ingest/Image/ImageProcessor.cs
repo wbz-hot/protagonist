@@ -43,7 +43,7 @@ namespace Engine.Ingest.Image
         {
             try
             {
-                var derivativesOnly = DerivativesOnly(context.AssetFromOrigin);
+                var derivativesOnly = IsDerivativesOnly(context.AssetFromOrigin);
                 var responseModel = await CallImageProcessor(context, derivativesOnly);
                 var (imageLocation, imageStorage) = await ProcessResponse(context, responseModel, derivativesOnly);
                 context.WithLocation(imageLocation).WithStorage(imageStorage);
@@ -247,7 +247,7 @@ namespace Engine.Ingest.Image
             }
         }
 
-        private bool DerivativesOnly(AssetFromOrigin assetFromOrigin)
+        private bool IsDerivativesOnly(AssetFromOrigin assetFromOrigin)
             => assetFromOrigin.ContentType == MIMEHelper.JP2 || assetFromOrigin.ContentType == MIMEHelper.JPX;
     }
 }

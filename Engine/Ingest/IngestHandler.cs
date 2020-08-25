@@ -18,7 +18,9 @@ namespace Engine.Ingest
         {
             this.ingester = ingester;
         }
-        
+
+        public MessageType Type => MessageType.Ingest;
+
         public async Task<bool> Handle(QueueMessage message, CancellationToken cancellationToken)
         {
             var request = JsonConvert.DeserializeObject<IncomingIngestEvent>(message.Body);

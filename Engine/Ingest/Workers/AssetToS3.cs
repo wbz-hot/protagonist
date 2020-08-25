@@ -12,6 +12,9 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Ingest.Workers
 {
+    /// <summary>
+    /// Class for copying asset from origin to S3 bucket.
+    /// </summary>
     public class AssetToS3 : IAssetMover
     {
         private readonly IAssetMover diskMover;
@@ -31,10 +34,19 @@ namespace Engine.Ingest.Workers
             this.logger = logger;
         }
         
+        /// <summary>
+        /// Copy asset from Origin to S3 bucket.
+        /// Configuration determines if this is a direct S3-S3 copy, or S3-disk-S3.
+        /// </summary>
+        /// <param name="asset"><see cref="Asset"/> to be copied</param>
+        /// <param name="destinationTemplate">String representing destinations S3 bucket</param>
+        /// <param name="verifySize">if True, size is validated that it does not exceed allowed size.</param>
+        /// <param name="customerOriginStrategy"><see cref="CustomerOriginStrategy"/> to use to fetch item.</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/></param>
+        /// <returns><see cref="AssetFromOrigin"/> containing new location, size etc</returns>
         public Task<AssetFromOrigin> CopyAsset(Asset asset, string destinationTemplate, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, CancellationToken cancellationToken = default)
         {
-            // TODO - need to add something to make this unique here?
             var storageKey = asset.GetStorageKey();
             var targetUri = $"{destinationTemplate}{storageKey}";
             var target = RegionalisedObjectInBucket.Parse(targetUri);
@@ -79,6 +91,9 @@ namespace Engine.Ingest.Workers
             return new AssetFromOrigin(asset.Id, copyResult.Value ?? 0, location, asset.MediaType);
         }
         
+        /// <summary>
+        /// First copy asset from origin to disk, and then to final bucket destination.
+        /// </summary>
         private async Task<AssetFromOrigin> IndirectCopyBucketToBucket(Asset asset, string location, bool verifySize,
             CustomerOriginStrategy customerOriginStrategy, ObjectInBucket target, CancellationToken cancellationToken)
         {

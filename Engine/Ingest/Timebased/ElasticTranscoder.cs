@@ -91,7 +91,7 @@ namespace Engine.Ingest.Timebased
 
             return cache.GetOrAddAsync(presetLookupKey, async entry =>
             {
-                // TODO - get ttl from cache
+                // TODO - get ttl from settings
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
 
                 var presets = new Dictionary<string, string>();

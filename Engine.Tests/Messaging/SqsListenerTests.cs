@@ -25,7 +25,7 @@ namespace Engine.Tests.Messaging
         {
             messageHandler = A.Fake<IMessageHandler>();
             sqsClient = A.Fake<IAmazonSQS>();
-            subscribedQueue = new SubscribedToQueue("test-queue");
+            subscribedQueue = new SubscribedToQueue("test-queue", MessageType.Ingest);
             subscribedQueue.SetUri("https://queues.com/test-queue");
 
             var scopeFactory = A.Fake<IServiceScopeFactory>();

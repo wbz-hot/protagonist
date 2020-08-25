@@ -38,9 +38,10 @@ namespace Engine.Infrastructure
             // TODO - throttle video to only 1 message being processed at any given time
             var configureQueues = new List<Task>
             {
-                sqsListener.AddQueueListener(queueSettings.Image),
-                sqsListener.AddQueueListener(queueSettings.ImagePriority),
-                sqsListener.AddQueueListener(queueSettings.Video)
+                sqsListener.AddQueueListener(queueSettings.Image, MessageType.Ingest),
+                sqsListener.AddQueueListener(queueSettings.ImagePriority, MessageType.Ingest),
+                sqsListener.AddQueueListener(queueSettings.Video, MessageType.Ingest),
+                sqsListener.AddQueueListener(queueSettings.VideoComplete, MessageType.TranscodeComplete)
             };
             await Task.WhenAll(configureQueues);
             sqsListener.StartListening();

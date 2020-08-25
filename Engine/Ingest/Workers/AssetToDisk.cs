@@ -14,6 +14,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Engine.Ingest.Workers
 {
+    /// <summary>
+    /// Class for copying asset from origin to local disk.
+    /// </summary>
     public class AssetToDisk : IAssetMover
     {
         private readonly ICustomerStorageRepository customerStorageRepository;
@@ -30,6 +33,15 @@ namespace Engine.Ingest.Workers
              this.originStrategies = originStrategies.ToDictionary(k => k.Strategy, v => v);
         }
 
+        /// <summary>
+        /// Copy asset from Origin to local disk.
+        /// </summary>
+        /// <param name="asset"><see cref="Asset"/> to be copied.</param>
+        /// <param name="destinationTemplate">String representing destinations folder to copy to.</param>
+        /// <param name="verifySize">if True, size is validated that it does not exceed allowed size.</param>
+        /// <param name="customerOriginStrategy"><see cref="CustomerOriginStrategy"/> to use to fetch item.</param>
+        /// <param name="cancellationToken"><see cref="CancellationToken"/></param>
+        /// <returns><see cref="AssetFromOrigin"/> containing new location, size etc</returns>
         public async Task<AssetFromOrigin> CopyAsset(
             Asset asset, 
             string destinationTemplate, 
@@ -98,7 +110,7 @@ namespace Engine.Ingest.Workers
                 }
                 else
                 {
-                    // NOTE(DG) This was copied from previous implementation, copies and works out size
+                    // NOTE(DG) This was copied from previous Deliverator implementation, copies and works out size
                     received = await CopyToFileStream(assetStream, fileStream);
                 }
 

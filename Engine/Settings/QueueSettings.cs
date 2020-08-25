@@ -16,6 +16,11 @@
         /// A/V ingest queue.
         /// </summary>
         public string? Video { get; set; }
+        
+        /// <summary>
+        /// Queue for handling messages for A/V transcode completion.
+        /// </summary>
+        public string? VideoComplete { get; set; }
 
         /// <summary>
         /// If true, use LocalRoot rather than AWS for messaging.

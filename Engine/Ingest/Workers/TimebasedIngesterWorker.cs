@@ -17,6 +17,7 @@ namespace Engine.Ingest.Workers
         private readonly IMediaTranscoder mediaTranscoder;
         private readonly EngineSettings engineSettings;
         private readonly ILogger<TimebasedIngesterWorker> logger;
+        private static readonly Random random = new Random(); 
 
         public TimebasedIngesterWorker(
             AssetMoverResolver assetMoverResolver,
@@ -37,9 +38,12 @@ namespace Engine.Ingest.Workers
             try
             {
                 var stopwatch = Stopwatch.StartNew();
+                
+                var targetFolder = $"{engineSettings.TimebasedIngest.S3InputTemplate}{GetRandomPrefix()}/";
+                
                 var assetInBucket = await assetMover.CopyAsset(
                     ingestAssetRequest.Asset,
-                    engineSettings.TimebasedIngest.S3InputTemplate,
+                    targetFolder,
                     !SkipStoragePolicyCheck(ingestAssetRequest.Asset.Customer),
                     customerOriginStrategy,
                     cancellationToken);
@@ -51,7 +55,7 @@ namespace Engine.Ingest.Workers
                 if (assetInBucket.FileExceedsAllowance)
                 {
                     ingestAssetRequest.Asset.Error = "StoragePolicy size limit exceeded";
-                    // await imageCompletion.CompleteIngestion(context, false, sourceTemplate);
+                    // TODO await imageCompletion.CompleteIngestion(context, false, sourceTemplate);
                     return IngestResult.Failed;
                 }
 
@@ -70,5 +74,7 @@ namespace Engine.Ingest.Workers
             var customerSpecific = engineSettings.GetCustomerSettings(customerId);
             return customerSpecific.NoStoragePolicyCheck;
         }
+        
+        private string GetRandomPrefix() => random.Next(0, 9999).ToString("D4");
     }
 }

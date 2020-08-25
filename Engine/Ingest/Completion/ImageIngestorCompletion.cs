@@ -27,10 +27,12 @@ namespace Engine.Ingest.Completion
             engineSettings = engineOptions.CurrentValue;
         }
 
+        /// <summary>
+        /// Mark asset as completed in database, clean up working assets and optionally trigger orchestration.
+        /// </summary>
         public async Task<bool> CompleteIngestion(IngestionContext context, bool ingestSuccessful,
             string sourceTemplate)
         {
-            // TODO - can this be used for Timebased too?
             var success = await MarkAssetAsIngested(context);
 
             if (ingestSuccessful && success)
@@ -54,14 +56,14 @@ namespace Engine.Ingest.Completion
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error updating image {asset}", context.Asset.Id);
+                logger.LogError(e, "Error marking image as completed '{assetId}'", context.Asset.Id);
                 return false;
             }
         }
 
         private async Task TriggerOrchestration(IngestionContext context)
         {
-            if (!ShouldIngest(context.Asset.Customer)) return;
+            if (!ShouldOrchestrate(context.Asset.Customer)) return;
 
             var orchestrationSuccess = await orchestratorClient.TriggerOrchestration(context.Asset);
             if (!orchestrationSuccess)
@@ -70,7 +72,7 @@ namespace Engine.Ingest.Completion
             }
         }
         
-        private bool ShouldIngest(int customerId)
+        private bool ShouldOrchestrate(int customerId)
         {
             var customerSpecific = engineSettings.GetCustomerSettings(customerId);
             return customerSpecific.OrchestrateImageAfterIngest ?? engineSettings.OrchestrateImageAfterIngest;
@@ -84,7 +86,7 @@ namespace Engine.Ingest.Completion
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error cleaning up working assets. {rootPath}", rootPath);
+                logger.LogError(ex, "Error cleaning up working assets from '{rootPath}'", rootPath);
             }
         }
     }

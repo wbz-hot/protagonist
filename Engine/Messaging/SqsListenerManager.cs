@@ -38,12 +38,13 @@ namespace Engine.Messaging
         /// Configure listener for specified queue. This configures only, doesn't start listening.
         /// </summary>
         /// <param name="queueName">Name of queue to listen to.</param>
+        /// <param name="messageType">The type of message this queue is for.</param>
         /// <exception cref="InvalidOperationException">Thrown if queue does not exist.</exception>
-        public async Task AddQueueListener(string queueName)
+        public async Task AddQueueListener(string queueName, MessageType messageType)
         {
             if (string.IsNullOrWhiteSpace(queueName)) return;
 
-            var queue = new SubscribedToQueue(queueName);
+            var queue = new SubscribedToQueue(queueName, messageType);
             if (!await VerifyQueueExists(queue))
             {
                 logger.LogWarning("Cannot listen to queue '{queueName}' as it does not exist", queue.Name);
@@ -90,6 +91,7 @@ namespace Engine.Messaging
             }
             catch (QueueDoesNotExistException)
             {
+                logger.LogError("Attempt to listen to queue '{queue}' but it doesn't exist", queue.Name);
                 return false;
             }
             
