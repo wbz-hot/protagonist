@@ -80,7 +80,7 @@ namespace Engine.Messaging
 
                 try
                 {
-                    foreach (var message in response!.Messages)
+                    foreach (var message in response!.Messages!)
                     {
                         if (cancellationToken.IsCancellationRequested) return;
 
@@ -116,6 +116,7 @@ namespace Engine.Messaging
         {
             try
             {
+                // TODO verify w/ md5?
                 var queueMessage = new QueueMessage {Attributes = message.Attributes, Body = message.Body};
                 
                 // create a new scope to avoid issues with Scoped dependencies

@@ -84,14 +84,19 @@ namespace Engine.Messaging
         private async Task<bool> VerifyQueueExists(SubscribedToQueue queue)
         {
             GetQueueUrlResponse result;
-            
+
             try
             {
                 result = await client.GetQueueUrlAsync(queue.Name);
             }
-            catch (QueueDoesNotExistException)
+            catch (QueueDoesNotExistException qEx)
             {
-                logger.LogError("Attempt to listen to queue '{queue}' but it doesn't exist", queue.Name);
+                logger.LogError(qEx, "Attempt to listen to queue '{queue}' but it doesn't exist", queue.Name);
+                return false;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "General error attempting to listen to queue '{queue}'", queue.Name);
                 return false;
             }
             
