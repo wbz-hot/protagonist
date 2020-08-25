@@ -5,7 +5,7 @@ using Engine.Messaging;
 using Engine.Messaging.Models;
 using Newtonsoft.Json;
 
-namespace Engine.Ingest
+namespace Engine.Ingest.Handlers
 {
     /// <summary>
     /// Handler for ingest messages that have been pulled from queue.

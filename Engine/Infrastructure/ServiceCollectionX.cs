@@ -16,6 +16,7 @@ using DLCS.Repository.Security;
 using DLCS.Web.Handlers;
 using Engine.Ingest;
 using Engine.Ingest.Completion;
+using Engine.Ingest.Handlers;
 using Engine.Ingest.Image;
 using Engine.Ingest.Strategy;
 using Engine.Ingest.Timebased;
