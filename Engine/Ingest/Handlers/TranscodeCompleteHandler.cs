@@ -42,7 +42,9 @@ namespace Engine.Ingest.Handlers
                 return false;
             }
 
-            return await timebasedIngestorCompletion.CompleteIngestion(assetId, notification.Outputs,
+            var transcodeResult = new TranscodeResult(notification.Input.Key, notification.Outputs); 
+
+            return await timebasedIngestorCompletion.CompleteIngestion(assetId, transcodeResult,
                 cancellationToken);
         }
 

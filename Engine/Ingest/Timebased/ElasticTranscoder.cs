@@ -119,6 +119,7 @@ namespace Engine.Ingest.Timebased
             var asset = context.Asset;
             var technicalDetails = asset.FullImageOptimisationPolicy.TechnicalDetails;
             var outputs = new List<CreateJobOutput>(technicalDetails.Count);
+            
             foreach (var technicalDetail in technicalDetails)
             {
                 // TODO - this? Or Asset.MediaType
@@ -137,7 +138,7 @@ namespace Engine.Ingest.Timebased
                     logger.LogWarning("Mapping for preset '{presetname}' not found!", presetName);
                     continue;
                 }
-
+                
                 outputs.Add(new CreateJobOutput
                 {
                     PresetId = presetId,
@@ -162,7 +163,7 @@ namespace Engine.Ingest.Timebased
                     FrameRate = "auto",
                     Interlaced = "auto",
                     Resolution = "auto",
-                    Key = key
+                    Key = key,
                 },
                 PipelineId = pipelineId,
                 UserMetadata = new Dictionary<string, string>

@@ -101,7 +101,7 @@ namespace Engine.Infrastructure
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddSingleton<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>()
-                .AddTransient<ITimebasedIngestorCompletion, TimebasedIngestorCompletion>()
+                .AddTransient<ITimebasedIngestorCompletion, TimebasedPostTranscoding>()
                 .AddTransient<IImageIngestorCompletion, ImageIngestorCompletion>()
                 .AddSingleton<IMediaTranscoder, ElasticTranscoder>();
 

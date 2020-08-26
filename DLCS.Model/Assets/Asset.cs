@@ -54,6 +54,10 @@ namespace DLCS.Model.Assets
         [JsonConverter(typeof(AssetFamilyConverter))]
         public AssetFamily Family { get; set; }
         public string MediaType { get; set; }
+        
+        /// <summary>
+        /// Duration of Timebased asset, in ms
+        /// </summary>
         public long Duration { get; set; }
         
         public ThumbnailPolicy? FullThumbnailPolicy { get; private set; }

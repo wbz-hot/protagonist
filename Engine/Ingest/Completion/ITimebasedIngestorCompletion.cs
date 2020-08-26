@@ -10,7 +10,7 @@ namespace Engine.Ingest.Completion
         /// <summary>
         /// Mark asset as completed in database and move assets from Transcode output to main location.
         /// </summary>
-        Task<bool> CompleteIngestion(string assetId, IList<TranscodeOutput> transcodeOutputs,
+        Task<bool> CompleteIngestion(string assetId, TranscodeResult transcodeResult,
             CancellationToken cancellationToken);
     }
 }

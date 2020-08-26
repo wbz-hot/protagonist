@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,10 +55,11 @@ namespace Engine.Tests.Ingest.Handlers
             
             // Assert
             A.CallTo(() => completion.CompleteIngestion("2/1/engine_vid_1",
-                    A<IList<TranscodeOutput>>.That.Matches(outputs =>
-                        outputs.Count == 2 &&
-                        outputs[0].Key == "2/1/engine_vid_1/full/full/max/max/0/default.mp4" &&
-                        outputs[1].Key == "2/1/engine_vid_1/full/full/max/max/0/default.webm"),
+                    A<TranscodeResult>.That.Matches(result =>
+                        result.InputKey == "9919/2/1/engine_vid_1" &&
+                        result.Outputs.Count == 2 &&
+                        result.Outputs[0].Key == "2/1/engine_vid_1/full/full/max/max/0/default.mp4" &&
+                        result.Outputs[1].Key == "2/1/engine_vid_1/full/full/max/max/0/default.webm"),
                     cancellationToken))
                 .MustHaveHappened();
         }
@@ -80,7 +80,7 @@ namespace Engine.Tests.Ingest.Handlers
             var cancellationToken = CancellationToken.None;
             
             A.CallTo(() =>
-                    completion.CompleteIngestion("2/1/engine_vid_1", A<IList<TranscodeOutput>>._, cancellationToken))
+                    completion.CompleteIngestion("2/1/engine_vid_1", A<TranscodeResult>._, cancellationToken))
                 .Returns(success);
 
             // Act

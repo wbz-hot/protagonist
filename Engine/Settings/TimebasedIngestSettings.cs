@@ -12,6 +12,8 @@ namespace Engine.Settings
         
         public string OutputBucket { get; set; }
         
+        public string InputBucket { get; set; }
+        
         public string StorageBucket { get; set; }
 
         /// <summary>

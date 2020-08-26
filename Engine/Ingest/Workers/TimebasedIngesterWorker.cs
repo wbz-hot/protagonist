@@ -87,6 +87,6 @@ namespace Engine.Ingest.Workers
         }
 
         private Task MarkAsComplete(string assetId, CancellationToken cancellationToken) =>
-            completion.CompleteIngestion(assetId, new List<TranscodeOutput>(), cancellationToken);
+            completion.CompleteIngestion(assetId, new TranscodeResult(), cancellationToken);
     }
 }
