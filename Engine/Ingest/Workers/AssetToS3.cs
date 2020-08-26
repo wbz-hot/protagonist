@@ -122,6 +122,16 @@ namespace Engine.Ingest.Workers
             var success = await bucketReader.WriteLargeFileToBucket(target, assetOnDisk.Location, assetOnDisk.ContentType,
                 cancellationToken);
 
+            try
+            {
+                // TODO - do we want to do this?
+                File.Delete(diskDestination);
+            }
+            catch (Exception)
+            {
+                // no-op, scavenger will get 
+            }
+
             if (!success)
             {
                 throw new ApplicationException(

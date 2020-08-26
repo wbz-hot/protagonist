@@ -1,0 +1,12 @@
+﻿{
+  "Type": "Notification",
+  "MessageId": "bf2dc336-5276-5ceb-b1c9-948911b8e8b5",
+  "TopicArn": "arn:aws:sns:eu-west-1:167865917244:dlcsspinup-prod-timebased-notification",
+  "Subject": "Amazon Elastic Transcoder has finished transcoding job 1598374269794-x3aftt.",
+  "Message": "{\n  \"state\" : \"COMPLETED\",\n  \"version\" : \"2012-09-25\",\n  \"jobId\" : \"1598374269794-x3aftt\",\n  \"pipelineId\" : \"1598364121543-wusy52\",\n  \"input\" : {\n    \"key\" : \"9919/2/1/engine_vid_1\",\n    \"frameRate\" : \"auto\",\n    \"resolution\" : \"auto\",\n    \"aspectRatio\" : \"auto\",\n    \"interlaced\" : \"auto\",\n    \"container\" : \"auto\"\n  },\n  \"inputCount\" : 1,\n  \"outputs\" : [ {\n    \"id\" : \"1\",\n    \"presetId\" : \"1351620000001-100070\",\n    \"key\" : \"2/1/engine_vid_1/full/full/max/max/0/default.mp4\",\n    \"status\" : \"Complete\",\n    \"duration\" : 14,\n    \"width\" : 640,\n    \"height\" : 480\n  }, {\n    \"id\" : \"2\",\n    \"presetId\" : \"1351620000001-100240\",\n    \"key\" : \"2/1/engine_vid_1/full/full/max/max/0/default.webm\",\n    \"status\" : \"Complete\",\n    \"duration\" : 15,\n    \"width\" : 640,\n    \"height\" : 480\n  } ],\n  \"userMetadata\" : {\n    \"jobId\" : \"2a9e35a9-078c-4a43-b311-b14f2e74ddf4\",\n    \"dlcsId\" : \"2/1/engine_vid_1\",\n    \"startTime\" : \"1598374268\"\n  }\n}",
+  "Timestamp": "2020-08-25T16:51:26.616Z",
+  "SignatureVersion": "1",
+  "Signature": "XLa4HLK42EdEzy8Q4Oiey7fBFFuc0IBpDEyzgaJZQDSKXOe6/oPnLqwJ65QIbJiklik9wDdbeBDpYr2nR3d7luXrmSkNKRzxATOXgW6qTgKAcPV1q/AEWUvdxwWKuU+4PlukjPOTPyIvUGSJss83G8gtRx781mZtu6czFoGh1cWPM41IY/uh3eVr6cAxiGDtSquvsxZZ9fGCPtMFcDbXXXXAkFgClyVpOS9j5UolJ3dYzs+vr+hRdhPKiWmtt+vEGwl+OjtF/gbgyBlMWMi/FDJoJQD1BgkFYWUscwNMERvAK3JexvwceKuUGsFiQEkD8ZbkCsQAg9JXfXDQpuFfCA==",
+  "SigningCertURL": "https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-a86cb10b4e1f29c941702d737128f7b6.pem",
+  "UnsubscribeURL": "https://sns.eu-west-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:eu-west-1:167865917244:dlcsspinup-prod-timebased-notification:c24f06ac-f817-4755-9998-8d5924532874"
+}

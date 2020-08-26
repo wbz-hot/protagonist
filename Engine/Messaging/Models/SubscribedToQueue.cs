@@ -22,7 +22,7 @@ namespace Engine.Messaging.Models
         /// <summary>
         /// Get the full URL of this queue
         /// </summary>
-        public string Url { get; private set; }
+        public string? Url { get; private set; }
 
         private string DebuggerDisplay => $"{Name} - {Url}";
 

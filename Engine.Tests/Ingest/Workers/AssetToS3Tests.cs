@@ -61,7 +61,7 @@ namespace Engine.Tests.Ingest.Workers
             };
 
             A.CallTo(() => bucketReader.CopyLargeFileBetweenBuckets(A<ObjectInBucket>._, A<ObjectInBucket>._,
-                    A<Func<long, Task<bool>>>._, A<CancellationToken>._))
+                    A<Func<long, Task<bool>>>._, false, A<CancellationToken>._))
                 .Returns(ResultStatus<long?>.Successful(100));
             
             var ct = new CancellationToken();
@@ -73,7 +73,7 @@ namespace Engine.Tests.Ingest.Workers
             A.CallTo(() => bucketReader.CopyLargeFileBetweenBuckets(
                     A<ObjectInBucket>.That.Matches(o => o.ToString() == "origin:::large_file.mov"),
                     A<ObjectInBucket>.That.Matches(o => o.ToString() == "fantasy:::99/1/balrog"),
-                    A<Func<long, Task<bool>>>._, ct))
+                    A<Func<long, Task<bool>>>._, false, ct))
                 .MustHaveHappened();
         }
         
@@ -97,7 +97,7 @@ namespace Engine.Tests.Ingest.Workers
             };
             
             A.CallTo(() => bucketReader.CopyLargeFileBetweenBuckets(A<ObjectInBucket>._, A<ObjectInBucket>._,
-                    A<Func<long, Task<bool>>>._, A<CancellationToken>._))
+                    A<Func<long, Task<bool>>>._, false, A<CancellationToken>._))
                 .Returns(ResultStatus<long?>.Successful(assetSize));
 
             var expected = new AssetFromOrigin("balrog", assetSize, "99/1/balrog", mediaType);
@@ -127,7 +127,7 @@ namespace Engine.Tests.Ingest.Workers
             };
 
             A.CallTo(() => bucketReader.CopyLargeFileBetweenBuckets(A<ObjectInBucket>._, A<ObjectInBucket>._,
-                    A<Func<long, Task<bool>>>._, A<CancellationToken>._))
+                    A<Func<long, Task<bool>>>._, false, A<CancellationToken>._))
                 .Returns(ResultStatus<long?>.Unsuccessful(100));
             
             var ct = new CancellationToken();

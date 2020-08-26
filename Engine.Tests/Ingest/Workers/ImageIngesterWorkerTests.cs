@@ -26,7 +26,7 @@ namespace Engine.Tests.Ingest.Workers
     {
         private readonly IAssetMover assetMover;
         private readonly IOptionsMonitor<EngineSettings> engineOptionsMonitor;
-        private readonly IIngestorCompletion ingestorCompletion;
+        private readonly IImageIngestorCompletion imageIngestorCompletion;
         private readonly FakeImageProcessor imageProcessor;
         private readonly ILogger<ImageIngesterWorker> logger;
         private readonly ImageIngesterWorker sut;
@@ -49,11 +49,11 @@ namespace Engine.Tests.Ingest.Workers
             var optionsMonitor = OptionsHelpers.GetOptionsMonitor(engineSettings);
 
             assetMover = A.Fake<IAssetMover>();
-            ingestorCompletion = A.Fake<IIngestorCompletion>();
+            imageIngestorCompletion = A.Fake<IImageIngestorCompletion>();
             imageProcessor = new FakeImageProcessor();
             
             sut = new ImageIngesterWorker(imageProcessor, type => assetMover, optionsMonitor,
-                ingestorCompletion, new NullLogger<ImageIngesterWorker>());
+                imageIngestorCompletion, new NullLogger<ImageIngesterWorker>());
         }
 
         [Fact]
@@ -110,7 +110,7 @@ namespace Engine.Tests.Ingest.Workers
             var result = await sut.Ingest(new IngestAssetRequest(asset, DateTime.Now), new CustomerOriginStrategy());
             
             // Assert
-            A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, false, A<string>._))
+            A.CallTo(() => imageIngestorCompletion.CompleteIngestion(A<IngestionContext>._, false, A<string>._))
                 .MustHaveHappened();
             result.Should().Be(IngestResult.Failed);
         }
@@ -136,7 +136,7 @@ namespace Engine.Tests.Ingest.Workers
                 await sut.Ingest(new IngestAssetRequest(asset, new DateTime()), new CustomerOriginStrategy());
                 
                 // Assert
-                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
+                A.CallTo(() => imageIngestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
                     .MustHaveHappened();
                 imageProcessor.WasCalled.Should().BeTrue();
             }
@@ -165,7 +165,7 @@ namespace Engine.Tests.Ingest.Workers
                 A.CallTo(() => assetMover.CopyAsset(A<Asset>._, A<string>._, true, A<CustomerOriginStrategy>._, A<CancellationToken>._))
                     .Returns(new AssetFromOrigin(asset.Id, 13, target, "application/json"));
 
-                A.CallTo(() => ingestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
+                A.CallTo(() => imageIngestorCompletion.CompleteIngestion(A<IngestionContext>._, imageProcessSuccess, A<string>._))
                     .Returns(completeResult);
 
                 imageProcessor.ReturnValue = imageProcessSuccess;

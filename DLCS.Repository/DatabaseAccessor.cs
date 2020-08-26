@@ -12,7 +12,7 @@ using Npgsql;
 namespace DLCS.Repository
 {
     /// <summary>
-    /// Helper base class for dealing with connections
+    /// Helper base class for dealing with connections and executing db queries
     /// </summary>
     public class DatabaseAccessor
     {
@@ -44,10 +44,9 @@ namespace DLCS.Repository
             IDbTransaction? transaction = null)
             where TEntity : class, IEntity
         {
-            TEntity entity = null;
             try
             {
-                entity = mapper.Map<TEntity>(model);
+                var entity = mapper.Map<TEntity>(model);
                 return await Execute(entity, sql, transaction);
             }
             catch (Exception ex)
@@ -60,8 +59,8 @@ namespace DLCS.Repository
         /// <summary>
         /// Execute provided SQL using entity as params.
         /// </summary>
-        public async Task<bool> Execute<T>(T entity, string sql, IDbTransaction? transaction = null)
-            where T : IEntity
+        public async Task<bool> Execute<T>(T? entity, string sql, IDbTransaction? transaction = null)
+            where T : class, IEntity
         {
             if (entity == null) return true;
             try

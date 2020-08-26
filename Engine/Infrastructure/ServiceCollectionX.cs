@@ -57,6 +57,7 @@ namespace Engine.Infrastructure
             => services
                 .AddAWSService<IAmazonSQS>()
                 .AddTransient<IngestHandler>()
+                .AddTransient<TranscodeCompleteHandler>()
                 .AddSingleton<SqsListenerManager>()
                 .AddScoped<QueueHandlerResolver>(provider => queue => queue.MessageType switch
                 {
@@ -100,8 +101,8 @@ namespace Engine.Infrastructure
                 .AddSingleton<IOriginStrategy, BasicHttpAuthOriginStrategy>()
                 .AddSingleton<IOriginStrategy, SftpOriginStrategy>()
                 .AddTransient<RequestTimeLoggingHandler>()
-                .AddTransient<IIngestorCompletion, TimebasedIngestorCompletion>()
-                .AddTransient<IIngestorCompletion, ImageIngestorCompletion>()
+                .AddTransient<ITimebasedIngestorCompletion, TimebasedIngestorCompletion>()
+                .AddTransient<IImageIngestorCompletion, ImageIngestorCompletion>()
                 .AddSingleton<IMediaTranscoder, ElasticTranscoder>();
 
             // image-processor gets httpClient for calling appetiser/tizer

@@ -60,12 +60,13 @@ namespace DLCS.Model.Storage
         /// <param name="source">Source item to copy.</param>
         /// <param name="target">Where to copy item to.</param>
         /// <param name="verifySize">Function to verify objectSize prior to copying. Not copied if false returned.</param>
+        /// <param name="targetIsOpen">If true the copied object is given public access rights</param>
         /// <param name="token">Cancellation token</param>
         /// <returns><see>
         ///         <cref>ResultStatus{long?}</cref>
         ///     </see>
         ///     representing success of call and file size</returns>
         Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target,
-            Func<long, Task<bool>> verifySize = null, CancellationToken token = default);
+            Func<long, Task<bool>>? verifySize = null, bool targetIsOpen = false, CancellationToken token = default);
     }
 }

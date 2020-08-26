@@ -5,7 +5,7 @@ namespace Engine.Ingest.Completion
     /// <summary>
     /// Interface for operations to be carried out when Ingestion has been completed.
     /// </summary>
-    public interface IIngestorCompletion
+    public interface IImageIngestorCompletion
     {
         /// <summary>
         /// Final operations to when ingestion has been completed.

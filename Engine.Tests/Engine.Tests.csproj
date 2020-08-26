@@ -25,4 +25,11 @@
       <ProjectReference Include="..\Engine\Engine.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="Samples\ElasticTranscoderNotification.json" />
+      <Content Include="Samples\ElasticTranscoderNotification.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

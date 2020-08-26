@@ -167,9 +167,9 @@ namespace Engine.Ingest.Timebased
                 PipelineId = pipelineId,
                 UserMetadata = new Dictionary<string, string>
                 {
-                    ["dlcsId"] = context.Asset.Id,
-                    ["startTime"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
-                    ["jobId"] = Guid.NewGuid().ToString(), // do we want to pass this in for logging purposes?
+                    [UserMetadataKeys.DlcsId] = context.Asset.Id,
+                    [UserMetadataKeys.StartTime] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+                    [UserMetadataKeys.JobId] = Guid.NewGuid().ToString(), // do we want to pass this in for logging purposes?
                 },
                 Outputs = outputs
             };

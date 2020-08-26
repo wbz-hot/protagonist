@@ -5,6 +5,7 @@
     /// </summary>
     public interface IEntity
     {
+        // TODO - we should remove the need for this once Deliverator is gone
         /// <summary>
         /// Prepares the entity for database write operations.
         /// </summary>

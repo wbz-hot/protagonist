@@ -9,6 +9,6 @@ namespace DLCS.Model.Assets
         /// <summary>
         /// Marks an asset as ingested - updating Images, Batch, ImageLocation and ImageStorage.
         /// </summary>
-        public Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage);
+        public Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation? imageLocation, ImageStorage imageStorage);
     }
 }

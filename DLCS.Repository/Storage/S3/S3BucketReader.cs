@@ -242,28 +242,27 @@ namespace DLCS.Repository.Storage.S3
         /// </summary>
         /// <param name="source">Bucket where object is currently stored.</param>
         /// <param name="target">Target bucket where object is to be stored.</param>
-        /// <param name="verifySize"></param>
+        /// <param name="verifySize">Function to verify objectSize prior to copying. Not copied if false returned.</param>
+        /// <param name="targetIsOpen">If true the copied object is given public access rights</param>
         /// <param name="token">Cancellation token</param>
         /// <returns>ResultStatus signifying success or failure alongside ContentSize</returns>
         /// <remarks>See https://docs.aws.amazon.com/AmazonS3/latest/dev/CopyingObjctsUsingLLNetMPUapi.html </remarks>
         public async Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target,
-            Func<long, Task<bool>> verifySize = null, CancellationToken token = default)
+            Func<long, Task<bool>>? verifySize = null, bool targetIsOpen = false, CancellationToken token = default)
         {
-            long objectSize = -1;
+            long? objectSize = null;
             var partSize = 5 * (long) Math.Pow(2, 20); // 5 MB
             var timer = Stopwatch.StartNew();
             var success = false;
 
             try
             {
-                var initiateUploadTask = InitiateMultipartUpload(target);
-
                 var sourceMetadata = await GetObjectMetadata(source);
                 objectSize = sourceMetadata.ContentLength;
 
                 if (verifySize != null)
                 {
-                    if (!await verifySize.Invoke(objectSize))
+                    if (!await verifySize.Invoke(objectSize ?? 0))
                     {
                         logger.LogInformation("Aborting multipart upload for {target} as size verification failed", target);
                         return ResultStatus<long?>.Unsuccessful(objectSize);
@@ -273,7 +272,7 @@ namespace DLCS.Repository.Storage.S3
                 var numberOfParts = Convert.ToInt32(objectSize / partSize);
                 var copyResponses = new List<CopyPartResponse>(numberOfParts);
 
-                var uploadId = await initiateUploadTask;
+                var uploadId = await InitiateMultipartUpload(target, targetIsOpen);;
 
                 long bytePosition = 0;
                 for (int i = 1; bytePosition < objectSize; i++)
@@ -286,8 +285,8 @@ namespace DLCS.Repository.Storage.S3
                         SourceKey = source.Key,
                         UploadId = uploadId,
                         FirstByte = bytePosition,
-                        LastByte = bytePosition + partSize - 1 >= objectSize
-                            ? objectSize - 1
+                        LastByte = bytePosition + partSize - 1 >= objectSize.Value
+                            ? objectSize.Value - 1
                             : bytePosition + partSize - 1,
                         PartNumber = i
                     };
@@ -346,9 +345,16 @@ namespace DLCS.Repository.Storage.S3
             return ResultStatus<long?>.Unsuccessful(objectSize);
         }
 
-        private async Task<string> InitiateMultipartUpload(ObjectInBucket target)
+        private async Task<string> InitiateMultipartUpload(ObjectInBucket target, bool makeTargetPublic)
         {
             var request = new InitiateMultipartUploadRequest {BucketName = target.Bucket, Key = target.Key};
+
+            if (makeTargetPublic)
+            {
+                logger.LogInformation("Object {targetObject} will have PublicRead ACL", target.ToString());
+                request.CannedACL = S3CannedACL.PublicRead;
+            }
+            
             var response = await s3Client.InitiateMultipartUploadAsync(request);
             return response.UploadId;
         }

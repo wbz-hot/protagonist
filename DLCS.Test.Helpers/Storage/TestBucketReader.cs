@@ -148,7 +148,7 @@ namespace DLCS.Test.Helpers.Storage
         }
 
         public Task<ResultStatus<long?>> CopyLargeFileBetweenBuckets(ObjectInBucket source, ObjectInBucket target, Func<long, Task<bool>> verifySize = null,
-            CancellationToken token = default)
+            bool targetIsOpen = false, CancellationToken token = default)
         {
             throw new NotImplementedException();
         }

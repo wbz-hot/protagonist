@@ -10,7 +10,9 @@ namespace Engine.Settings
     {
         public string S3InputTemplate { get; set; }
         
-        public string S3OutputTemplate { get; set; }
+        public string OutputBucket { get; set; }
+        
+        public string StorageBucket { get; set; }
 
         /// <summary>
         /// The name of the pipeline to use for ingesting files.

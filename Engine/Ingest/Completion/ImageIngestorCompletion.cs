@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Engine.Ingest.Completion
 {
-    public class ImageIngestorCompletion : IIngestorCompletion
+    public class ImageIngestorCompletion : IImageIngestorCompletion
     {
         private readonly OrchestratorClient orchestratorClient;
         private readonly IAssetRepository assetRepository;

@@ -30,7 +30,8 @@ namespace DLCS.Repository.Mappings
                 .ForMember(src => src.String2, opt => opt.MapFrom(src => src.Reference2))
                 .ForMember(src => src.String3, opt => opt.MapFrom(src => src.Reference3))
                 .ForMember(src => src.Roles, opt => opt.MapFrom(src => src.Roles.SplitCsvString().ToList()))
-                .ForMember(src => src.Tags, opt => opt.MapFrom(src => src.Tags.SplitCsvString().ToList()));
+                .ForMember(src => src.Tags, opt => opt.MapFrom(src => src.Tags.SplitCsvString().ToList()))
+                .ForMember(src => src.Family, opt => opt.MapFrom(src => (AssetFamily) src.Family.ToCharArray()[0]));
             
             CreateMap<Asset, AssetEntity>()
                 .ForMember(src => src.NumberReference1, opt => opt.MapFrom(src => src.Number1))
@@ -40,7 +41,8 @@ namespace DLCS.Repository.Mappings
                 .ForMember(src => src.Reference2, opt => opt.MapFrom(src => src.String2))
                 .ForMember(src => src.Reference3, opt => opt.MapFrom(src => src.String3))
                 .ForMember(src => src.Roles, opt => opt.MapFrom(src => string.Join(",", src.Roles)))
-                .ForMember(src => src.Tags, opt => opt.MapFrom(src => string.Join(",", src.Tags)));
+                .ForMember(src => src.Tags, opt => opt.MapFrom(src => string.Join(",", src.Tags)))
+                .ForMember(src => src.Family, opt => opt.MapFrom(src => ((char)src.Family).ToString()));
 
             CreateMap<ThumbnailPolicyEntity, ThumbnailPolicy>()
                 .ForMember(src => src.Sizes, opt => opt.MapFrom(src => src.Sizes.SplitCsvString(int.Parse).ToList()));

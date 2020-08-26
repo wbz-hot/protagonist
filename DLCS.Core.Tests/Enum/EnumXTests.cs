@@ -97,7 +97,7 @@ namespace DLCS.Core.Tests.Enum
             // Assert
             actual.Should().Be(expected);
         }
-
+        
         public enum TestEnum
         {
             Unknown, 

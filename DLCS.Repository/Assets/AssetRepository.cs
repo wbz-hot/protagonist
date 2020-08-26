@@ -23,7 +23,8 @@ namespace DLCS.Repository.Assets
         public Task<Asset> GetAsset(string id)
             => dbFactory.SelectAndMap<AssetEntity, Asset>(AssetGetSql, new {Id = id});
 
-        public async Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation imageLocation, ImageStorage imageStorage)
+        // TODO - should this live in Engine only?
+        public async Task<bool> UpdateIngestedAsset(Asset asset, ImageLocation? imageLocation, ImageStorage imageStorage)
         {
             logger.LogDebug("Marking asset {assetId} as completed", asset.Id);
             asset.MarkAsIngestComplete();
@@ -79,7 +80,7 @@ SELECT ""Id"", ""Customer"", ""Space"", ""Created"", ""Origin"", ""Tags"", ""Rol
   WHERE ""Id""=@Id;";
 
         private const string AssetUpdateSql =
-            @"UPDATE ""Images"" SET ""Width"" = @Width, ""Height"" = @Height, ""Error"" = @Error, ""Finished"" = @Finished, ""Ingesting"" = @Ingesting WHERE ""Id"" = @Id;";
+            @"UPDATE ""Images"" SET ""Width"" = @Width, ""Height"" = @Height, ""Error"" = @Error, ""Finished"" = @Finished, ""Ingesting"" = @Ingesting, ""Duration"" = @Duration WHERE ""Id"" = @Id;";
 
         private const string ImageLocationInsertSql =
             @"INSERT INTO ""ImageLocation"" (""Id"", ""S3"", ""Nas"") VALUES (@Id, @S3, @Nas);";
@@ -103,6 +104,5 @@ UPDATE ""Batches"" SET ""Finished""=@Now WHERE ""Id"" = @Id AND ""Completed""+""
         private const string IncrementBatchCompletedSql = @"
 UPDATE ""Batches"" SET ""Completed""=""Completed""+1 WHERE ""Id"" = @Id;
 UPDATE ""Batches"" SET ""Finished""=@Now WHERE ""Id"" = @Id AND ""Completed""+""Errors""=""Count""";
-            
     }
 }

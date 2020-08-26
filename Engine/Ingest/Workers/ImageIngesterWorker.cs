@@ -22,14 +22,14 @@ namespace Engine.Ingest.Workers
         private readonly IAssetMover assetMover;
         private readonly EngineSettings engineSettings;
         private readonly IImageProcessor imageProcessor;
-        private readonly IIngestorCompletion imageCompletion;
+        private readonly IImageIngestorCompletion imageCompletion;
         private readonly ILogger<ImageIngesterWorker> logger;
 
         public ImageIngesterWorker(
             IImageProcessor imageProcessor,
             AssetMoverResolver assetMoverResolver,
             IOptionsMonitor<EngineSettings> engineOptions,
-            IIngestorCompletion imageCompletion,
+            IImageIngestorCompletion imageCompletion,
             ILogger<ImageIngesterWorker> logger)
         {
             assetMover = assetMoverResolver(AssetMoveType.Disk);

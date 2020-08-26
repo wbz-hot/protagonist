@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using DLCS.Model.Customer;
+using Engine.Ingest.Completion;
 using Engine.Ingest.Models;
 using Engine.Ingest.Timebased;
 using Engine.Settings;
@@ -15,6 +17,7 @@ namespace Engine.Ingest.Workers
     {
         private readonly IAssetMover assetMover;
         private readonly IMediaTranscoder mediaTranscoder;
+        private readonly ITimebasedIngestorCompletion completion;
         private readonly EngineSettings engineSettings;
         private readonly ILogger<TimebasedIngesterWorker> logger;
         private static readonly Random random = new Random(); 
@@ -23,10 +26,12 @@ namespace Engine.Ingest.Workers
             AssetMoverResolver assetMoverResolver,
             IOptionsMonitor<EngineSettings> engineOptions,
             IMediaTranscoder mediaTranscoder,
+            ITimebasedIngestorCompletion completion,
             ILogger<TimebasedIngesterWorker> logger)
         {
             assetMover = assetMoverResolver(AssetMoveType.ObjectStore);
             this.mediaTranscoder = mediaTranscoder;
+            this.completion = completion;
             engineSettings = engineOptions.CurrentValue;
             this.logger = logger;
         }
@@ -55,12 +60,16 @@ namespace Engine.Ingest.Workers
                 if (assetInBucket.FileExceedsAllowance)
                 {
                     ingestAssetRequest.Asset.Error = "StoragePolicy size limit exceeded";
-                    // TODO await imageCompletion.CompleteIngestion(context, false, sourceTemplate);
+                    await MarkAsComplete(ingestAssetRequest.Asset.Id, cancellationToken);
                     return IngestResult.Failed;
                 }
 
                 var success = await mediaTranscoder.InitiateTranscodeOperation(context, cancellationToken);
-                return success ? IngestResult.QueuedForProcessing : IngestResult.Failed;
+
+                if (success) return IngestResult.QueuedForProcessing;
+                
+                await MarkAsComplete(ingestAssetRequest.Asset.Id, cancellationToken);
+                return IngestResult.Failed;
             }
             catch (Exception ex)
             {
@@ -68,13 +77,16 @@ namespace Engine.Ingest.Workers
                 return IngestResult.Failed;
             }
         }
-
+        
+        private string GetRandomPrefix() => random.Next(0, 9999).ToString("D4");
+        
         private bool SkipStoragePolicyCheck(int customerId)
         {
             var customerSpecific = engineSettings.GetCustomerSettings(customerId);
             return customerSpecific.NoStoragePolicyCheck;
         }
-        
-        private string GetRandomPrefix() => random.Next(0, 9999).ToString("D4");
+
+        private Task MarkAsComplete(string assetId, CancellationToken cancellationToken) =>
+            completion.CompleteIngestion(assetId, new List<TranscodeOutput>(), cancellationToken);
     }
 }
