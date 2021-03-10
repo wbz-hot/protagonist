@@ -38,6 +38,16 @@ namespace Thumbs
             IBucketReader bucketReader,
             AssetDeliveryPathParser parser)
         {
+            try
+            {
+                var headers = string.Join("|", context.Request.Headers.Select(h => $"{h.Key}:{h.Value}"));
+                logger.LogInformation("For {Path} - Headers: {Headers}", context.Request.GetDisplayUrl(), headers);
+            }
+            catch
+            {
+                // for debug purposes only
+            }
+            
             var thumbnailRequest = await parser.Parse(context.Request.Path.Value);
             if (thumbnailRequest.IIIFImageRequest.IsBase)
             {
