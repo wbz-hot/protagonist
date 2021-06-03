@@ -69,8 +69,13 @@
           <li class="nav-item">
             <navlink href="/keys" icon="key">API Keys</navlink>
           </li>
+          @if (User.IsInRole(ClaimsPrincipalUtils.Roles.Admin))
+          {
+            <li class="nav-item">
+              <navlink href="/admin" icon="user-plus">Admin</navlink>
+            </li>  
+          }
         </ul>
-
       </div>
     </nav>
 
@@ -88,6 +93,12 @@
           </button>
         </div>
       </div>
+      @if (User.IsInRole("Assuming"))
+      {
+        <div class="alert alert-info" role="alert">
+          You are assuming customer @User.GetCustomerId()
+        </div>
+      }
 
       @RenderBody()
       
